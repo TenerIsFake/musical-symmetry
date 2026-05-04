@@ -5,6 +5,8 @@ import { useChord } from './hooks/useChord';
 import PianoKeyboard from './components/PianoKeyboard';
 import ClassificationPanel from './components/ClassificationPanel';
 import ProgressionPanel from './components/ProgressionPanel';
+import OrbitDiagram from './components/OrbitDiagram';
+import TonnetzViz from './components/TonnetzViz';
 
 export type Action =
   | { type: 'TOGGLE_PC'; pc: PitchClass }
@@ -72,6 +74,8 @@ export default function App() {
         <div className="space-y-6">
           <ClassificationPanel analysis={analysis} chord={chord} />
           <ProgressionPanel chord={chord} />
+          <OrbitDiagram selectedPCs={state.selectedPCs} analysis={analysis} />
+          <TonnetzViz chord={chord} targetChord={null} />
         </div>
       </main>
     </div>
