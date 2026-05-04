@@ -1,9 +1,10 @@
 import { useReducer } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
-import { NOTE_NAMES } from '@musical-symmetry/core';
 import { useClassifier } from './hooks/useClassifier';
 import { useChord } from './hooks/useChord';
 import PianoKeyboard from './components/PianoKeyboard';
+import ClassificationPanel from './components/ClassificationPanel';
+import ProgressionPanel from './components/ProgressionPanel';
 
 export type Action =
   | { type: 'TOGGLE_PC'; pc: PitchClass }
@@ -55,35 +56,6 @@ export default function App() {
             onToggle={(pc) => dispatch({ type: 'TOGGLE_PC', pc })}
           />
 
-          {analysis && (
-            <div className="bg-gray-800 rounded-lg p-4 space-y-2">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase">Symmetry Analysis</h2>
-              <p className="text-white">
-                <span className="text-gray-400">Group:</span>{' '}
-                <span className="font-mono">{analysis.abstractGroup}</span>
-              </p>
-              {analysis.mullikenLabel && (
-                <p className="text-white">
-                  <span className="text-gray-400">Mulliken label:</span>{' '}
-                  <span className="font-mono">{analysis.mullikenLabel}</span>
-                </p>
-              )}
-              <p className="text-white">
-                <span className="text-gray-400">Stabilizer order:</span>{' '}
-                <span className="font-mono">{analysis.stabilizerOrder}</span>
-              </p>
-            </div>
-          )}
-
-          {chord && (
-            <div className="bg-gray-800 rounded-lg p-4 space-y-2">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase">Chord</h2>
-              <p className="text-white font-mono text-lg">
-                {NOTE_NAMES[chord.root]} {chord.quality}
-              </p>
-            </div>
-          )}
-
           {state.selectedPCs.length === 0 && (
             <p className="text-gray-500 text-sm">Click keys on the piano to select pitch classes.</p>
           )}
@@ -98,7 +70,8 @@ export default function App() {
           )}
         </div>
         <div className="space-y-6">
-          {/* Visualizations go here */}
+          <ClassificationPanel analysis={analysis} chord={chord} />
+          <ProgressionPanel chord={chord} />
         </div>
       </main>
     </div>
