@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  musical-symmetry-ui:
+    build:
+      context: .
+      dockerfile: packages/ui/Dockerfile
+    container_name: musical-symmetry-ui
+    ports:
+      - "3009:80"
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
