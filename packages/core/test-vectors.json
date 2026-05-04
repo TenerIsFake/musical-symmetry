@@ -1,0 +1,21 @@
+{
+  "classify": [
+    { "input": [0,2,4,6,8,10], "expected": { "abstractGroup": "D6", "mullikenLabel": "A1g", "distinctTranspositions": 2 } },
+    { "input": [0,2,4,5,7,9,11], "expected": { "abstractGroup": "Z2", "mullikenLabel": "B1u", "distinctTranspositions": 12 } },
+    { "input": [0,2,3,5,7,8,11], "expected": { "abstractGroup": "C1", "mullikenLabel": "B2u", "distinctTranspositions": 12 } },
+    { "input": [0,1,3,4,6,7,9,10], "expected": { "abstractGroup": "D4", "mullikenLabel": "A1u", "distinctTranspositions": 3 } },
+    { "input": [0,1,2,3,4,5,6,7,8,9,10,11], "expected": { "abstractGroup": "D12", "mullikenLabel": "A1g", "distinctTranspositions": 1 } },
+    { "input": [0,4,8], "expected": { "abstractGroup": "D3", "distinctTranspositions": 4 } }
+  ],
+  "intervalVector": [
+    { "input": [0,2,4,5,7,9,11], "expected": [2,5,4,3,6,1] },
+    { "input": [0,2,4,7,9], "expected": [0,3,2,1,4,0] },
+    { "input": [0,2,4,6,8,10], "expected": [0,6,0,6,0,3] },
+    { "input": [0,4,7], "expected": [0,0,1,1,1,0] }
+  ],
+  "plr": [
+    { "from": { "root": 0, "quality": "major" }, "op": "P", "expected": { "root": 0, "quality": "minor" } },
+    { "from": { "root": 0, "quality": "major" }, "op": "L", "expected": { "root": 4, "quality": "minor" } },
+    { "from": { "root": 0, "quality": "major" }, "op": "R", "expected": { "root": 9, "quality": "minor" } }
+  ]
+}
