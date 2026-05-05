@@ -25,7 +25,7 @@ export interface SliceAnalysis {
 
 export interface AnalysisTimeline {
   filename: string;
-  format: 'midi' | 'musicxml';
+  format: 'midi' | 'musicxml' | 'audio';
   temposBPM: number[];
   timeSignatures: string[];
   totalBeats: number;

@@ -10,7 +10,7 @@ export interface AnalyzeTimelineOptions {
   temposBPM: number[];
   timeSignatures: string[];
   filename: string;
-  format: 'midi' | 'musicxml';
+  format: 'midi' | 'musicxml' | 'audio';
 }
 
 export function analyzeTimeline(notes: TimedNote[], options: AnalyzeTimelineOptions): AnalysisTimeline {

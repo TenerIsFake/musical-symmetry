@@ -9,7 +9,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 export const router = Router();
 
-router.post('/analyze', upload.single('file'), (req, res) => {
+router.post('/analyze', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: 'No file uploaded' });
@@ -24,7 +24,7 @@ router.post('/analyze', upload.single('file'), (req, res) => {
     let notes;
     let temposBPM: number[];
     let timeSignatures: string[];
-    let format: 'midi' | 'musicxml';
+    let format: 'midi' | 'musicxml' | 'audio';
 
     if (ext === 'mid' || ext === 'midi') {
       format = 'midi';
@@ -39,8 +39,15 @@ router.post('/analyze', upload.single('file'), (req, res) => {
       notes = parsed.notes;
       temposBPM = parsed.temposBPM;
       timeSignatures = parsed.timeSignatures;
+    } else if (ext === 'wav') {
+      format = 'audio';
+      const { parseWav } = await import('./parsers/wav.js');
+      const parsed = parseWav(req.file.buffer);
+      notes = parsed.notes;
+      temposBPM = parsed.temposBPM;
+      timeSignatures = parsed.timeSignatures;
     } else {
-      res.status(400).json({ error: `Unsupported file type: .${ext}. Use .mid, .midi, .xml, or .musicxml` });
+      res.status(400).json({ error: `Unsupported file type: .${ext}. Use .mid, .midi, .xml, .musicxml, or .wav` });
       return;
     }
 

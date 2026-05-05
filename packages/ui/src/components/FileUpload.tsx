@@ -33,11 +33,11 @@ export default function FileUpload({ onUpload, isLoading }: Props) {
         <p className="text-gray-400 animate-pulse">Analyzing...</p>
       ) : (
         <>
-          <p className="text-gray-300 mb-2">Drop a MIDI or MusicXML file here</p>
+          <p className="text-gray-300 mb-2">Drop a MIDI, MusicXML, or WAV file here</p>
           <p className="text-gray-500 text-sm mb-4">or click to browse</p>
           <input
             type="file"
-            accept=".mid,.midi,.xml,.musicxml"
+            accept=".mid,.midi,.xml,.musicxml,.wav"
             onChange={handleChange}
             className="hidden"
             id="file-upload"
