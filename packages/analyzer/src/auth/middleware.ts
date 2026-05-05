@@ -5,10 +5,10 @@ import './types.js';
 type Tier = 'anonymous' | 'free' | 'pro' | 'research';
 
 const TIER_LIMITS: Record<Tier, Record<string, number>> = {
-  anonymous: { classify: 50, batch: 0, analyze: 3, og: 20 },
-  free:      { classify: 100, batch: 10, analyze: 10, og: 50 },
-  pro:       { classify: 1000, batch: 100, analyze: 100, og: -1 },
-  research:  { classify: 10000, batch: 1000, analyze: 1000, og: -1 },
+  anonymous: { classify: 50, batch: 0, analyze: 3, og: 20, report: 0 },
+  free:      { classify: 100, batch: 10, analyze: 10, og: 50, report: 1 },
+  pro:       { classify: 1000, batch: 100, analyze: 100, og: -1, report: 20 },
+  research:  { classify: 10000, batch: 1000, analyze: 1000, og: -1, report: -1 },
 };
 
 function resolveUser(req: Request): { user: User | null; tier: Tier } {

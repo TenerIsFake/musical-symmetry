@@ -9,6 +9,7 @@ import type { SliceMode } from './types.js';
 import { renderCard } from './cards/renderer.js';
 import type { CardStyle } from './cards/types.js';
 import { rateLimit } from './auth/middleware.js';
+import { generateAnalysisReport } from './reports/pdf-generator.js';
 
 const ALLOWED_EXTENSIONS = new Set(['mid', 'midi', 'xml', 'musicxml', 'mxl', 'wav']);
 
@@ -92,6 +93,87 @@ router.post('/analyze', upload.single('file'), rateLimit('analyze'), async (req,
     const message = err instanceof Error ? err.message : 'Unknown error';
     const safeMessage = message.length > 200 ? message.slice(0, 200) : message;
     res.status(500).json({ error: `Parse error: ${safeMessage.replace(/\/[^\s]+/g, '[path]')}` });
+  }
+});
+
+router.post('/report', upload.single('file'), rateLimit('report'), async (req, res) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'No file uploaded' });
+      return;
+    }
+
+    const rawSliceMode = req.body.sliceMode as string;
+    const sliceMode: SliceMode = rawSliceMode === 'measure' ? 'measure' : 'beat';
+    const minNotes = Math.max(1, Math.min(12, parseInt(req.body.minNotes) || 2));
+    const filename = req.file.originalname;
+    const ext = filename.split('.').pop()?.toLowerCase();
+
+    let notes;
+    let temposBPM: number[];
+    let timeSignatures: string[];
+    let format: 'midi' | 'musicxml' | 'audio';
+
+    if (ext === 'mid' || ext === 'midi') {
+      format = 'midi';
+      const parsed = parseMidi(req.file.buffer);
+      notes = parsed.notes;
+      temposBPM = parsed.temposBPM;
+      timeSignatures = parsed.timeSignatures;
+    } else if (ext === 'xml' || ext === 'musicxml' || ext === 'mxl') {
+      format = 'musicxml';
+      const xml = req.file.buffer.toString('utf-8');
+      const parsed = parseMusicXml(xml);
+      notes = parsed.notes;
+      temposBPM = parsed.temposBPM;
+      timeSignatures = parsed.timeSignatures;
+    } else if (ext === 'wav') {
+      format = 'audio';
+      const { parseWav } = await import('./parsers/wav.js');
+      const parsed = parseWav(req.file.buffer);
+      notes = parsed.notes;
+      temposBPM = parsed.temposBPM;
+      timeSignatures = parsed.timeSignatures;
+    } else {
+      res.status(400).json({ error: `Unsupported file type: .${ext}` });
+      return;
+    }
+
+    if (notes.length === 0) {
+      res.status(400).json({ error: 'No notes found in file' });
+      return;
+    }
+
+    const totalBeats = Math.ceil(Math.max(...notes.map(n => n.startBeat + n.durationBeats)));
+    const timeline = analyzeTimeline(notes, {
+      sliceMode,
+      minNotesPerSlice: minNotes,
+      totalBeats,
+      temposBPM,
+      timeSignatures,
+      filename,
+      format,
+    });
+
+    const analyses = timeline.slices.map(s => ({
+      analysis: s.analysis,
+      chord: s.chord,
+      pitchClasses: s.slice.pitchClasses,
+      beat: s.slice.startBeat,
+    }));
+
+    const pdf = await generateAnalysisReport({
+      title: filename,
+      filename,
+      analyses,
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename.replace(/\.[^.]+$/, '')}-analysis.pdf"`);
+    res.send(pdf);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: `Report error: ${message.slice(0, 200).replace(/\/[^\s]+/g, '[path]')}` });
   }
 });
 

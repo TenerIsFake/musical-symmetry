@@ -3,6 +3,7 @@ import FileUpload from '../components/FileUpload';
 import SampleSongs from '../components/SampleSongs';
 import TimelineChart from '../components/TimelineChart';
 import SliceDetail from '../components/SliceDetail';
+import PdfExportButton from '../components/PdfExportButton';
 import { useResearchMode } from '../context/ResearchMode';
 import type { SliceData } from '../components/TimelineChart';
 
@@ -35,18 +36,22 @@ export default function AnalyzerPage() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const sliceMode = 'beat';
+  const minNotes = 2;
 
   const handleUpload = useCallback(async (file: File) => {
     setIsLoading(true);
     setError(null);
     setResult(null);
     setSelectedIndex(null);
+    setCurrentFile(file);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('sliceMode', 'beat');
-      formData.append('minNotes', '2');
+      formData.append('sliceMode', sliceMode);
+      formData.append('minNotes', String(minNotes));
 
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -135,6 +140,13 @@ export default function AnalyzerPage() {
                   >
                     JSON
                   </button>
+                  {currentFile && (
+                    <PdfExportButton
+                      file={currentFile}
+                      sliceMode={sliceMode}
+                      minNotes={minNotes}
+                    />
+                  )}
                 </div>
               </div>
             </div>
