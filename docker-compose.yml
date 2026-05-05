@@ -19,7 +19,7 @@ services:
       - "3010:3010"
     environment:
       - PORT=3010
-      - SESSION_SECRET=ms-session-$(hostname)-$(date +%s)
+      - SESSION_SECRET=${SESSION_SECRET}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - STRIPE_PRICE_PRO=${STRIPE_PRICE_PRO:-}
