@@ -82,8 +82,8 @@ export default function AnalyzerPage() {
 
       {result && (
         <>
-          <div className="bg-gray-800 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-4">
               <h2 className="text-sm font-semibold text-gray-400 uppercase">
                 Timeline — {result.filename}
               </h2>

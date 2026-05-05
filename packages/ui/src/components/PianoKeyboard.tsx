@@ -25,12 +25,12 @@ export default function PianoKeyboard({ selectedPCs, onToggle }: Props) {
   const isSelected = (pc: PitchClass) => selectedPCs.includes(pc);
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
-      <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">Piano Input</h2>
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
+      <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">Tap notes to select</h2>
       <svg
         viewBox={`0 0 ${TOTAL_WIDTH} ${WHITE_HEIGHT}`}
-        className="w-full max-w-md cursor-pointer"
-        aria-label="Piano keyboard"
+        className="w-full cursor-pointer touch-manipulation"
+        aria-label="Piano keyboard — tap to toggle pitch classes"
       >
         {WHITE_KEYS.map((pc, i) => (
           <rect

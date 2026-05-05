@@ -68,8 +68,8 @@ export default function ClassifierPage() {
 
   return (
     <>
-      <main className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
+      <main className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="space-y-4 sm:space-y-6">
           <PianoKeyboard
             selectedPCs={state.selectedPCs}
             onToggle={(pc) => dispatch({ type: 'TOGGLE_PC', pc })}
@@ -78,13 +78,15 @@ export default function ClassifierPage() {
             onSelect={(pcs) => dispatch({ type: 'SET_PCS', pcs })}
             currentPCs={state.selectedPCs}
           />
-          <TextInput onSetPCs={(pcs) => dispatch({ type: 'SET_PCS', pcs })} />
-          <AudioControls selectedPCs={state.selectedPCs} />
-          <MicControls onDetect={(pc) => dispatch({ type: 'TOGGLE_PC', pc })} />
           <ClassificationPanel analysis={analysis} chord={chord} />
           <ProgressionPanel chord={chord} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <AudioControls selectedPCs={state.selectedPCs} />
+            <MicControls onDetect={(pc) => dispatch({ type: 'TOGGLE_PC', pc })} />
+          </div>
+          <TextInput onSetPCs={(pcs) => dispatch({ type: 'SET_PCS', pcs })} />
         </div>
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <OrbitDiagram selectedPCs={state.selectedPCs} analysis={analysis} />
           <TonnetzViz chord={chord} targetChord={null} />
           <ModeExplorer
@@ -93,7 +95,7 @@ export default function ClassifierPage() {
           />
         </div>
       </main>
-      <div className="mt-4">
+      <div className="mt-4 flex gap-3">
         <button
           onClick={() => dispatch({ type: 'CLEAR' })}
           className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm font-medium"

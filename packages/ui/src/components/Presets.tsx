@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 
 interface Preset {
@@ -45,6 +46,7 @@ interface Props {
 }
 
 export default function Presets({ onSelect, currentPCs }: Props) {
+  const [expanded, setExpanded] = useState(false);
   const categories = [...new Set(PRESETS.map(p => p.category))];
 
   const isActive = (preset: Preset) => {
@@ -53,11 +55,19 @@ export default function Presets({ onSelect, currentPCs }: Props) {
     return sorted.every((pc, i) => pc === currentPCs[i]);
   };
 
+  const visibleCategories = expanded ? categories : categories.slice(0, 2);
+
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
-      <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">Examples</h2>
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between w-full mb-3"
+      >
+        <h2 className="text-sm font-semibold text-gray-400 uppercase">Examples</h2>
+        <span className="text-xs text-gray-500">{expanded ? '▲ less' : '▼ more'}</span>
+      </button>
       <div className="space-y-3">
-        {categories.map(cat => (
+        {visibleCategories.map(cat => (
           <div key={cat}>
             <h3 className="text-xs text-gray-500 uppercase mb-1.5">{cat}</h3>
             <div className="flex flex-wrap gap-1.5">
