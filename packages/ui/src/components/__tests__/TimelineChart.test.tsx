@@ -5,8 +5,8 @@ import TimelineChart from '../TimelineChart';
 describe('TimelineChart', () => {
   it('renders SVG', () => {
     const slices = [
-      { startBeat: 0, endBeat: 1, abstractGroup: 'C1', mullikenLabel: 'A1u', stabilizerOrder: 1, chordName: 'C major' },
-      { startBeat: 1, endBeat: 2, abstractGroup: 'C1', mullikenLabel: 'A1u', stabilizerOrder: 1, chordName: null },
+      { startBeat: 0, endBeat: 1, abstractGroup: 'C1', mullikenLabel: 'A1u', stabilizerOrder: 1, chordName: 'C major', voiceLeadingFromPrev: null },
+      { startBeat: 1, endBeat: 2, abstractGroup: 'C1', mullikenLabel: 'A1u', stabilizerOrder: 1, chordName: null, voiceLeadingFromPrev: 2 },
     ];
     const { container } = render(
       <TimelineChart slices={slices} onSelectSlice={() => {}} selectedIndex={null} />

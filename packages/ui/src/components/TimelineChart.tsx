@@ -8,12 +8,14 @@ interface SliceData {
   mullikenLabel: string;
   stabilizerOrder: number;
   chordName: string | null;
+  voiceLeadingFromPrev: number | null;
 }
 
 interface Props {
   slices: SliceData[];
   onSelectSlice: (index: number) => void;
   selectedIndex: number | null;
+  showVoiceLeading?: boolean;
 }
 
 const GROUP_COLORS: Record<string, string> = {
@@ -30,7 +32,7 @@ const GROUP_COLORS: Record<string, string> = {
   D12: '#ec4899',
 };
 
-export default function TimelineChart({ slices, onSelectSlice, selectedIndex }: Props) {
+export default function TimelineChart({ slices, onSelectSlice, selectedIndex, showVoiceLeading = false }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -96,6 +98,43 @@ export default function TimelineChart({ slices, onSelectSlice, selectedIndex }: 
         const idx = slices.indexOf(d);
         onSelectSlice(idx);
       });
+
+    // Voice-leading distance line (secondary Y axis)
+    if (showVoiceLeading) {
+      const vlData = slices
+        .map((s, i) => ({ x: (s.startBeat + s.endBeat) / 2, vl: s.voiceLeadingFromPrev, i }))
+        .filter(d => d.vl !== null) as { x: number; vl: number; i: number }[];
+
+      if (vlData.length > 0) {
+        const vlMax = d3.max(vlData, d => d.vl) ?? 6;
+        const vlScale = d3.scaleLinear().domain([0, vlMax]).range([innerH, 0]);
+
+        // Right axis
+        g.append('g')
+          .attr('transform', `translate(${innerW},0)`)
+          .call(d3.axisRight(vlScale).ticks(4))
+          .selectAll('text').attr('fill', '#f97316').attr('font-size', '10px');
+
+        g.append('text')
+          .attr('transform', 'rotate(90)')
+          .attr('x', innerH / 2).attr('y', -innerW - 10)
+          .attr('text-anchor', 'middle').attr('fill', '#f97316').attr('font-size', '11px')
+          .text('VL Distance');
+
+        const line = d3.line<{ x: number; vl: number }>()
+          .x(d => xScale(d.x))
+          .y(d => vlScale(d.vl))
+          .curve(d3.curveMonotoneX);
+
+        g.append('path')
+          .datum(vlData)
+          .attr('fill', 'none')
+          .attr('stroke', '#f97316')
+          .attr('stroke-width', 1.5)
+          .attr('stroke-opacity', 0.8)
+          .attr('d', line);
+      }
+    }
 
     // Group labels on bars (if wide enough)
     const barWidth = innerW / slices.length;
