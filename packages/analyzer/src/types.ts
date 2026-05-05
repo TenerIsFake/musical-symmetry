@@ -21,6 +21,7 @@ export interface SliceAnalysis {
   slice: TimeSlice;
   analysis: SymmetryAnalysis;
   chord: Chord | null;
+  voiceLeadingFromPrev: number | null;
 }
 
 export interface AnalysisTimeline {

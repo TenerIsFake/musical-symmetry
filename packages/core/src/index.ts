@@ -7,7 +7,7 @@ export { isMaximallyEven } from './evenness';
 export { mullikenLabel } from './mulliken';
 export { characterTableEntry } from './character-table';
 export { applyP, applyL, applyR, applyCompound, allFirstOrder, allSecondOrder, allThirdOrder } from './plr';
-export { voiceLeadingDistance } from './voice-leading';
+export { voiceLeadingDistance, generalizedVoiceLeading } from './voice-leading';
 export { classifyTransition, findPLRPath } from './transitions';
 export { SCALE_TEMPLATES, findBestScale } from './scales';
 export { CHORD_TEMPLATES, identifyChord } from './chords';

@@ -32,3 +32,30 @@ export function voiceLeadingDistance(a: PitchClass[], b: PitchClass[]): number {
   }
   return minTotal;
 }
+
+function combinations<T>(arr: T[], k: number): T[][] {
+  if (k === 0) return [[]];
+  if (k === arr.length) return [arr];
+  const result: T[][] = [];
+  for (let i = 0; i <= arr.length - k; i++) {
+    for (const rest of combinations(arr.slice(i + 1), k - 1)) {
+      result.push([arr[i]!, ...rest]);
+    }
+  }
+  return result;
+}
+
+export function generalizedVoiceLeading(a: PitchClass[], b: PitchClass[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  if (a.length === b.length) return voiceLeadingDistance(a, b);
+
+  const [smaller, larger] = a.length < b.length ? [a, b] : [b, a];
+  if (larger.length > 8) return voiceLeadingDistance(smaller.slice(0, 6), larger.slice(0, 6));
+
+  let minDist = Infinity;
+  for (const subset of combinations(larger, smaller.length)) {
+    const d = voiceLeadingDistance(smaller, subset);
+    minDist = Math.min(minDist, d);
+  }
+  return minDist;
+}
