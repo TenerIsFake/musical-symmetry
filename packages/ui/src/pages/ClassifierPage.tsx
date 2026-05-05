@@ -1,5 +1,6 @@
-import { useReducer, useEffect } from 'react';
+import { useReducer, useEffect, useState } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
+import { NOTE_NAMES } from '@musical-symmetry/core';
 import { useClassifier } from '../hooks/useClassifier';
 import { useChord } from '../hooks/useChord';
 import PianoKeyboard from '../components/PianoKeyboard';
@@ -13,6 +14,7 @@ import ModeExplorer from '../components/ModeExplorer';
 import ComparePanel from '../components/ComparePanel';
 import AudioControls from '../components/AudioControls';
 import MicControls from '../components/MicControls';
+import SharePanel from '../components/SharePanel';
 
 export type Action =
   | { type: 'TOGGLE_PC'; pc: PitchClass }
@@ -54,6 +56,7 @@ function reducer(state: AppState, action: Action): AppState {
 
 export default function ClassifierPage() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [showShare, setShowShare] = useState(false);
   const analysis = useClassifier(state.selectedPCs);
   const chord = useChord(state.selectedPCs);
 
@@ -104,7 +107,23 @@ export default function ClassifierPage() {
         >
           Clear All
         </button>
+        {state.selectedPCs.length >= 2 && (
+          <button
+            onClick={() => setShowShare(true)}
+            className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white"
+          >
+            Share
+          </button>
+        )}
       </div>
+      {showShare && (
+        <SharePanel
+          pcs={state.selectedPCs}
+          chordName={chord ? `${NOTE_NAMES[chord.root]} ${chord.quality}` : undefined}
+          group={analysis?.abstractGroup}
+          onClose={() => setShowShare(false)}
+        />
+      )}
     </>
   );
 }

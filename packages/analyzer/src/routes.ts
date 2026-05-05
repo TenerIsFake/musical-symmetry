@@ -6,6 +6,8 @@ import { parseMidi } from './parsers/midi.js';
 import { parseMusicXml } from './parsers/musicxml.js';
 import { analyzeTimeline } from './analyzer.js';
 import type { SliceMode } from './types.js';
+import { renderCard } from './cards/renderer.js';
+import type { CardStyle } from './cards/types.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -151,6 +153,89 @@ router.post('/voice-leading', (req, res) => {
     const toAnalysis = classify(b);
 
     res.json({ distance, from: fromAnalysis, to: toAnalysis });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+const VALID_STYLES: CardStyle[] = [
+  'orbit', 'identity', 'spectrum', 'comparison', 'keyboard', 'molecule',
+  'interval-dna', 'tonnetz', 'gradient', 'minimal', 'academic', 'neon',
+  'blueprint', 'constellation', 'waveform', 'badge', 'story', 'banner',
+  'quote', 'timeline',
+];
+
+router.get('/og/:style', (req, res) => {
+  try {
+    const style = req.params.style as CardStyle;
+    if (!VALID_STYLES.includes(style)) {
+      res.status(400).json({ error: `Invalid style. Valid styles: ${VALID_STYLES.join(', ')}` });
+      return;
+    }
+
+    const pcsParam = req.query.pcs as string;
+    if (!pcsParam) {
+      res.status(400).json({ error: 'Missing required query param: pcs (comma-separated pitch classes 0-11)' });
+      return;
+    }
+
+    const pcs = pcsParam.split(',').map(Number).filter(n => n >= 0 && n <= 11);
+    if (pcs.length < 1) {
+      res.status(400).json({ error: 'Need at least 1 pitch class' });
+      return;
+    }
+
+    // Optional: run analysis to enrich params
+    const validPcs = pcs as PitchClass[];
+    let group: string | undefined;
+    let stabilizerOrder: number | undefined;
+    let mullikenLabel: string | undefined;
+    let intervalVector: [number, number, number, number, number, number] | undefined;
+    let chordName: string | undefined;
+
+    if (validPcs.length >= 2) {
+      const analysis = classify(validPcs);
+      group = analysis.abstractGroup;
+      stabilizerOrder = analysis.stabilizerOrder;
+      mullikenLabel = analysis.mullikenLabel;
+      intervalVector = analysis.intervalVector;
+
+      if (validPcs.length === 3) {
+        const chord = identifyChord(validPcs);
+        if (chord) {
+          const noteNames: Record<number, string> = { 0:'C', 1:'C#', 2:'D', 3:'Eb', 4:'E', 5:'F', 6:'F#', 7:'G', 8:'Ab', 9:'A', 10:'Bb', 11:'B' };
+          chordName = `${noteNames[chord.root]} ${chord.quality}`;
+        }
+      }
+    }
+
+    const comparePcsParam = req.query.comparePcs as string | undefined;
+    const comparePcs = comparePcsParam
+      ? comparePcsParam.split(',').map(Number).filter(n => n >= 0 && n <= 11)
+      : undefined;
+
+    const vlDistParam = req.query.vlDistance as string | undefined;
+    const vlDistance = vlDistParam ? parseInt(vlDistParam) : undefined;
+
+    const svg = renderCard(style, {
+      pcs,
+      comparePcs,
+      title: (req.query.title as string) || undefined,
+      subtitle: (req.query.subtitle as string) || undefined,
+      group: (req.query.group as string) || group,
+      chordName: (req.query.chordName as string) || chordName,
+      forteNumber: (req.query.forteNumber as string) || undefined,
+      vlDistance,
+      genre: (req.query.genre as string) || undefined,
+      stabilizerOrder,
+      mullikenLabel,
+      intervalVector,
+      description: (req.query.description as string) || undefined,
+    });
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(svg);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
