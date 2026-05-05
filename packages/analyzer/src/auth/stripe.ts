@@ -1,3 +1,4 @@
+import Stripe from 'stripe';
 import { Router } from 'express';
 import { requireAuth } from './middleware.js';
 import { updateTier, getUserById } from './db.js';
@@ -5,33 +6,58 @@ import './types.js';
 
 export const billingRouter = Router();
 
-// Stripe integration - currently stubbed
-// Will be activated when STRIPE_SECRET_KEY env var is set
-
-export function createCheckoutSession(_userId: string, _tier: 'pro' | 'research'): string | null {
+function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null; // Stub mode
-  // TODO: Real Stripe checkout session creation
-  return null;
+  if (!key) return null;
+  return new Stripe(key, { apiVersion: '2024-12-18.acacia' });
 }
 
-export function handleWebhook(_body: Buffer, _signature: string): void {
-  // TODO: Handle subscription.created, subscription.deleted, etc.
+export function isValidTier(tier: string): tier is 'pro' | 'research' {
+  return tier === 'pro' || tier === 'research';
+}
+
+export async function createCheckoutUrl(
+  userId: string,
+  tier: 'pro' | 'research',
+  email: string,
+): Promise<string | null> {
+  const stripe = getStripe();
+  if (!stripe) return null;
+
+  const priceId =
+    tier === 'pro'
+      ? process.env.STRIPE_PRICE_PRO
+      : process.env.STRIPE_PRICE_RESEARCH;
+
+  if (!priceId) return null;
+
+  const appUrl = process.env.APP_URL || 'https://symmetry.tendrid.us';
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer_email: email,
+    line_items: [{ price: priceId, quantity: 1 }],
+    metadata: { userId, tier },
+    success_url: `${appUrl}/dashboard?checkout=success`,
+    cancel_url: `${appUrl}/dashboard?checkout=cancelled`,
+  });
+
+  return session.url;
 }
 
 // POST /api/billing/checkout — Create Stripe checkout session
-billingRouter.post('/checkout', requireAuth, (req, res) => {
+billingRouter.post('/checkout', requireAuth, async (req, res) => {
   try {
     const { tier } = req.body;
-    if (!tier || !['pro', 'research'].includes(tier)) {
+    if (!tier || !isValidTier(tier)) {
       res.status(400).json({ error: 'tier must be "pro" or "research"' });
       return;
     }
 
     const user = req.user!;
-    const sessionUrl = createCheckoutSession(user.id, tier);
+    const url = await createCheckoutUrl(user.id, tier, user.email);
 
-    if (!sessionUrl) {
+    if (!url) {
       res.json({
         message: 'Stripe not configured. In stub mode.',
         stub: true,
@@ -40,15 +66,17 @@ billingRouter.post('/checkout', requireAuth, (req, res) => {
       return;
     }
 
-    res.json({ url: sessionUrl });
+    res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
-billingRouter.post('/webhook', (req, res) => {
+// POST /api/billing/webhook — Handle Stripe webhook events
+billingRouter.post('/webhook', async (req, res) => {
   try {
-    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    const stripe = getStripe();
+    if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
       res.status(501).json({ error: 'Stripe not configured' });
       return;
     }
@@ -59,7 +87,46 @@ billingRouter.post('/webhook', (req, res) => {
       return;
     }
 
-    handleWebhook(req.body, signature);
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body as Buffer,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET,
+      );
+    } catch {
+      res.status(400).json({ error: 'Webhook signature verification failed' });
+      return;
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const userId = session.metadata?.userId;
+      const tier = session.metadata?.tier;
+      if (userId && tier && isValidTier(tier)) {
+        updateTier(userId, tier);
+      }
+    } else if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as Stripe.Subscription;
+      // Find user by customer ID
+      const customerId =
+        typeof subscription.customer === 'string'
+          ? subscription.customer
+          : subscription.customer.id;
+      // We need to find user by stripe_customer_id — use getUserById approach
+      // Iterate is not efficient but acceptable for now; in practice use a DB lookup
+      const db = await import('./db.js');
+      // updateTier requires userId; look up via stripe_customer_id
+      // db.ts doesn't expose getUserByCustomerId, so we query inline
+      const { getDb } = db;
+      const row = getDb()
+        .prepare('SELECT id FROM users WHERE stripe_customer_id = ?')
+        .get(customerId) as { id: string } | undefined;
+      if (row) {
+        updateTier(row.id, 'free');
+      }
+    }
+
     res.json({ received: true });
   } catch (err) {
     res.status(400).json({ error: 'Webhook processing failed' });
@@ -67,22 +134,42 @@ billingRouter.post('/webhook', (req, res) => {
 });
 
 // GET /api/billing/portal — Redirect to Stripe customer portal
-billingRouter.get('/portal', requireAuth, (req, res) => {
+billingRouter.get('/portal', requireAuth, async (req, res) => {
   try {
-    const user = req.user!;
-    const key = process.env.STRIPE_SECRET_KEY;
-
-    if (!key) {
+    const stripe = getStripe();
+    if (!stripe) {
       res.json({
         message: 'Stripe not configured. In stub mode.',
         stub: true,
-        currentTier: user.tier,
+        currentTier: req.user!.tier,
       });
       return;
     }
 
-    // TODO: Create Stripe portal session and redirect
-    res.json({ message: 'Portal not yet implemented', currentTier: user.tier });
+    const user = req.user!;
+    const appUrl = process.env.APP_URL || 'https://symmetry.tendrid.us';
+
+    // Ensure the user has a Stripe customer ID
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { userId: user.id },
+      });
+      customerId = customer.id;
+      // Persist the customer ID
+      const { getDb } = await import('./db.js');
+      getDb()
+        .prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?')
+        .run(customerId, user.id);
+    }
+
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${appUrl}/dashboard`,
+    });
+
+    res.json({ url: portalSession.url });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import StripeCheckout from '../components/StripeCheckout';
 
 interface UserProfile {
   email: string;
@@ -137,18 +138,8 @@ function LoggedInView({ user }: { user: UserProfile }) {
         <div className="mt-4 flex gap-3">
           {user.tier === 'free' && (
             <>
-              <a
-                href="/api/billing/checkout?plan=pro"
-                className="px-4 py-2 bg-indigo-600 rounded text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
-              >
-                Upgrade to Pro
-              </a>
-              <a
-                href="/api/billing/checkout?plan=research"
-                className="px-4 py-2 bg-purple-600 rounded text-sm font-medium text-white hover:bg-purple-500 transition-colors"
-              >
-                Upgrade to Research
-              </a>
+              <StripeCheckout tier="pro" label="Upgrade to Pro — $9/mo" currentTier={user.tier} />
+              <StripeCheckout tier="research" label="Upgrade to Research — $29/mo" currentTier={user.tier} />
             </>
           )}
           {(user.tier === 'pro' || user.tier === 'research') && (

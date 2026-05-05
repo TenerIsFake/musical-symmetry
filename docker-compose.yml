@@ -20,6 +20,11 @@ services:
     environment:
       - PORT=3010
       - SESSION_SECRET=ms-session-$(hostname)-$(date +%s)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PRICE_PRO=${STRIPE_PRICE_PRO:-}
+      - STRIPE_PRICE_RESEARCH=${STRIPE_PRICE_RESEARCH:-}
+      - APP_URL=https://symmetry.tendrid.us
     volumes:
       - analyzer-data:/data
     restart: unless-stopped
