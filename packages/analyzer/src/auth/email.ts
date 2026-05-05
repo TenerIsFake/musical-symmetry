@@ -33,5 +33,10 @@ export async function sendMagicLinkEmail(email: string, token: string): Promise<
     }),
   });
 
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`Resend API error (${res.status}): ${body}`);
+  }
+
   return res.ok;
 }
