@@ -10,6 +10,7 @@ import OrbitDiagram from '../components/OrbitDiagram';
 import TonnetzViz from '../components/TonnetzViz';
 import ModeExplorer from '../components/ModeExplorer';
 import AudioControls from '../components/AudioControls';
+import MicControls from '../components/MicControls';
 
 export type Action =
   | { type: 'TOGGLE_PC'; pc: PitchClass }
@@ -56,6 +57,7 @@ export default function ClassifierPage() {
           />
           <TextInput onSetPCs={(pcs) => dispatch({ type: 'SET_PCS', pcs })} />
           <AudioControls selectedPCs={state.selectedPCs} />
+          <MicControls onDetect={(pc) => dispatch({ type: 'TOGGLE_PC', pc })} />
           <ClassificationPanel analysis={analysis} chord={chord} />
           <ProgressionPanel chord={chord} />
         </div>
