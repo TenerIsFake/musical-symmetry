@@ -9,7 +9,7 @@ export const billingRouter = Router();
 function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) return null;
-  return new Stripe(key, { apiVersion: '2024-12-18.acacia' });
+  return new Stripe(key, { apiVersion: '2026-04-22.dahlia' });
 }
 
 export function isValidTier(tier: string): tier is 'pro' | 'research' {

@@ -1,11 +1,11 @@
 declare namespace WebMidi {
   interface MIDIMessageEvent extends Event {
-    data: Uint8Array;
+    data: Uint8Array | null;
   }
 
   interface MIDIInput extends EventTarget {
     name: string | null;
-    onmidimessage: ((event: MIDIMessageEvent) => void) | null;
+    onmidimessage: ((this: MIDIInput, ev: MIDIMessageEvent) => any) | null;
   }
 
   interface MIDIAccess extends EventTarget {

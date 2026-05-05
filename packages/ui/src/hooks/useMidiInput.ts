@@ -37,6 +37,7 @@ export function useMidiInput() {
       const access = await navigator.requestMIDIAccess();
 
       function onMidiMessage(event: WebMidi.MIDIMessageEvent) {
+        if (!event.data) return;
         const [status, note] = event.data;
         const command = status! & 0xf0;
 

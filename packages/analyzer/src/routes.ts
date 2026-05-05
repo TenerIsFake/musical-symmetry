@@ -5,7 +5,7 @@ import type { PitchClass } from '@musical-symmetry/core';
 import { parseMidi } from './parsers/midi.js';
 import { parseMusicXml } from './parsers/musicxml.js';
 import { analyzeTimeline } from './analyzer.js';
-import type { SliceMode } from './types.js';
+import type { SliceMode, TimedNote } from './types.js';
 import { renderCard } from './cards/renderer.js';
 import type { CardStyle } from './cards/types.js';
 import { rateLimit } from './auth/middleware.js';
@@ -30,7 +30,7 @@ const upload = multer({
 export const router = Router();
 
 async function parseUploadedFile(file: Express.Multer.File): Promise<{
-  notes: Array<{ pitch: number; startBeat: number; durationBeats: number }>;
+  notes: TimedNote[];
   temposBPM: number[];
   timeSignatures: string[];
   format: 'midi' | 'musicxml' | 'audio';
