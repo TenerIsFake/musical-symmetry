@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
@@ -6,6 +7,8 @@ import { router } from './routes.js';
 import { authRouter } from './auth/routes.js';
 import { billingRouter } from './auth/stripe.js';
 import { collectionsRouter } from './collections/routes.js';
+import { classroomRouter } from './classroom/routes.js';
+import { initClassroomWs } from './classroom/ws.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -63,6 +66,7 @@ app.use(session({
 app.use('/api/auth', authRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/collections', collectionsRouter);
+app.use('/api/classroom', classroomRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -76,8 +80,11 @@ function pruneStaleData() {
 pruneStaleData();
 setInterval(pruneStaleData, 60 * 60 * 1000);
 
-app.listen(PORT, () => {
+const server = createServer(app);
+initClassroomWs(server);
+
+server.listen(PORT, () => {
   console.log(`Analyzer service running on port ${PORT}`);
 });
 
-export { app };
+export { app, server };
