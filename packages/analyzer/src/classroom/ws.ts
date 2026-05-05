@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
-import { getClassroomById } from './db.js';
+import { getClassroomById, getClassroomMembers } from './db.js';
 
 interface ClassroomClient {
   ws: WebSocket;
@@ -34,6 +34,16 @@ export function initClassroomWs(server: Server): void {
           const classroom = getClassroomById(classroomId);
           if (!classroom || !classroom.active) {
             ws.send(JSON.stringify({ type: 'error', message: 'Classroom not found' }));
+            return;
+          }
+
+          // Verify the user is a member (was added via authenticated REST endpoint)
+          const msgUserId = msg.userId as string;
+          const members = getClassroomMembers(classroomId);
+          const isTeacher = classroom.teacher_id === msgUserId;
+          const isMember = members.some(m => m.user_id === msgUserId);
+          if (!isTeacher && !isMember) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Not a member of this classroom' }));
             return;
           }
 
