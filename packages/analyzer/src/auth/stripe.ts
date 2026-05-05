@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { Router } from 'express';
 import { requireAuth } from './middleware.js';
-import { updateTier, getUserById } from './db.js';
+import { updateTier, getUserById, getUserByStripeCustomerId } from './db.js';
 import './types.js';
 
 export const billingRouter = Router();
@@ -104,26 +104,22 @@ billingRouter.post('/webhook', async (req, res) => {
       const userId = session.metadata?.userId;
       const tier = session.metadata?.tier;
       if (userId && tier && isValidTier(tier)) {
-        updateTier(userId, tier);
+        try {
+          updateTier(userId, tier);
+        } catch (err) {
+          res.status(500).json({ error: 'Failed to update tier' });
+          return;
+        }
       }
     } else if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription;
-      // Find user by customer ID
       const customerId =
         typeof subscription.customer === 'string'
           ? subscription.customer
           : subscription.customer.id;
-      // We need to find user by stripe_customer_id — use getUserById approach
-      // Iterate is not efficient but acceptable for now; in practice use a DB lookup
-      const db = await import('./db.js');
-      // updateTier requires userId; look up via stripe_customer_id
-      // db.ts doesn't expose getUserByCustomerId, so we query inline
-      const { getDb } = db;
-      const row = getDb()
-        .prepare('SELECT id FROM users WHERE stripe_customer_id = ?')
-        .get(customerId) as { id: string } | undefined;
-      if (row) {
-        updateTier(row.id, 'free');
+      const user = getUserByStripeCustomerId(customerId);
+      if (user) {
+        updateTier(user.id, 'free');
       }
     }
 
@@ -156,12 +152,14 @@ billingRouter.get('/portal', requireAuth, async (req, res) => {
         email: user.email,
         metadata: { userId: user.id },
       });
-      customerId = customer.id;
-      // Persist the customer ID
+      // Use INSERT-if-still-null pattern to avoid race condition
       const { getDb } = await import('./db.js');
       getDb()
-        .prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?')
-        .run(customerId, user.id);
+        .prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ? AND (stripe_customer_id IS NULL OR stripe_customer_id = "")')
+        .run(customer.id, user.id);
+      // Re-read to get the winning customer ID
+      const freshUser = getUserById(user.id);
+      customerId = freshUser?.stripe_customer_id || customer.id;
     }
 
     const portalSession = await stripe.billingPortal.sessions.create({

@@ -128,6 +128,11 @@ export function getUserById(id: string): User | undefined {
   return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
 }
 
+export function getUserByStripeCustomerId(customerId: string): User | undefined {
+  const db = getDb();
+  return db.prepare('SELECT * FROM users WHERE stripe_customer_id = ?').get(customerId) as User | undefined;
+}
+
 export function recordUsage(userId: string | null, endpoint: string, ipAddress?: string): void {
   const db = getDb();
   db.prepare('INSERT INTO api_usage (user_id, ip_address, endpoint) VALUES (?, ?, ?)').run(userId, ipAddress || null, endpoint);

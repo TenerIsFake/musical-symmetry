@@ -34,6 +34,9 @@ app.use(cors({
   credentials: true,
 }));
 
+// Raw body for Stripe webhook (must come before express.json())
+app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 
 const sessionSecret = process.env.SESSION_SECRET && process.env.SESSION_SECRET !== 'musical-symmetry-dev-secret'

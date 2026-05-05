@@ -21,10 +21,14 @@ export default function StripeCheckout({ tier, label, currentTier }: StripeCheck
         body: JSON.stringify({ tier }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Checkout failed');
+        return;
+      }
       if (data.url) {
         window.location.href = data.url;
-      } else {
-        alert(data.message || 'Billing is not configured yet.');
+      } else if (data.stub) {
+        alert('Payments coming soon! Contact us for early access.');
       }
     } catch {
       alert('Something went wrong. Please try again.');
