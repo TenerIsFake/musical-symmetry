@@ -28,6 +28,31 @@ const upload = multer({
 
 export const router = Router();
 
+async function parseUploadedFile(file: Express.Multer.File): Promise<{
+  notes: Array<{ pitch: number; startBeat: number; durationBeats: number }>;
+  temposBPM: number[];
+  timeSignatures: string[];
+  format: 'midi' | 'musicxml' | 'audio';
+  filename: string;
+}> {
+  const filename = file.originalname;
+  const ext = filename.split('.').pop()?.toLowerCase();
+
+  if (ext === 'mid' || ext === 'midi') {
+    const parsed = parseMidi(file.buffer);
+    return { ...parsed, format: 'midi', filename };
+  } else if (ext === 'xml' || ext === 'musicxml' || ext === 'mxl') {
+    const xml = file.buffer.toString('utf-8');
+    const parsed = parseMusicXml(xml);
+    return { ...parsed, format: 'musicxml', filename };
+  } else if (ext === 'wav') {
+    const { parseWav } = await import('./parsers/wav.js');
+    const parsed = parseWav(file.buffer);
+    return { ...parsed, format: 'audio', filename };
+  }
+  throw new Error(`Unsupported file type: .${ext}`);
+}
+
 router.post('/analyze', upload.single('file'), rateLimit('analyze'), async (req, res) => {
   try {
     if (!req.file) {
@@ -38,38 +63,8 @@ router.post('/analyze', upload.single('file'), rateLimit('analyze'), async (req,
     const rawSliceMode = req.body.sliceMode as string;
     const sliceMode: SliceMode = rawSliceMode === 'measure' ? 'measure' : 'beat';
     const minNotes = Math.max(1, Math.min(12, parseInt(req.body.minNotes) || 2));
-    const filename = req.file.originalname;
-    const ext = filename.split('.').pop()?.toLowerCase();
 
-    let notes;
-    let temposBPM: number[];
-    let timeSignatures: string[];
-    let format: 'midi' | 'musicxml' | 'audio';
-
-    if (ext === 'mid' || ext === 'midi') {
-      format = 'midi';
-      const parsed = parseMidi(req.file.buffer);
-      notes = parsed.notes;
-      temposBPM = parsed.temposBPM;
-      timeSignatures = parsed.timeSignatures;
-    } else if (ext === 'xml' || ext === 'musicxml' || ext === 'mxl') {
-      format = 'musicxml';
-      const xml = req.file.buffer.toString('utf-8');
-      const parsed = parseMusicXml(xml);
-      notes = parsed.notes;
-      temposBPM = parsed.temposBPM;
-      timeSignatures = parsed.timeSignatures;
-    } else if (ext === 'wav') {
-      format = 'audio';
-      const { parseWav } = await import('./parsers/wav.js');
-      const parsed = parseWav(req.file.buffer);
-      notes = parsed.notes;
-      temposBPM = parsed.temposBPM;
-      timeSignatures = parsed.timeSignatures;
-    } else {
-      res.status(400).json({ error: `Unsupported file type: .${ext}. Use .mid, .midi, .xml, .musicxml, or .wav` });
-      return;
-    }
+    const { notes, temposBPM, timeSignatures, format, filename } = await parseUploadedFile(req.file);
 
     if (notes.length === 0) {
       res.status(400).json({ error: 'No notes found in file' });
@@ -106,38 +101,8 @@ router.post('/report', upload.single('file'), rateLimit('report'), async (req, r
     const rawSliceMode = req.body.sliceMode as string;
     const sliceMode: SliceMode = rawSliceMode === 'measure' ? 'measure' : 'beat';
     const minNotes = Math.max(1, Math.min(12, parseInt(req.body.minNotes) || 2));
-    const filename = req.file.originalname;
-    const ext = filename.split('.').pop()?.toLowerCase();
 
-    let notes;
-    let temposBPM: number[];
-    let timeSignatures: string[];
-    let format: 'midi' | 'musicxml' | 'audio';
-
-    if (ext === 'mid' || ext === 'midi') {
-      format = 'midi';
-      const parsed = parseMidi(req.file.buffer);
-      notes = parsed.notes;
-      temposBPM = parsed.temposBPM;
-      timeSignatures = parsed.timeSignatures;
-    } else if (ext === 'xml' || ext === 'musicxml' || ext === 'mxl') {
-      format = 'musicxml';
-      const xml = req.file.buffer.toString('utf-8');
-      const parsed = parseMusicXml(xml);
-      notes = parsed.notes;
-      temposBPM = parsed.temposBPM;
-      timeSignatures = parsed.timeSignatures;
-    } else if (ext === 'wav') {
-      format = 'audio';
-      const { parseWav } = await import('./parsers/wav.js');
-      const parsed = parseWav(req.file.buffer);
-      notes = parsed.notes;
-      temposBPM = parsed.temposBPM;
-      timeSignatures = parsed.timeSignatures;
-    } else {
-      res.status(400).json({ error: `Unsupported file type: .${ext}` });
-      return;
-    }
+    const { notes, temposBPM, timeSignatures, format, filename } = await parseUploadedFile(req.file);
 
     if (notes.length === 0) {
       res.status(400).json({ error: 'No notes found in file' });

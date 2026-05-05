@@ -24,8 +24,12 @@ export default function PdfExportButton({ file, sliceMode, minNotes }: Props) {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        alert(err.error || 'Failed to generate report');
+        let errorMsg = 'Failed to generate report';
+        try {
+          const err = await res.json();
+          errorMsg = err.error || errorMsg;
+        } catch {}
+        alert(errorMsg);
         return;
       }
 

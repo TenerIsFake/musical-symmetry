@@ -41,7 +41,8 @@ export async function generateAnalysisReport(options: ReportOptions): Promise<Bu
     doc.moveDown(0.5);
 
     for (let i = 0; i < options.analyses.length; i++) {
-      const entry = options.analyses[i]!;
+      const entry = options.analyses[i];
+      if (!entry) continue;
       const label = chordLabel(entry.pitchClasses, entry.chord);
 
       if (doc.y > 680) doc.addPage();
