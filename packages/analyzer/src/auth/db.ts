@@ -34,12 +34,25 @@ function initSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS api_usage (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT REFERENCES users(id),
+      ip_address TEXT,
       endpoint TEXT NOT NULL,
       timestamp TEXT DEFAULT (datetime('now'))
     );
 
     CREATE INDEX IF NOT EXISTS idx_api_usage_user_endpoint
       ON api_usage(user_id, endpoint, timestamp);
+
+  `);
+
+  // Migration: add ip_address column if missing
+  const columns = db.prepare("PRAGMA table_info(api_usage)").all() as { name: string }[];
+  if (!columns.some(c => c.name === 'ip_address')) {
+    db.exec("ALTER TABLE api_usage ADD COLUMN ip_address TEXT");
+  }
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_api_usage_ip_endpoint
+      ON api_usage(ip_address, endpoint, timestamp);
 
     CREATE TABLE IF NOT EXISTS magic_tokens (
       token TEXT PRIMARY KEY,
@@ -115,12 +128,12 @@ export function getUserById(id: string): User | undefined {
   return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
 }
 
-export function recordUsage(userId: string | null, endpoint: string): void {
+export function recordUsage(userId: string | null, endpoint: string, ipAddress?: string): void {
   const db = getDb();
-  db.prepare('INSERT INTO api_usage (user_id, endpoint) VALUES (?, ?)').run(userId, endpoint);
+  db.prepare('INSERT INTO api_usage (user_id, ip_address, endpoint) VALUES (?, ?, ?)').run(userId, ipAddress || null, endpoint);
 }
 
-export function getUsageCount(userId: string | null, endpoint: string, since: string): number {
+export function getUsageCount(userId: string | null, endpoint: string, since: string, ipAddress?: string): number {
   const db = getDb();
   if (userId) {
     const row = db.prepare(
@@ -128,7 +141,12 @@ export function getUsageCount(userId: string | null, endpoint: string, since: st
     ).get(userId, endpoint, since) as { count: number };
     return row.count;
   }
-  // For anonymous, we don't track per-user — caller handles IP-based tracking
+  if (ipAddress) {
+    const row = db.prepare(
+      'SELECT COUNT(*) as count FROM api_usage WHERE ip_address = ? AND endpoint = ? AND timestamp >= ?'
+    ).get(ipAddress, endpoint, since) as { count: number };
+    return row.count;
+  }
   return 0;
 }
 

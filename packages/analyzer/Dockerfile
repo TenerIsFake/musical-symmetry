@@ -1,5 +1,5 @@
 FROM node:20-alpine
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ su-exec
 WORKDIR /app
 
 COPY package.json ./
@@ -12,4 +12,4 @@ COPY packages/core/ packages/core/
 COPY packages/analyzer/ packages/analyzer/
 
 EXPOSE 3010
-CMD ["npx", "tsx", "packages/analyzer/src/index.ts"]
+CMD ["sh", "-c", "chown -R node:node /data && exec su-exec node npx tsx packages/analyzer/src/index.ts"]

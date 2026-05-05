@@ -21,8 +21,9 @@ router.post('/analyze', upload.single('file'), rateLimit('analyze'), async (req,
       return;
     }
 
-    const sliceMode = (req.body.sliceMode as SliceMode) || 'beat';
-    const minNotes = parseInt(req.body.minNotes) || 2;
+    const rawSliceMode = req.body.sliceMode as string;
+    const sliceMode: SliceMode = rawSliceMode === 'measure' ? 'measure' : 'beat';
+    const minNotes = Math.max(1, Math.min(12, parseInt(req.body.minNotes) || 2));
     const filename = req.file.originalname;
     const ext = filename.split('.').pop()?.toLowerCase();
 
@@ -76,7 +77,8 @@ router.post('/analyze', upload.single('file'), rateLimit('analyze'), async (req,
     res.json(timeline);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    res.status(500).json({ error: `Parse error: ${message}` });
+    const safeMessage = message.length > 200 ? message.slice(0, 200) : message;
+    res.status(500).json({ error: `Parse error: ${safeMessage.replace(/\/[^\s]+/g, '[path]')}` });
   }
 });
 
@@ -289,21 +291,20 @@ router.get('/share/:style', (req, res) => {
   <meta charset="UTF-8" />
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
-  <meta property="og:image" content="${ogImageUrl}" />
+  <meta property="og:image" content="${escapeHtml(ogImageUrl)}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="${appUrl}" />
+  <meta property="og:url" content="${escapeHtml(appUrl)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />
-  <meta name="twitter:image" content="${ogImageUrl}" />
+  <meta name="twitter:image" content="${escapeHtml(ogImageUrl)}" />
   <title>${escapeHtml(title)} — Musical Symmetry</title>
-  ${isCrawler ? '' : `<meta http-equiv="refresh" content="0;url=${appUrl}" />`}
+  ${isCrawler ? '' : `<meta http-equiv="refresh" content="0;url=${escapeHtml(appUrl)}" />`}
 </head>
 <body>
-  <p>Redirecting to <a href="${appUrl}">Musical Symmetry</a>...</p>
-  ${isCrawler ? '' : `<script>window.location.replace("${appUrl}");</script>`}
+  <p>Redirecting to <a href="${escapeHtml(appUrl)}">Musical Symmetry</a>...</p>
 </body>
 </html>`;
 

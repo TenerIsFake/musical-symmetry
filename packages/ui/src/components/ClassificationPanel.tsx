@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import type { SymmetryAnalysis, Chord } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
 import { GROUP_DESCRIPTIONS } from '../data/group-descriptions';
 import { forteNumber } from '../data/forte-numbers';
 import { useResearchMode } from '../context/ResearchMode';
+import Tooltip from './Tooltip';
 
 interface MoleculeAnalog {
   molecule: string;
@@ -30,7 +32,7 @@ interface Props {
   chord: Chord | null;
 }
 
-function PropertyBadge({ label, value }: { label: string; value: string | boolean }) {
+function PropertyBadge({ label, value }: { label: ReactNode; value: string | boolean }) {
   const displayValue = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value;
   const colorClass = typeof value === 'boolean'
     ? value ? 'bg-green-900 text-green-300' : 'bg-gray-700 text-gray-400'
@@ -51,7 +53,7 @@ export default function ClassificationPanel({ analysis, chord }: Props) {
 
   if (!analysis) {
     return (
-      <div className="bg-gray-800 rounded-lg p-4">
+      <div className="bg-gray-800 rounded-lg p-4" role="region" aria-label="Classification results" aria-live="polite">
         <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">Classification</h2>
         <p className="text-gray-500 text-sm italic">Select at least 2 pitch classes to analyze</p>
       </div>
@@ -59,7 +61,7 @@ export default function ClassificationPanel({ analysis, chord }: Props) {
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
+    <div className="bg-gray-800 rounded-lg p-4" role="region" aria-label="Classification results" aria-live="polite">
       <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">Classification</h2>
 
       {chord && (
@@ -78,18 +80,18 @@ export default function ClassificationPanel({ analysis, chord }: Props) {
       )}
 
       <div className="space-y-1">
-        <PropertyBadge label="Symmetry Group" value={analysis.abstractGroup} />
-        <PropertyBadge label="Maximally Even" value={analysis.maximallyEven} />
+        <PropertyBadge label={<Tooltip text="The abstract algebraic group describing this chord's symmetry under the dihedral group D&#x2081;&#x2082;">Symmetry Group</Tooltip>} value={analysis.abstractGroup} />
+        <PropertyBadge label={<Tooltip text="Whether the notes are as evenly spaced around the octave as possible">Maximally Even</Tooltip>} value={analysis.maximallyEven} />
         {researchMode && (
           <>
             {forteNumber(analysis.pitchClasses) && (
-              <PropertyBadge label="Forte Number" value={forteNumber(analysis.pitchClasses)!} />
+              <PropertyBadge label={<Tooltip text="Allen Forte's catalog number for this set class">Forte Number</Tooltip>} value={forteNumber(analysis.pitchClasses)!} />
             )}
-            <PropertyBadge label="Mulliken Label" value={analysis.mullikenLabel} />
-            <PropertyBadge label="Interval Vector" value={`[${analysis.intervalVector.join(', ')}]`} />
-            <PropertyBadge label="Stabilizer Order" value={String(analysis.stabilizerOrder)} />
+            <PropertyBadge label={<Tooltip text="Classification label from molecular spectroscopy, adapted for pitch-class sets">Mulliken Label</Tooltip>} value={analysis.mullikenLabel} />
+            <PropertyBadge label={<Tooltip text="Counts of each interval class (half-steps through tritones) in the set">Interval Vector</Tooltip>} value={`[${analysis.intervalVector.join(', ')}]`} />
+            <PropertyBadge label={<Tooltip text="Number of D&#x2081;&#x2082; operations that map this chord to itself">Stabilizer Order</Tooltip>} value={String(analysis.stabilizerOrder)} />
             <PropertyBadge label="Distinct Transpositions" value={String(analysis.distinctTranspositions)} />
-            <PropertyBadge label="Myhill Property" value={analysis.myhillProperty} />
+            <PropertyBadge label={<Tooltip text="Whether every generic interval comes in exactly two specific sizes">Myhill Property</Tooltip>} value={analysis.myhillProperty} />
             <PropertyBadge label="Palindromic" value={analysis.isRetrogradePalindrome} />
           </>
         )}

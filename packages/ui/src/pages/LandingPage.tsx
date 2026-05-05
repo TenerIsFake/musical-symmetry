@@ -12,6 +12,7 @@ export default function LandingPage() {
             <a href="#classifier" className="text-gray-400 hover:text-white transition-colors">Classifier</a>
             <a href="#analyzer" className="text-gray-400 hover:text-white transition-colors">Analyzer</a>
             <a href="#about" className="text-gray-400 hover:text-white transition-colors hidden sm:inline">The Math</a>
+            <a href="#dashboard" className="text-gray-400 hover:text-white transition-colors hidden sm:inline">Dashboard</a>
             <a
               href="#classifier"
               className="ml-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:from-indigo-400 hover:to-purple-400 transition-all"

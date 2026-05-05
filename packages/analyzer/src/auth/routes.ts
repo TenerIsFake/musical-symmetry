@@ -29,12 +29,16 @@ authRouter.post('/magic-link', (req, res) => {
 
     const token = createMagicToken(email);
 
-    // In production, send this via email. For now, return it directly.
-    res.json({
-      message: 'Magic link generated (dev mode: token returned in response)',
-      token,
-      verifyUrl: `/api/auth/verify?token=${token}`,
-    });
+    // TODO: integrate with email provider (SendGrid, SES, etc.)
+    if (process.env.NODE_ENV === 'production') {
+      res.json({ message: 'Check your email for a login link' });
+    } else {
+      res.json({
+        message: 'Magic link generated (dev mode: token returned in response)',
+        token,
+        verifyUrl: `/api/auth/verify?token=${token}`,
+      });
+    }
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }

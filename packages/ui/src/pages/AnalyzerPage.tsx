@@ -88,6 +88,13 @@ export default function AnalyzerPage() {
     <div className="space-y-6">
       <FileUpload onUpload={handleUpload} isLoading={isLoading} />
 
+      {!result && !isLoading && !error && (
+        <div className="text-center py-2">
+          <p className="text-gray-400 text-sm">Or try one of our sample songs</p>
+          <div className="text-gray-500 text-lg leading-none mt-1 animate-bounce">&#8595;</div>
+        </div>
+      )}
+
       <SampleSongs onSelect={handleUpload} isLoading={isLoading} />
 
       {error && (

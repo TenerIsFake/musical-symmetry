@@ -147,7 +147,7 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose} role="dialog" aria-modal="true" aria-label="Share card">
       <div
         className="bg-gray-900 rounded-xl border border-gray-700 w-full max-w-5xl max-h-[90vh] overflow-y-auto m-4 p-6"
         onClick={(e) => e.stopPropagation()}
@@ -158,6 +158,7 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white text-2xl leading-none"
+            aria-label="Close share panel"
           >
             &times;
           </button>
@@ -197,18 +198,21 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
           <button
             onClick={() => copyToClipboard(shareUrl, 'link')}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium text-white transition-colors"
+            aria-label="Copy share link to clipboard"
           >
             {copied === 'link' ? 'Copied!' : 'Copy Link'}
           </button>
           <button
             onClick={downloadSvg}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium text-white transition-colors"
+            aria-label="Download card as SVG"
           >
             Download SVG
           </button>
           <button
             onClick={downloadPng}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium text-white transition-colors"
+            aria-label="Download card as PNG"
           >
             Download PNG
           </button>
@@ -217,12 +221,14 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded-lg text-sm font-medium text-white transition-colors inline-flex items-center"
+            aria-label="Share on Twitter"
           >
             Tweet
           </a>
           <button
             onClick={() => copyToClipboard(embedCode, 'embed')}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium text-white transition-colors"
+            aria-label="Copy embed code to clipboard"
           >
             {copied === 'embed' ? 'Copied!' : 'Copy Embed'}
           </button>

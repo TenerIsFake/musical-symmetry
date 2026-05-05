@@ -60,14 +60,14 @@ export function rateLimit(endpoint: string) {
     }
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
-    const used = getUsageCount(user?.id || null, endpoint, since);
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const used = getUsageCount(user?.id || null, endpoint, since, user ? undefined : clientIp);
 
-    // Set rate limit headers
     res.setHeader('X-RateLimit-Limit', limit.toString());
     res.setHeader('X-RateLimit-Remaining', Math.max(0, limit - used).toString());
 
     if (used >= limit) {
-      const retryAfterSeconds = 3600; // Suggest retry in 1 hour
+      const retryAfterSeconds = 3600;
       res.setHeader('Retry-After', retryAfterSeconds.toString());
       res.status(429).json({
         error: 'Rate limit exceeded',
@@ -80,7 +80,7 @@ export function rateLimit(endpoint: string) {
       return;
     }
 
-    recordUsage(user?.id || null, endpoint);
+    recordUsage(user?.id || null, endpoint, user ? undefined : clientIp);
     next();
   };
 }

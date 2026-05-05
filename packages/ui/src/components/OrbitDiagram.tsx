@@ -36,7 +36,16 @@ export default function OrbitDiagram({ selectedPCs, analysis }: Props) {
   return (
     <div className="bg-gray-800 rounded-lg p-4">
       <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">Orbit Diagram</h2>
-      <svg viewBox="0 0 300 300" className="w-full max-w-sm mx-auto">
+      <svg
+        viewBox="-20 -20 340 340"
+        className="w-full max-w-sm mx-auto"
+        role="img"
+        aria-label={`Orbit diagram showing ${
+          selectedPCs.length > 0
+            ? selectedPCs.map(pc => NOTE_NAMES[pc]).join(', ')
+            : 'no notes selected'
+        }${analysis ? ` with ${analysis.abstractGroup} symmetry` : ''}`}
+      >
         <circle cx={CX} cy={CY} r={RADIUS} fill="none" stroke="#374151" strokeWidth={1} />
 
         {axes.map(([x1, y1, x2, y2], i) => (
@@ -73,25 +82,38 @@ export default function OrbitDiagram({ selectedPCs, analysis }: Props) {
         {allPCs.map(pc => {
           const [x, y] = pcToXY(pc);
           const isActive = selectedPCs.includes(pc);
+          const labelRadius = RADIUS + 22;
+          const [lx, ly] = pcToXY(pc, labelRadius);
           return (
             <g key={pc}>
               <circle
                 cx={x}
                 cy={y}
-                r={DOT_RADIUS}
+                r={isActive ? DOT_RADIUS + 2 : DOT_RADIUS}
                 fill={isActive ? '#22c55e' : '#1f2937'}
                 stroke={isActive ? '#16a34a' : '#4b5563'}
-                strokeWidth={1.5}
+                strokeWidth={isActive ? 2.5 : 1.5}
               />
               <text
                 x={x}
                 y={y + 4}
                 textAnchor="middle"
-                className="text-[10px] select-none pointer-events-none"
+                className={`select-none pointer-events-none ${isActive ? 'text-[11px] font-bold' : 'text-[10px]'}`}
                 fill={isActive ? '#fff' : '#9ca3af'}
               >
                 {NOTE_NAMES[pc]}
               </text>
+              {isActive && (
+                <text
+                  x={lx}
+                  y={ly + 4}
+                  textAnchor="middle"
+                  className="text-[11px] font-semibold select-none pointer-events-none"
+                  fill="#22c55e"
+                >
+                  {NOTE_NAMES[pc]}
+                </text>
+              )}
             </g>
           );
         })}
