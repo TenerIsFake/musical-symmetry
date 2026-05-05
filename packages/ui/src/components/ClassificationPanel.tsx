@@ -1,6 +1,27 @@
 import type { SymmetryAnalysis, Chord } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
 
+interface MoleculeAnalog {
+  molecule: string;
+  formula: string;
+  pointGroup: string;
+  description: string;
+}
+
+const GROUP_TO_MOLECULE: Record<string, MoleculeAnalog> = {
+  C1: { molecule: 'CHFClBr', formula: 'CHFClBr', pointGroup: 'C₁', description: 'Bromochlorofluoromethane — no symmetry at all' },
+  Z2: { molecule: 'H₂O₂', formula: 'H₂O₂', pointGroup: 'C₂', description: 'Hydrogen peroxide — one C₂ rotation axis' },
+  C2: { molecule: 'H₂O₂', formula: 'H₂O₂', pointGroup: 'C₂', description: 'Hydrogen peroxide — one C₂ rotation axis' },
+  C3: { molecule: 'PPh₃', formula: 'P(C₆H₅)₃', pointGroup: 'C₃', description: 'Triphenylphosphine — propeller-like 3-fold axis' },
+  C4: { molecule: '[4]Cumulene', formula: 'H₂C=C=C=CH₂', pointGroup: 'C₄', description: 'Butatriene — 4-fold rotation, no mirrors' },
+  C6: { molecule: 'Coronene (twisted)', formula: 'C₂₄H₁₂', pointGroup: 'C₆', description: '6-fold rotation without vertical mirrors' },
+  D2: { molecule: 'Biphenyl (90°)', formula: 'C₁₂H₁₀', pointGroup: 'D₂', description: 'Twisted biphenyl — three C₂ axes' },
+  D3: { molecule: 'B(OH)₃', formula: 'B(OH)₃', pointGroup: 'C₃ₕ', description: 'Boric acid — trigonal planar with mirror' },
+  D4: { molecule: 'XeF₄', formula: 'XeF₄', pointGroup: 'D₄ₕ', description: 'Xenon tetrafluoride — square planar' },
+  D6: { molecule: 'Benzene', formula: 'C₆H₆', pointGroup: 'D₆ₕ', description: 'Benzene — the iconic 6-fold symmetric molecule' },
+  D12: { molecule: 'Atom', formula: '(sphere)', pointGroup: 'K_h', description: 'Full spherical symmetry — like a lone atom' },
+};
+
 interface Props {
   analysis: SymmetryAnalysis | null;
   chord: Chord | null;
@@ -67,6 +88,25 @@ export default function ClassificationPanel({ analysis, chord }: Props) {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {GROUP_TO_MOLECULE[analysis.abstractGroup] && (
+        <div className="mt-4 pt-3 border-t border-gray-700">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Molecular Analog</h3>
+          <div className="bg-gray-900 rounded p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-white font-medium">
+                {GROUP_TO_MOLECULE[analysis.abstractGroup]!.molecule}
+              </span>
+              <span className="text-xs font-mono text-indigo-400">
+                {GROUP_TO_MOLECULE[analysis.abstractGroup]!.pointGroup}
+              </span>
+            </div>
+            <p className="text-gray-400 text-xs">
+              {GROUP_TO_MOLECULE[analysis.abstractGroup]!.description}
+            </p>
           </div>
         </div>
       )}
