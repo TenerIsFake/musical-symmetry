@@ -10,6 +10,7 @@ import ProgressionPanel from '../components/ProgressionPanel';
 import OrbitDiagram from '../components/OrbitDiagram';
 import TonnetzViz from '../components/TonnetzViz';
 import ModeExplorer from '../components/ModeExplorer';
+import ComparePanel from '../components/ComparePanel';
 import AudioControls from '../components/AudioControls';
 import MicControls from '../components/MicControls';
 
@@ -79,6 +80,7 @@ export default function ClassifierPage() {
             currentPCs={state.selectedPCs}
           />
           <ClassificationPanel analysis={analysis} chord={chord} />
+          <ComparePanel currentPCs={state.selectedPCs} currentAnalysis={analysis} />
           <ProgressionPanel chord={chord} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <AudioControls selectedPCs={state.selectedPCs} />

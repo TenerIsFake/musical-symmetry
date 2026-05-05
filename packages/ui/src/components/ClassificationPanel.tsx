@@ -1,6 +1,7 @@
 import type { SymmetryAnalysis, Chord } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
 import { GROUP_DESCRIPTIONS } from '../data/group-descriptions';
+import { forteNumber } from '../data/forte-numbers';
 import { useResearchMode } from '../context/ResearchMode';
 
 interface MoleculeAnalog {
@@ -81,6 +82,9 @@ export default function ClassificationPanel({ analysis, chord }: Props) {
         <PropertyBadge label="Maximally Even" value={analysis.maximallyEven} />
         {researchMode && (
           <>
+            {forteNumber(analysis.pitchClasses) && (
+              <PropertyBadge label="Forte Number" value={forteNumber(analysis.pitchClasses)!} />
+            )}
             <PropertyBadge label="Mulliken Label" value={analysis.mullikenLabel} />
             <PropertyBadge label="Interval Vector" value={`[${analysis.intervalVector.join(', ')}]`} />
             <PropertyBadge label="Stabilizer Order" value={String(analysis.stabilizerOrder)} />
