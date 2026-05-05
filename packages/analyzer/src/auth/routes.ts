@@ -8,12 +8,13 @@ import {
   regenerateApiKey,
 } from './db.js';
 import { requireAuth } from './middleware.js';
+import { isEmailConfigured, sendMagicLinkEmail } from './email.js';
 import './types.js';
 
 export const authRouter = Router();
 
 // POST /api/auth/magic-link — Generate a magic link token
-authRouter.post('/magic-link', (req, res) => {
+authRouter.post('/magic-link', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email || typeof email !== 'string') {
@@ -29,8 +30,12 @@ authRouter.post('/magic-link', (req, res) => {
 
     const token = createMagicToken(email);
 
-    // TODO: integrate with email provider (SendGrid, SES, etc.)
-    if (process.env.NODE_ENV === 'production') {
+    if (isEmailConfigured()) {
+      const sent = await sendMagicLinkEmail(email, token);
+      if (!sent) {
+        res.status(500).json({ error: 'Failed to send login email' });
+        return;
+      }
       res.json({ message: 'Check your email for a login link' });
     } else {
       res.json({
