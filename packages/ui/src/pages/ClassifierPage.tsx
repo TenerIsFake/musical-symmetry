@@ -1,9 +1,10 @@
-import { useReducer } from 'react';
+import { useReducer, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { useClassifier } from '../hooks/useClassifier';
 import { useChord } from '../hooks/useChord';
 import PianoKeyboard from '../components/PianoKeyboard';
 import TextInput from '../components/TextInput';
+import Presets from '../components/Presets';
 import ClassificationPanel from '../components/ClassificationPanel';
 import ProgressionPanel from '../components/ProgressionPanel';
 import OrbitDiagram from '../components/OrbitDiagram';
@@ -21,7 +22,15 @@ export interface AppState {
   selectedPCs: PitchClass[];
 }
 
-const initialState: AppState = { selectedPCs: [] };
+function parseURLPCs(): PitchClass[] {
+  const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+  const pcsParam = params.get('pcs');
+  if (!pcsParam) return [];
+  const pcs = pcsParam.split(',').map(Number).filter(n => n >= 0 && n <= 11) as PitchClass[];
+  return [...new Set(pcs)].sort((a, b) => a - b);
+}
+
+const initialState: AppState = { selectedPCs: parseURLPCs() };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -47,6 +56,16 @@ export default function ClassifierPage() {
   const analysis = useClassifier(state.selectedPCs);
   const chord = useChord(state.selectedPCs);
 
+  useEffect(() => {
+    const base = '#classifier';
+    if (state.selectedPCs.length > 0) {
+      const url = `${base}?pcs=${state.selectedPCs.join(',')}`;
+      window.history.replaceState(null, '', url);
+    } else {
+      window.history.replaceState(null, '', base);
+    }
+  }, [state.selectedPCs]);
+
   return (
     <>
       <main className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -54,6 +73,10 @@ export default function ClassifierPage() {
           <PianoKeyboard
             selectedPCs={state.selectedPCs}
             onToggle={(pc) => dispatch({ type: 'TOGGLE_PC', pc })}
+          />
+          <Presets
+            onSelect={(pcs) => dispatch({ type: 'SET_PCS', pcs })}
+            currentPCs={state.selectedPCs}
           />
           <TextInput onSetPCs={(pcs) => dispatch({ type: 'SET_PCS', pcs })} />
           <AudioControls selectedPCs={state.selectedPCs} />

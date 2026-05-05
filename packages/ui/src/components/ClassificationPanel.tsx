@@ -1,5 +1,6 @@
 import type { SymmetryAnalysis, Chord } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
+import { GROUP_DESCRIPTIONS } from '../data/group-descriptions';
 
 interface MoleculeAnalog {
   molecule: string;
@@ -62,6 +63,13 @@ export default function ClassificationPanel({ analysis, chord }: Props) {
           <span className="text-lg font-bold text-white">
             {NOTE_NAMES[chord.root]} {chord.quality}
           </span>
+        </div>
+      )}
+
+      {GROUP_DESCRIPTIONS[analysis.abstractGroup] && (
+        <div className="mb-3 pb-3 border-b border-gray-700 space-y-1">
+          <p className="text-sm text-gray-200">{GROUP_DESCRIPTIONS[analysis.abstractGroup]!.musical}</p>
+          <p className="text-xs text-gray-400 italic">{GROUP_DESCRIPTIONS[analysis.abstractGroup]!.feel}</p>
         </div>
       )}
 
