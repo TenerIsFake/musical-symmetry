@@ -5,6 +5,7 @@ import session from 'express-session';
 import { router } from './routes.js';
 import { authRouter } from './auth/routes.js';
 import { billingRouter } from './auth/stripe.js';
+import { collectionsRouter } from './collections/routes.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -61,6 +62,7 @@ app.use(session({
 // Auth & billing routes
 app.use('/api/auth', authRouter);
 app.use('/api/billing', billingRouter);
+app.use('/api/collections', collectionsRouter);
 
 // Existing API routes
 app.use('/api', router);

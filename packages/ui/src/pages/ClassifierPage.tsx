@@ -19,6 +19,8 @@ import SharePanel from '../components/SharePanel';
 import GuidedTour from '../components/GuidedTour';
 import ChordHistory, { buildHistoryEntry } from '../components/ChordHistory';
 import type { HistoryEntry } from '../components/ChordHistory';
+import SaveButton from '../components/SaveButton';
+import CollectionsSidebar from '../components/CollectionsSidebar';
 
 export type Action =
   | { type: 'TOGGLE_PC'; pc: PitchClass }
@@ -201,6 +203,9 @@ export default function ClassifierPage() {
             onRestore={(pcs) => dispatch({ type: 'SET_PCS', pcs })}
             onClear={() => setHistory([])}
           />
+          <CollectionsSidebar
+            onLoadPcs={(pcs) => dispatch({ type: 'SET_PCS', pcs })}
+          />
         </div>
       </main>
       <div className="mt-4 flex gap-3">
@@ -240,6 +245,10 @@ export default function ClassifierPage() {
             Share
           </span>
         )}
+        <SaveButton
+          pitchClasses={state.selectedPCs}
+          chordName={chord ? `${NOTE_NAMES[chord.root]} ${chord.quality}` : undefined}
+        />
       </div>
       {showShare && (
         <SharePanel
