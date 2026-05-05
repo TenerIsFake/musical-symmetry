@@ -9,6 +9,7 @@ import { billingRouter } from './auth/stripe.js';
 import { collectionsRouter } from './collections/routes.js';
 import { classroomRouter } from './classroom/routes.js';
 import { initClassroomWs } from './classroom/ws.js';
+import { atlasRouter } from './atlas/routes.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -67,6 +68,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/collections', collectionsRouter);
 app.use('/api/classroom', classroomRouter);
+app.use('/api/atlas', atlasRouter);
 
 // Existing API routes
 app.use('/api', router);

@@ -6,10 +6,12 @@ import DashboardPage from './pages/DashboardPage';
 import LandingPage from './pages/LandingPage';
 import ApiDocsPage from './pages/ApiDocsPage';
 import ClassroomPage from './pages/ClassroomPage';
+import AtlasPage from './pages/AtlasPage';
+import AtlasEntryPage from './pages/AtlasEntryPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useResearchMode } from './context/ResearchMode';
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -19,6 +21,8 @@ function getPage(): Page {
   if (hash === 'dashboard') return 'dashboard';
   if (hash === 'api-docs') return 'api-docs';
   if (hash === 'classroom') return 'classroom';
+  if (hash === 'atlas') return 'atlas';
+  if (hash.startsWith('atlas/')) return 'atlas-entry';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -58,6 +62,10 @@ export default function App() {
                 ? 'Integrate pitch-class analysis into your applications'
                 : page === 'classroom'
                 ? 'Analyze chords together in real time'
+                : page === 'atlas'
+                ? 'Every pitch-class set class, classified by symmetry group'
+                : page === 'atlas-entry'
+                ? 'Set class detail'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -116,6 +124,14 @@ export default function App() {
             >
               Classroom
             </a>
+            <a
+              href="#atlas"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'atlas' || page === 'atlas-entry' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Atlas
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -135,6 +151,8 @@ export default function App() {
         {page === 'dashboard' && <DashboardPage />}
         {page === 'api-docs' && <ApiDocsPage />}
         {page === 'classroom' && <ClassroomPage />}
+        {page === 'atlas' && <AtlasPage />}
+        {page === 'atlas-entry' && <AtlasEntryPage forteNumber={window.location.hash.replace('#atlas/', '')} />}
       </div>
     </ErrorBoundary>
   );
