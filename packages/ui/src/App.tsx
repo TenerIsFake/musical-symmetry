@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
 import ClassifierPage from './pages/ClassifierPage';
 import AnalyzerPage from './pages/AnalyzerPage';
+import AboutPage from './pages/AboutPage';
+import { useResearchMode } from './context/ResearchMode';
 
-type Page = 'classifier' | 'analyzer';
+type Page = 'classifier' | 'analyzer' | 'about';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '');
-  return hash === 'analyzer' ? 'analyzer' : 'classifier';
+  if (hash === 'analyzer') return 'analyzer';
+  if (hash === 'about') return 'about';
+  return 'classifier';
 }
 
 export default function App() {
   const [page, setPage] = useState<Page>(getPage);
+  const { researchMode, toggle: toggleResearch } = useResearchMode();
 
   useEffect(() => {
     const handler = () => setPage(getPage());
@@ -26,10 +31,12 @@ export default function App() {
           <p className="text-gray-400 mt-1 text-sm sm:text-base">
             {page === 'classifier'
               ? 'Select notes to see their hidden geometry'
-              : 'Upload a file to analyze symmetry across time'}
+              : page === 'analyzer'
+              ? 'Upload a file to analyze symmetry across time'
+              : 'Mathematical foundations for researchers'}
           </p>
         </div>
-        <nav className="flex gap-2">
+        <nav className="flex items-center gap-2">
           <a
             href="#classifier"
             className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
@@ -46,11 +53,30 @@ export default function App() {
           >
             Analyzer
           </a>
+          <a
+            href="#about"
+            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+              page === 'about' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            The Math
+          </a>
+          <span className="w-px h-5 bg-gray-600 mx-1" />
+          <button
+            onClick={toggleResearch}
+            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+              researchMode ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+            }`}
+            title={researchMode ? 'Switch to casual mode' : 'Show full technical details'}
+          >
+            {researchMode ? 'Research' : 'Casual'}
+          </button>
         </nav>
       </header>
 
       {page === 'classifier' && <ClassifierPage />}
       {page === 'analyzer' && <AnalyzerPage />}
+      {page === 'about' && <AboutPage />}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { SymmetryAnalysis, Chord } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
 import { GROUP_DESCRIPTIONS } from '../data/group-descriptions';
+import { useResearchMode } from '../context/ResearchMode';
 
 interface MoleculeAnalog {
   molecule: string;
@@ -45,6 +46,8 @@ function PropertyBadge({ label, value }: { label: string; value: string | boolea
 }
 
 export default function ClassificationPanel({ analysis, chord }: Props) {
+  const { researchMode } = useResearchMode();
+
   if (!analysis) {
     return (
       <div className="bg-gray-800 rounded-lg p-4">
@@ -74,17 +77,21 @@ export default function ClassificationPanel({ analysis, chord }: Props) {
       )}
 
       <div className="space-y-1">
-        <PropertyBadge label="Abstract Group" value={analysis.abstractGroup} />
-        <PropertyBadge label="Mulliken Label" value={analysis.mullikenLabel} />
-        <PropertyBadge label="Interval Vector" value={`[${analysis.intervalVector.join(', ')}]`} />
-        <PropertyBadge label="Stabilizer Order" value={String(analysis.stabilizerOrder)} />
-        <PropertyBadge label="Distinct Transpositions" value={String(analysis.distinctTranspositions)} />
+        <PropertyBadge label="Symmetry Group" value={analysis.abstractGroup} />
         <PropertyBadge label="Maximally Even" value={analysis.maximallyEven} />
-        <PropertyBadge label="Myhill Property" value={analysis.myhillProperty} />
-        <PropertyBadge label="Palindromic" value={analysis.isRetrogradePalindrome} />
+        {researchMode && (
+          <>
+            <PropertyBadge label="Mulliken Label" value={analysis.mullikenLabel} />
+            <PropertyBadge label="Interval Vector" value={`[${analysis.intervalVector.join(', ')}]`} />
+            <PropertyBadge label="Stabilizer Order" value={String(analysis.stabilizerOrder)} />
+            <PropertyBadge label="Distinct Transpositions" value={String(analysis.distinctTranspositions)} />
+            <PropertyBadge label="Myhill Property" value={analysis.myhillProperty} />
+            <PropertyBadge label="Palindromic" value={analysis.isRetrogradePalindrome} />
+          </>
+        )}
       </div>
 
-      {analysis.characterTableEntry && Object.keys(analysis.characterTableEntry).length > 0 && (
+      {researchMode && analysis.characterTableEntry && Object.keys(analysis.characterTableEntry).length > 0 && (
         <div className="mt-4 pt-3 border-t border-gray-700">
           <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Character Table</h3>
           <div className="grid grid-cols-2 gap-1 text-xs font-mono">
