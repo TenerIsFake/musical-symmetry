@@ -23,6 +23,7 @@ export function parseWav(buffer: Buffer): AudioParseResult {
   while (offset < buffer.length - 8) {
     const chunkId = String.fromCharCode(buffer[offset]!, buffer[offset+1]!, buffer[offset+2]!, buffer[offset+3]!);
     const chunkSize = view.getUint32(offset + 4, true);
+    if (chunkSize === 0 || chunkSize > buffer.length - offset) break;
 
     if (chunkId === 'fmt ') {
       numChannels = view.getUint16(offset + 10, true);
@@ -38,10 +39,21 @@ export function parseWav(buffer: Buffer): AudioParseResult {
   }
 
   if (dataStart === 0) throw new Error('No data chunk found in WAV');
+  if (bitsPerSample !== 16 && bitsPerSample !== 24 && bitsPerSample !== 32) {
+    throw new Error(`Unsupported bits per sample: ${bitsPerSample}`);
+  }
+  if (numChannels < 1 || numChannels > 16) {
+    throw new Error(`Invalid channel count: ${numChannels}`);
+  }
+  if (sampleRate < 1 || sampleRate > 384000) {
+    throw new Error(`Invalid sample rate: ${sampleRate}`);
+  }
 
-  // Convert to mono Float32Array
   const bytesPerSample = bitsPerSample / 8;
-  const numSamples = Math.floor(dataSize / (bytesPerSample * numChannels));
+  const numSamples = Math.min(
+    Math.floor(dataSize / (bytesPerSample * numChannels)),
+    Math.floor((buffer.length - dataStart) / (bytesPerSample * numChannels)),
+  );
   const samples = new Float32Array(numSamples);
 
   for (let i = 0; i < numSamples; i++) {

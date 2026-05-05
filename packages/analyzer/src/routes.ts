@@ -10,7 +10,20 @@ import { renderCard } from './cards/renderer.js';
 import type { CardStyle } from './cards/types.js';
 import { rateLimit } from './auth/middleware.js';
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const ALLOWED_EXTENSIONS = new Set(['mid', 'midi', 'xml', 'musicxml', 'mxl', 'wav']);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = file.originalname.split('.').pop()?.toLowerCase();
+    if (ext && ALLOWED_EXTENSIONS.has(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Rejected file type: .${ext}`));
+    }
+  },
+});
 
 export const router = Router();
 

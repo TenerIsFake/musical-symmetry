@@ -46,9 +46,13 @@ billingRouter.post('/checkout', requireAuth, (req, res) => {
   }
 });
 
-// POST /api/billing/webhook — Stripe webhook handler
 billingRouter.post('/webhook', (req, res) => {
   try {
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+      res.status(501).json({ error: 'Stripe not configured' });
+      return;
+    }
+
     const signature = req.headers['stripe-signature'] as string;
     if (!signature) {
       res.status(400).json({ error: 'Missing stripe-signature header' });
@@ -58,7 +62,7 @@ billingRouter.post('/webhook', (req, res) => {
     handleWebhook(req.body, signature);
     res.json({ received: true });
   } catch (err) {
-    res.status(400).json({ error: err instanceof Error ? err.message : 'Webhook error' });
+    res.status(400).json({ error: 'Webhook processing failed' });
   }
 });
 
