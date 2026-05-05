@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 import ClassifierPage from './pages/ClassifierPage';
 import AnalyzerPage from './pages/AnalyzerPage';
 import AboutPage from './pages/AboutPage';
+import LandingPage from './pages/LandingPage';
 import { useResearchMode } from './context/ResearchMode';
 
-type Page = 'classifier' | 'analyzer' | 'about';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about';
 
 function getPage(): Page {
-  const hash = window.location.hash.replace('#', '');
+  const hash = window.location.hash.replace('#', '').split('?')[0];
+  if (hash === 'classifier') return 'classifier';
   if (hash === 'analyzer') return 'analyzer';
   if (hash === 'about') return 'about';
-  return 'classifier';
+  if (hash === '' || hash === 'home') return 'home';
+  return 'home';
 }
 
 export default function App() {
@@ -22,6 +25,10 @@ export default function App() {
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
+
+  if (page === 'home') {
+    return <LandingPage />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
@@ -37,6 +44,12 @@ export default function App() {
           </p>
         </div>
         <nav className="flex items-center gap-2">
+          <a
+            href="#home"
+            className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-gray-700 text-gray-300 hover:bg-gray-600"
+          >
+            Home
+          </a>
           <a
             href="#classifier"
             className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import FileUpload from '../components/FileUpload';
+import SampleSongs from '../components/SampleSongs';
 import TimelineChart from '../components/TimelineChart';
 import SliceDetail from '../components/SliceDetail';
 import { useResearchMode } from '../context/ResearchMode';
@@ -86,6 +87,8 @@ export default function AnalyzerPage() {
   return (
     <div className="space-y-6">
       <FileUpload onUpload={handleUpload} isLoading={isLoading} />
+
+      <SampleSongs onSelect={handleUpload} isLoading={isLoading} />
 
       {error && (
         <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-300 text-sm">

@@ -8,12 +8,13 @@ import { analyzeTimeline } from './analyzer.js';
 import type { SliceMode } from './types.js';
 import { renderCard } from './cards/renderer.js';
 import type { CardStyle } from './cards/types.js';
+import { rateLimit } from './auth/middleware.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 export const router = Router();
 
-router.post('/analyze', upload.single('file'), async (req, res) => {
+router.post('/analyze', upload.single('file'), rateLimit('analyze'), async (req, res) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: 'No file uploaded' });
@@ -79,7 +80,7 @@ router.post('/analyze', upload.single('file'), async (req, res) => {
   }
 });
 
-router.post('/classify', (req, res) => {
+router.post('/classify', rateLimit('classify'), (req, res) => {
   try {
     const { pitchClasses } = req.body;
     if (!Array.isArray(pitchClasses) || pitchClasses.length < 1) {
@@ -101,7 +102,7 @@ router.post('/classify', (req, res) => {
   }
 });
 
-router.post('/classify/batch', (req, res) => {
+router.post('/classify/batch', rateLimit('batch'), (req, res) => {
   try {
     const { sets } = req.body;
     if (!Array.isArray(sets)) {
@@ -165,7 +166,7 @@ const VALID_STYLES: CardStyle[] = [
   'quote', 'timeline',
 ];
 
-router.get('/og/:style', (req, res) => {
+router.get('/og/:style', rateLimit('og'), (req, res) => {
   try {
     const style = req.params.style as CardStyle;
     if (!VALID_STYLES.includes(style)) {
@@ -238,6 +239,78 @@ router.get('/og/:style', (req, res) => {
     res.send(svg);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+const CRAWLER_UA = /facebookexternalhit|Twitterbot|Discordbot|LinkedInBot|Slackbot|WhatsApp/i;
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+router.get('/share/:style', (req, res) => {
+  try {
+    const style = req.params.style as CardStyle;
+    if (!VALID_STYLES.includes(style)) {
+      res.status(400).send('Invalid style');
+      return;
+    }
+
+    const pcs = (req.query.pcs as string) || '0,4,7';
+    const pcsArr = pcs.split(',').map(Number).filter(n => n >= 0 && n <= 11) as PitchClass[];
+
+    let chordName = `{${pcs}}`;
+    let group = '';
+    if (pcsArr.length >= 2) {
+      const analysis = classify(pcsArr);
+      group = analysis.abstractGroup;
+      if (pcsArr.length === 3) {
+        const chord = identifyChord(pcsArr);
+        if (chord) {
+          const noteNames: Record<number, string> = {
+            0: 'C', 1: 'C#', 2: 'D', 3: 'Eb', 4: 'E', 5: 'F',
+            6: 'F#', 7: 'G', 8: 'Ab', 9: 'A', 10: 'Bb', 11: 'B',
+          };
+          chordName = `${noteNames[chord.root]} ${chord.quality}`;
+        }
+      }
+    }
+
+    const ogImageUrl = `https://symmetry.tendrid.us/api/og/${style}?pcs=${encodeURIComponent(pcs)}`;
+    const appUrl = `https://symmetry.tendrid.us/#classifier?pcs=${encodeURIComponent(pcs)}`;
+    const title = group ? `${chordName} — ${group} symmetry` : chordName;
+    const description = `Discover the hidden geometry of ${chordName}. Musical Symmetry uses group theory to reveal the structure behind every chord.`;
+
+    const isCrawler = CRAWLER_UA.test(req.get('user-agent') || '');
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta property="og:title" content="${escapeHtml(title)}" />
+  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:image" content="${ogImageUrl}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="${appUrl}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(title)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="${ogImageUrl}" />
+  <title>${escapeHtml(title)} — Musical Symmetry</title>
+  ${isCrawler ? '' : `<meta http-equiv="refresh" content="0;url=${appUrl}" />`}
+</head>
+<body>
+  <p>Redirecting to <a href="${appUrl}">Musical Symmetry</a>...</p>
+  ${isCrawler ? '' : `<script>window.location.replace("${appUrl}");</script>`}
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send('Internal server error');
   }
 });
 
