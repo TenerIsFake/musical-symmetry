@@ -10,6 +10,7 @@ import { renderCard } from './cards/renderer.js';
 import type { CardStyle } from './cards/types.js';
 import { rateLimit } from './auth/middleware.js';
 import { generateAnalysisReport } from './reports/pdf-generator.js';
+import { getOpenApiSpec } from './api-docs/openapi.js';
 
 const ALLOWED_EXTENSIONS = new Set(['mid', 'midi', 'xml', 'musicxml', 'mxl', 'wav']);
 
@@ -373,6 +374,10 @@ router.get('/share/:style', (req, res) => {
   } catch (err) {
     res.status(500).send('Internal server error');
   }
+});
+
+router.get('/openapi.json', (_req, res) => {
+  res.json(getOpenApiSpec());
 });
 
 router.get('/health', (_req, res) => {

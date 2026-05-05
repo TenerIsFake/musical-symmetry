@@ -4,10 +4,11 @@ import AnalyzerPage from './pages/AnalyzerPage';
 import AboutPage from './pages/AboutPage';
 import DashboardPage from './pages/DashboardPage';
 import LandingPage from './pages/LandingPage';
+import ApiDocsPage from './pages/ApiDocsPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useResearchMode } from './context/ResearchMode';
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -15,6 +16,7 @@ function getPage(): Page {
   if (hash === 'analyzer') return 'analyzer';
   if (hash === 'about') return 'about';
   if (hash === 'dashboard') return 'dashboard';
+  if (hash === 'api-docs') return 'api-docs';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -50,6 +52,8 @@ export default function App() {
                 ? 'Upload a file to analyze symmetry across time'
                 : page === 'dashboard'
                 ? 'Manage your account and usage'
+                : page === 'api-docs'
+                ? 'Integrate pitch-class analysis into your applications'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -92,6 +96,14 @@ export default function App() {
             >
               Dashboard
             </a>
+            <a
+              href="#api-docs"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'api-docs' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              API Docs
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -109,6 +121,7 @@ export default function App() {
         {page === 'analyzer' && <AnalyzerPage />}
         {page === 'about' && <AboutPage />}
         {page === 'dashboard' && <DashboardPage />}
+        {page === 'api-docs' && <ApiDocsPage />}
       </div>
     </ErrorBoundary>
   );
