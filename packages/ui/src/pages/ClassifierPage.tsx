@@ -21,6 +21,7 @@ import ChordHistory, { buildHistoryEntry } from '../components/ChordHistory';
 import type { HistoryEntry } from '../components/ChordHistory';
 import SaveButton from '../components/SaveButton';
 import CollectionsSidebar from '../components/CollectionsSidebar';
+import MidiInput from '../components/MidiInput';
 
 export type Action =
   | { type: 'TOGGLE_PC'; pc: PitchClass }
@@ -163,6 +164,7 @@ export default function ClassifierPage() {
       )}
       <main className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="space-y-4 sm:space-y-6">
+          <MidiInput onNotesChange={(pcs) => dispatch({ type: 'SET_PCS', pcs })} />
           <div data-tour="piano">
             <PianoKeyboard
               selectedPCs={state.selectedPCs}
