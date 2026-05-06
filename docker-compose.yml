@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: packages/ui/Dockerfile
+      args:
+        VITE_ADSENSE_CLIENT: ${VITE_ADSENSE_CLIENT:-}
     container_name: musical-symmetry-ui
     ports:
       - "3009:80"

@@ -10,6 +10,9 @@ RUN npm install --workspaces
 COPY packages/core/ packages/core/
 COPY packages/ui/ packages/ui/
 
+ARG VITE_ADSENSE_CLIENT=""
+ENV VITE_ADSENSE_CLIENT=$VITE_ADSENSE_CLIENT
+
 RUN npm run build -w packages/ui
 
 FROM nginx:alpine

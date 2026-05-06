@@ -9,6 +9,7 @@ import ClassroomPage from './pages/ClassroomPage';
 import AtlasPage from './pages/AtlasPage';
 import AtlasEntryPage from './pages/AtlasEntryPage';
 import ErrorBoundary from './components/ErrorBoundary';
+import AdBanner from './components/AdBanner';
 import { useResearchMode } from './context/ResearchMode';
 
 type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry';
@@ -145,6 +146,8 @@ export default function App() {
           </nav>
         </header>
 
+        <AdBanner slot="top-banner" format="horizontal" />
+
         {page === 'classifier' && <ClassifierPage />}
         {page === 'analyzer' && <AnalyzerPage />}
         {page === 'about' && <AboutPage />}
@@ -153,6 +156,8 @@ export default function App() {
         {page === 'classroom' && <ClassroomPage />}
         {page === 'atlas' && <AtlasPage />}
         {page === 'atlas-entry' && <AtlasEntryPage forteNumber={window.location.hash.replace('#atlas/', '')} />}
+
+        <AdBanner slot="bottom-banner" format="horizontal" />
       </div>
     </ErrorBoundary>
   );
