@@ -1,10 +1,12 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { SymmetryAnalysis, Chord } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
 import { GROUP_DESCRIPTIONS } from '../data/group-descriptions';
 import { forteNumber } from '../data/forte-numbers';
 import { useResearchMode } from '../context/ResearchMode';
+import { useUser } from '../context/UserContext';
 import Tooltip from './Tooltip';
+import { generateCitation, type CitationStyle } from '../utils/citations';
 
 interface MoleculeAnalog {
   molecule: string;
@@ -50,6 +52,28 @@ function PropertyBadge({ label, value }: { label: ReactNode; value: string | boo
 
 export default function ClassificationPanel({ analysis, chord }: Props) {
   const { researchMode } = useResearchMode();
+  const { user } = useUser();
+  const [citeOpen, setCiteOpen] = useState(false);
+  const [citeStyle, setCiteStyle] = useState<CitationStyle>('apa');
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
+
+  const isResearch = user?.tier === 'research';
+
+  async function handleCopy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyMsg('Copied!');
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopyMsg('Copied!');
+    }
+    setTimeout(() => setCopyMsg(null), 2000);
+  }
 
   if (!analysis) {
     return (
@@ -131,6 +155,78 @@ export default function ClassificationPanel({ analysis, chord }: Props) {
           </div>
         </div>
       )}
+
+      {/* Citation Generator */}
+      <div className="mt-4 pt-3 border-t border-gray-700">
+        {isResearch ? (
+          <button
+            onClick={() => setCiteOpen((v) => !v)}
+            className="w-full px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-sm text-gray-200 rounded transition-colors text-left flex items-center justify-between"
+          >
+            <span>Cite this analysis</span>
+            <span aria-hidden="true">{citeOpen ? '▲' : '▼'}</span>
+          </button>
+        ) : (
+          <Tooltip text="Citation export requires Research tier.">
+            <button
+              disabled
+              className="w-full px-3 py-1.5 bg-gray-700 text-sm text-gray-500 rounded cursor-not-allowed opacity-50 text-left"
+            >
+              Cite this analysis
+            </button>
+          </Tooltip>
+        )}
+
+        {isResearch && citeOpen && (
+          <div className="mt-3 space-y-3">
+            {/* Style selector */}
+            <div className="flex gap-1 flex-wrap">
+              {(['apa', 'chicago', 'mla', 'bibtex'] as CitationStyle[]).map((style) => (
+                <button
+                  key={style}
+                  onClick={() => setCiteStyle(style)}
+                  className={`px-2.5 py-1 text-xs rounded font-mono transition-colors ${
+                    citeStyle === style
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {style.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Citation text */}
+            <pre className="bg-gray-900 rounded p-3 text-xs text-gray-300 font-mono whitespace-pre-wrap break-all leading-relaxed">
+              {generateCitation(
+                citeStyle,
+                analysis,
+                analysis.pitchClasses,
+                new Date(),
+                `https://symmetry.tendrid.us/#classifier?pcs=${analysis.pitchClasses.join(',')}`,
+              )}
+            </pre>
+
+            {/* Copy button */}
+            <button
+              onClick={() =>
+                handleCopy(
+                  generateCitation(
+                    citeStyle,
+                    analysis,
+                    analysis.pitchClasses,
+                    new Date(),
+                    `https://symmetry.tendrid.us/#classifier?pcs=${analysis.pitchClasses.join(',')}`,
+                  ),
+                )
+              }
+              className="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-white text-xs rounded transition-colors"
+            >
+              {copyMsg ?? 'Copy to clipboard'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
