@@ -391,6 +391,14 @@ export default function App() {
               Challenge
             </a>
             <a
+              href="#learn"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'learn' || page === 'learn-path' || page === 'learn-lesson' ? 'bg-teal-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Learn
+            </a>
+            <a
               href="#corpus"
               className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 page === 'corpus' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -456,6 +464,13 @@ export default function App() {
             return <RoomPage roomId={roomId} />;
           })()}
           {page === 'corpus' && <CorpusPage />}
+          {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
+            const hash = window.location.hash.replace('#', '').split('?')[0];
+            const parts = hash.split('/');
+            const pathId = parts[1] || undefined;
+            const lessonId = parts[2] || undefined;
+            return <LearningPathPage pathId={pathId} lessonId={lessonId} />;
+          })()}
         </Suspense>
 
       </div>

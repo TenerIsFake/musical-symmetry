@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import StripeCheckout from '../components/StripeCheckout';
 import { useAchievements } from '../hooks/useAchievements';
 import AchievementBadge from '../components/AchievementBadge';
+import { LEARNING_PATHS } from '../data/learning-paths/index.js';
+import { useLearningProgress } from '../hooks/useLearningProgress.js';
 
 function DailyChallengeTeaser() {
   const [submitted, setSubmitted] = useState<boolean | null>(null);
@@ -192,6 +194,96 @@ function AchievementsSection() {
   );
 }
 
+function ContinueLearning() {
+  const { completedLessons, loading } = useLearningProgress(true);
+
+  if (loading) return null;
+
+  // Find paths with any progress
+  const startedPaths = LEARNING_PATHS.filter(p =>
+    p.lessons.some(l => completedLessons.has(`${p.id}/${l.id}`))
+  );
+
+  // Find next incomplete lesson across all paths
+  let nextLesson: { path: typeof LEARNING_PATHS[0]; lesson: typeof LEARNING_PATHS[0]['lessons'][0] } | null = null;
+  for (const path of LEARNING_PATHS) {
+    const firstIncomplete = path.lessons.find(l => !completedLessons.has(`${path.id}/${l.id}`));
+    if (firstIncomplete) {
+      nextLesson = { path, lesson: firstIncomplete };
+      break;
+    }
+  }
+
+  const allComplete = nextLesson === null;
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+          <span>📚</span> Continue Learning
+        </h3>
+        <a href="#learn" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+          All Paths →
+        </a>
+      </div>
+
+      {allComplete && startedPaths.length === 0 ? (
+        <div className="text-center py-2">
+          <p className="text-sm text-gray-400 mb-2">Start your first learning path</p>
+          <a
+            href="#learn"
+            className="inline-block px-3 py-1.5 bg-teal-700 text-white text-sm rounded hover:bg-teal-600 transition-colors"
+          >
+            Browse Paths
+          </a>
+        </div>
+      ) : allComplete ? (
+        <p className="text-sm text-green-400">All paths complete! Check back for new content.</p>
+      ) : (
+        <div className="space-y-3">
+          {nextLesson && (
+            <div className="flex items-center justify-between gap-3 bg-teal-900/30 border border-teal-800 rounded-lg px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-xs text-teal-400 mb-0.5">{nextLesson.path.title}</p>
+                <p className="text-sm text-white truncate">{nextLesson.lesson.title}</p>
+              </div>
+              <a
+                href={`#learn/${nextLesson.path.id}/${nextLesson.lesson.id}`}
+                className="shrink-0 px-3 py-1.5 bg-teal-700 text-white text-xs rounded hover:bg-teal-600 transition-colors font-medium"
+              >
+                Resume
+              </a>
+            </div>
+          )}
+          {startedPaths.length > 0 && (
+            <div className="space-y-2">
+              {startedPaths.map(path => {
+                const total = path.lessons.length;
+                const completed = path.lessons.filter(l => completedLessons.has(`${path.id}/${l.id}`)).length;
+                const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                return (
+                  <div key={path.id}>
+                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <span>{path.icon} {path.title}</span>
+                      <span>{completed}/{total}</span>
+                    </div>
+                    <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-teal-600 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LoggedInView({ user }: { user: UserProfile }) {
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(user.apiKey).catch(() => {});
@@ -205,6 +297,9 @@ function LoggedInView({ user }: { user: UserProfile }) {
     <div className="space-y-6">
       {/* Daily Challenge Teaser */}
       <DailyChallengeTeaser />
+
+      {/* Continue Learning */}
+      <ContinueLearning />
 
       {/* Profile Card */}
       <div className="bg-gray-800 rounded-lg p-6">
