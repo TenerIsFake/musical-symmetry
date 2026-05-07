@@ -531,6 +531,15 @@ export default function RhythmPage() {
           >
             Compare Mode
           </button>
+
+          {/* Euclidean generator link */}
+          <a
+            href="#euclidean"
+            className="px-3 py-1.5 rounded text-sm font-medium bg-teal-800 text-teal-200 hover:bg-teal-700 transition-colors"
+            title="Generate maximally even rhythms with Bjorklund's algorithm"
+          >
+            Generate Euclidean →
+          </a>
         </div>
       </div>
 

@@ -20,6 +20,7 @@ const IntervalCyclesPage = lazy(() => import('./pages/IntervalCyclesPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
 const RhythmPage = lazy(() => import('./pages/RhythmPage'));
+const EuclideanPage = lazy(() => import('./pages/EuclideanPage'));
 const VoiceLeadingGraphPage = lazy(() => import('./pages/VoiceLeadingGraphPage'));
 const TimelinePage = lazy(() => import('./pages/TimelinePage'));
 const PracticePage = lazy(() => import('./pages/PracticePage'));
@@ -37,7 +38,7 @@ const RoomPage = lazy(() => import('./pages/RoomPage'));
 const CorpusPage = lazy(() => import('./pages/CorpusPage'));
 const LearningPathPage = lazy(() => import('./pages/LearningPathPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -58,6 +59,7 @@ function getPage(): Page {
   if (hash === 'search') return 'search';
   if (hash === 'quiz') return 'quiz';
   if (hash === 'rhythm') return 'rhythm';
+  if (hash === 'euclidean') return 'euclidean';
   if (hash === 'vl-graph') return 'vl-graph';
   if (hash === 'timeline') return 'timeline';
   if (hash === 'practice') return 'practice';
@@ -150,6 +152,8 @@ export default function App() {
                 ? 'Spaced-repetition flashcards for set class mastery'
                 : page === 'rhythm'
                 ? 'Rhythmic symmetry — cyclic geometry of beat patterns'
+                : page === 'euclidean'
+                ? "Generate maximally even rhythms with Bjorklund's algorithm"
                 : page === 'vl-graph'
                 ? 'Voice-leading landscape — explore minimal chord movements'
                 : page === 'timeline'
@@ -319,6 +323,14 @@ export default function App() {
               Rhythm
             </a>
             <a
+              href="#euclidean"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'euclidean' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Euclidean
+            </a>
+            <a
               href="#vl-graph"
               className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 page === 'vl-graph' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -439,6 +451,7 @@ export default function App() {
           {page === 'search' && <SearchPage />}
           {page === 'quiz' && <QuizPage />}
           {page === 'rhythm' && <RhythmPage />}
+          {page === 'euclidean' && <EuclideanPage />}
           {page === 'vl-graph' && <VoiceLeadingGraphPage />}
           {page === 'timeline' && <TimelinePage />}
           {page === 'practice' && <PracticePage />}
