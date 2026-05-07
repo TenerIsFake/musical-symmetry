@@ -27,8 +27,9 @@ const PracticePage = lazy(() => import('./pages/PracticePage'));
 const TuningPage = lazy(() => import('./pages/TuningPage'));
 const ScoreAnnotationPage = lazy(() => import('./pages/ScoreAnnotationPage'));
 const AssignmentsPage = lazy(() => import('./pages/AssignmentsPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -55,6 +56,7 @@ function getPage(): Page {
   if (hash === 'tuning') return 'tuning';
   if (hash === 'annotate') return 'annotate';
   if (hash === 'assignments') return 'assignments';
+  if (hash === 'privacy') return 'privacy';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -128,6 +130,8 @@ export default function App() {
                 ? 'Annotate scores with symmetry analysis'
                 : page === 'assignments'
                 ? 'Create and complete music theory assignments'
+                : page === 'privacy'
+                ? 'How we collect, use, and protect your data'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -353,6 +357,7 @@ export default function App() {
           {page === 'tuning' && <TuningPage />}
           {page === 'annotate' && <ScoreAnnotationPage />}
           {page === 'assignments' && <AssignmentsPage />}
+          {page === 'privacy' && <PrivacyPage />}
         </Suspense>
 
         <AdBanner slot="bottom-banner" format="horizontal" />
