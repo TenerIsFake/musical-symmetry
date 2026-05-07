@@ -40,8 +40,10 @@ const LearningPathPage = lazy(() => import('./pages/LearningPathPage'));
 const TransformChainPage = lazy(() => import('./pages/TransformChainPage'));
 const SetClassPalettePage = lazy(() => import('./pages/SetClassPalettePage'));
 const SketchpadPage = lazy(() => import('./pages/SketchpadPage'));
+const ConstraintComposerPage = lazy(() => import('./pages/ConstraintComposerPage'));
+const HarmonicPathPage = lazy(() => import('./pages/HarmonicPathPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette' | 'sketchpad';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette' | 'sketchpad' | 'compose' | 'harmonic-path';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -87,6 +89,8 @@ function getPage(): Page {
   if (hash === 'transform') return 'transform';
   if (hash === 'palette') return 'palette';
   if (hash === 'sketchpad') return 'sketchpad';
+  if (hash === 'compose') return 'compose';
+  if (hash === 'harmonic-path') return 'harmonic-path';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -196,6 +200,10 @@ export default function App() {
                 ? 'Browse all transpositions and inversions of any set class'
                 : page === 'sketchpad'
                 ? 'Multi-track composition workspace — melody, rhythm, and chords'
+                : page === 'compose'
+                ? 'Generate melodies from set-class and contour constraints'
+                : page === 'harmonic-path'
+                ? 'Walk the Tonnetz — build progressions through PLR transformations'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -455,6 +463,22 @@ export default function App() {
             >
               Sketchpad
             </a>
+            <a
+              href="#compose"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'compose' ? 'bg-violet-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Compose
+            </a>
+            <a
+              href="#harmonic-path"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'harmonic-path' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Paths
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -516,6 +540,8 @@ export default function App() {
           {page === 'transform' && <TransformChainPage />}
           {page === 'palette' && <SetClassPalettePage />}
           {page === 'sketchpad' && <SketchpadPage />}
+          {page === 'compose' && <ConstraintComposerPage />}
+          {page === 'harmonic-path' && <HarmonicPathPage />}
           {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
             const hash = window.location.hash.replace('#', '').split('?')[0];
             const parts = hash.split('/');
