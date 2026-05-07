@@ -39,8 +39,9 @@ const CorpusPage = lazy(() => import('./pages/CorpusPage'));
 const LearningPathPage = lazy(() => import('./pages/LearningPathPage'));
 const TransformChainPage = lazy(() => import('./pages/TransformChainPage'));
 const SetClassPalettePage = lazy(() => import('./pages/SetClassPalettePage'));
+const SketchpadPage = lazy(() => import('./pages/SketchpadPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette' | 'sketchpad';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -85,6 +86,7 @@ function getPage(): Page {
   }
   if (hash === 'transform') return 'transform';
   if (hash === 'palette') return 'palette';
+  if (hash === 'sketchpad') return 'sketchpad';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -192,6 +194,8 @@ export default function App() {
                 ? 'Apply T/I/PLR operations to build transformation chains'
                 : page === 'palette'
                 ? 'Browse all transpositions and inversions of any set class'
+                : page === 'sketchpad'
+                ? 'Multi-track composition workspace — melody, rhythm, and chords'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -443,6 +447,14 @@ export default function App() {
             >
               Palette
             </a>
+            <a
+              href="#sketchpad"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'sketchpad' ? 'bg-emerald-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Sketchpad
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -503,6 +515,7 @@ export default function App() {
           {page === 'corpus' && <CorpusPage />}
           {page === 'transform' && <TransformChainPage />}
           {page === 'palette' && <SetClassPalettePage />}
+          {page === 'sketchpad' && <SketchpadPage />}
           {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
             const hash = window.location.hash.replace('#', '').split('?')[0];
             const parts = hash.split('/');
