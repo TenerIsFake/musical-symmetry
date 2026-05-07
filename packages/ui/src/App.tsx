@@ -35,8 +35,9 @@ const DailyChallengePage = lazy(() => import('./pages/DailyChallengePage'));
 const PublicProfileIndexPage = lazy(() => import('./pages/PublicProfileIndexPage'));
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 const RoomPage = lazy(() => import('./pages/RoomPage'));
+const CorpusPage = lazy(() => import('./pages/CorpusPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -69,6 +70,7 @@ function getPage(): Page {
   if (hash === 'flashcards') return 'flashcards';
   if (hash === 'challenge') return 'challenge';
   if (hash.startsWith('room/')) return 'room';
+  if (hash === 'corpus') return 'corpus';
   if (hash.startsWith('u/')) {
     const parts = hash.slice(2).split('/');
     if (parts.length >= 2 && parts[1]) return 'profile-collection';
@@ -167,6 +169,8 @@ export default function App() {
                 ? 'One set class question per day — build your streak'
                 : page === 'room'
                 ? 'Collaborative live analysis — share and explore pitch-class sets together'
+                : page === 'corpus'
+                ? 'Batch upload files, compute aggregate corpus statistics, and compare corpora'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -377,6 +381,15 @@ export default function App() {
             >
               Challenge
             </a>
+            <a
+              href="#corpus"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'corpus' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+              title="Research tier: Comparative Corpus Analysis"
+            >
+              Corpus
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -434,6 +447,7 @@ export default function App() {
             const roomId = window.location.hash.replace('#room/', '');
             return <RoomPage roomId={roomId} />;
           })()}
+          {page === 'corpus' && <CorpusPage />}
         </Suspense>
 
         <AdBanner slot="bottom-banner" format="horizontal" />
