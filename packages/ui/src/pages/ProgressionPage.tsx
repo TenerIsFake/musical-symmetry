@@ -4,6 +4,7 @@ import type { PitchClass, Chord } from '@musical-symmetry/core';
 import { useUser } from '../context/UserContext';
 import { playChordProgression } from '../utils/audio';
 import { downloadMidi } from '../utils/midi-writer';
+import ProgressionTemplates from '../components/ProgressionTemplates';
 
 // ---- Types ----
 
@@ -348,6 +349,8 @@ export default function ProgressionPage() {
 
   const [chords, setChords] = useState<ProgressionChord[]>([]);
   const [showPalette, setShowPalette] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateSessionLoads, setTemplateSessionLoads] = useState(0);
   const [insertAfterIdx, setInsertAfterIdx] = useState<number | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
@@ -405,6 +408,28 @@ export default function ProgressionPage() {
     setChords(prev => [...prev, newChord]);
   };
 
+  const handleTemplateLoad = useCallback(
+    (incoming: { pcs: number[]; name: string }[]) => {
+      const newChords: ProgressionChord[] = incoming.map(c => ({
+        id: uid(),
+        pcs: c.pcs as PitchClass[],
+        name: c.name,
+      }));
+      if (isPro) {
+        // Pro: replace current progression entirely
+        setChords(newChords);
+      } else {
+        // Free: append (up to FREE_CHORD_LIMIT)
+        setChords(prev => {
+          const combined = [...prev, ...newChords];
+          return combined.slice(0, FREE_CHORD_LIMIT);
+        });
+      }
+      setSelectedIdx(null);
+    },
+    [isPro],
+  );
+
   // Drag-and-drop
   const onDragStart = (idx: number) => {
     setDraggingIdx(idx);
@@ -458,6 +483,12 @@ export default function ProgressionPage() {
             className="w-16 bg-gray-700 rounded px-2 py-1 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+        <button
+          onClick={() => setShowTemplates(true)}
+          className="px-4 py-2 bg-teal-700 hover:bg-teal-600 text-white text-sm rounded font-medium transition-colors"
+        >
+          &#x2605; Templates
+        </button>
         <button
           onClick={handlePlay}
           disabled={chords.length === 0 || isPlaying}
@@ -602,6 +633,16 @@ export default function ProgressionPage() {
         <ChordPalette
           onSelect={handlePaletteSelect}
           onClose={() => setShowPalette(false)}
+        />
+      )}
+
+      {/* Progression templates modal */}
+      {showTemplates && (
+        <ProgressionTemplates
+          onLoad={handleTemplateLoad}
+          onClose={() => setShowTemplates(false)}
+          sessionLoads={templateSessionLoads}
+          onSessionLoad={() => setTemplateSessionLoads(prev => prev + 1)}
         />
       )}
     </div>

@@ -22,6 +22,7 @@ import type { HistoryEntry } from '../components/ChordHistory';
 import SaveButton from '../components/SaveButton';
 import CollectionsSidebar from '../components/CollectionsSidebar';
 import MidiInput from '../components/MidiInput';
+import ExportMenu from '../components/ExportMenu';
 
 export type Action =
   | { type: 'TOGGLE_PC'; pc: PitchClass }
@@ -252,6 +253,7 @@ export default function ClassifierPage() {
           data={{ pitchClasses: state.selectedPCs, chord: chord ? `${NOTE_NAMES[chord.root]} ${chord.quality}` : undefined }}
           defaultName={chord ? `${NOTE_NAMES[chord.root]} ${chord.quality}` : `Set {${state.selectedPCs.join(',')}}`}
         />
+        <ExportMenu analysis={analysis} pcs={state.selectedPCs} />
       </div>
       {showShare && (
         <SharePanel

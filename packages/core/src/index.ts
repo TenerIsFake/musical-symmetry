@@ -14,6 +14,24 @@ export { CHORD_TEMPLATES, identifyChord } from './chords';
 export { analyzeModes, isRetrogradePalindrome, brightnessIndex } from './modes';
 export type { CSEG, COMMatrix, ContourAnalysis } from './contour';
 export { toCSEG, comMatrix, contourAdjacencySeries, contourInversion, contourRetrograde, contourRetrogradeInversion, isContourPalindrome, isInversionallySymmetric, contourSimilarity, contourDepth, contourClass, analyzeContour } from './contour';
+export type { Beat, RhythmPattern, RhythmAnalysis } from './rhythm';
+export { analyzeRhythm, rotateRhythm, rhythmNecklaceClass, rhythmEvenness, interOnsetIntervals, isMaximallyEvenRhythm, rhythmSimilarity } from './rhythm';
+export type { TuningSystem } from './tuning';
+export {
+  TUNING_12TET,
+  TUNING_19TET,
+  TUNING_24TET,
+  TUNING_31TET,
+  TUNING_BOHLEN_PIERCE,
+  ALL_TUNINGS,
+  frequencyInTuning,
+  generalizedTranspose,
+  generalizedInvert,
+  generalizedIntervalVector,
+  generalizedSymmetryGroup,
+  generalizedMaximallyEven,
+  nearestTwelveTET,
+} from './tuning';
 
 import type { PitchClass, SymmetryAnalysis } from './types';
 import { transpositionalStabilizer, inversionalAxes, stabilizerOrder, distinctTranspositions, abstractGroup } from './symmetry';
