@@ -1,31 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import ClassifierPage from './pages/ClassifierPage';
-import AnalyzerPage from './pages/AnalyzerPage';
-import AboutPage from './pages/AboutPage';
-import DashboardPage from './pages/DashboardPage';
 import LandingPage from './pages/LandingPage';
-import ApiDocsPage from './pages/ApiDocsPage';
-import ClassroomPage from './pages/ClassroomPage';
-import AtlasPage from './pages/AtlasPage';
-import AtlasEntryPage from './pages/AtlasEntryPage';
-import EarTrainingPage from './pages/EarTrainingPage';
-import ProgressionPage from './pages/ProgressionPage';
-import LiveDetectionPage from './pages/LiveDetectionPage';
-import ComparePage from './pages/ComparePage';
-import MelodyPage from './pages/MelodyPage';
-import IntervalCyclesPage from './pages/IntervalCyclesPage';
-import SearchPage from './pages/SearchPage';
-import QuizPage from './pages/QuizPage';
-import RhythmPage from './pages/RhythmPage';
-import VoiceLeadingGraphPage from './pages/VoiceLeadingGraphPage';
-import TimelinePage from './pages/TimelinePage';
-import PracticePage from './pages/PracticePage';
-import TuningPage from './pages/TuningPage';
-import ScoreAnnotationPage from './pages/ScoreAnnotationPage';
-import AssignmentsPage from './pages/AssignmentsPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdBanner from './components/AdBanner';
 import { useResearchMode } from './context/ResearchMode';
+
+const AnalyzerPage = lazy(() => import('./pages/AnalyzerPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ApiDocsPage = lazy(() => import('./pages/ApiDocsPage'));
+const ClassroomPage = lazy(() => import('./pages/ClassroomPage'));
+const AtlasPage = lazy(() => import('./pages/AtlasPage'));
+const AtlasEntryPage = lazy(() => import('./pages/AtlasEntryPage'));
+const EarTrainingPage = lazy(() => import('./pages/EarTrainingPage'));
+const ProgressionPage = lazy(() => import('./pages/ProgressionPage'));
+const LiveDetectionPage = lazy(() => import('./pages/LiveDetectionPage'));
+const ComparePage = lazy(() => import('./pages/ComparePage'));
+const MelodyPage = lazy(() => import('./pages/MelodyPage'));
+const IntervalCyclesPage = lazy(() => import('./pages/IntervalCyclesPage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const QuizPage = lazy(() => import('./pages/QuizPage'));
+const RhythmPage = lazy(() => import('./pages/RhythmPage'));
+const VoiceLeadingGraphPage = lazy(() => import('./pages/VoiceLeadingGraphPage'));
+const TimelinePage = lazy(() => import('./pages/TimelinePage'));
+const PracticePage = lazy(() => import('./pages/PracticePage'));
+const TuningPage = lazy(() => import('./pages/TuningPage'));
+const ScoreAnnotationPage = lazy(() => import('./pages/ScoreAnnotationPage'));
+const AssignmentsPage = lazy(() => import('./pages/AssignmentsPage'));
 
 type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments';
 
@@ -329,28 +330,30 @@ export default function App() {
         <AdBanner slot="top-banner" format="horizontal" />
 
         {page === 'classifier' && <ClassifierPage />}
-        {page === 'analyzer' && <AnalyzerPage />}
-        {page === 'about' && <AboutPage />}
-        {page === 'dashboard' && <DashboardPage />}
-        {page === 'api-docs' && <ApiDocsPage />}
-        {page === 'classroom' && <ClassroomPage />}
-        {page === 'atlas' && <AtlasPage />}
-        {page === 'atlas-entry' && <AtlasEntryPage forteNumber={window.location.hash.replace('#atlas/', '')} />}
-        {page === 'ear-training' && <EarTrainingPage />}
-        {page === 'progression' && <ProgressionPage />}
-        {page === 'live' && <LiveDetectionPage />}
-        {page === 'compare' && <ComparePage />}
-        {page === 'melody' && <MelodyPage />}
-        {page === 'cycles' && <IntervalCyclesPage />}
-        {page === 'search' && <SearchPage />}
-        {page === 'quiz' && <QuizPage />}
-        {page === 'rhythm' && <RhythmPage />}
-        {page === 'vl-graph' && <VoiceLeadingGraphPage />}
-        {page === 'timeline' && <TimelinePage />}
-        {page === 'practice' && <PracticePage />}
-        {page === 'tuning' && <TuningPage />}
-        {page === 'annotate' && <ScoreAnnotationPage />}
-        {page === 'assignments' && <AssignmentsPage />}
+        <Suspense fallback={<div className="text-center py-12 text-gray-500">Loading…</div>}>
+          {page === 'analyzer' && <AnalyzerPage />}
+          {page === 'about' && <AboutPage />}
+          {page === 'dashboard' && <DashboardPage />}
+          {page === 'api-docs' && <ApiDocsPage />}
+          {page === 'classroom' && <ClassroomPage />}
+          {page === 'atlas' && <AtlasPage />}
+          {page === 'atlas-entry' && <AtlasEntryPage forteNumber={window.location.hash.replace('#atlas/', '')} />}
+          {page === 'ear-training' && <EarTrainingPage />}
+          {page === 'progression' && <ProgressionPage />}
+          {page === 'live' && <LiveDetectionPage />}
+          {page === 'compare' && <ComparePage />}
+          {page === 'melody' && <MelodyPage />}
+          {page === 'cycles' && <IntervalCyclesPage />}
+          {page === 'search' && <SearchPage />}
+          {page === 'quiz' && <QuizPage />}
+          {page === 'rhythm' && <RhythmPage />}
+          {page === 'vl-graph' && <VoiceLeadingGraphPage />}
+          {page === 'timeline' && <TimelinePage />}
+          {page === 'practice' && <PracticePage />}
+          {page === 'tuning' && <TuningPage />}
+          {page === 'annotate' && <ScoreAnnotationPage />}
+          {page === 'assignments' && <AssignmentsPage />}
+        </Suspense>
 
         <AdBanner slot="bottom-banner" format="horizontal" />
       </div>
