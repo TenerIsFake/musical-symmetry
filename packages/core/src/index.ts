@@ -12,6 +12,8 @@ export { classifyTransition, findPLRPath } from './transitions';
 export { SCALE_TEMPLATES, findBestScale } from './scales';
 export { CHORD_TEMPLATES, identifyChord } from './chords';
 export { analyzeModes, isRetrogradePalindrome, brightnessIndex } from './modes';
+export type { CSEG, COMMatrix, ContourAnalysis } from './contour';
+export { toCSEG, comMatrix, contourAdjacencySeries, contourInversion, contourRetrograde, contourRetrogradeInversion, isContourPalindrome, isInversionallySymmetric, contourSimilarity, contourDepth, contourClass, analyzeContour } from './contour';
 
 import type { PitchClass, SymmetryAnalysis } from './types';
 import { transpositionalStabilizer, inversionalAxes, stabilizerOrder, distinctTranspositions, abstractGroup } from './symmetry';

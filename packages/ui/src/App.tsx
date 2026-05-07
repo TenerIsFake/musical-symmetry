@@ -12,11 +12,12 @@ import EarTrainingPage from './pages/EarTrainingPage';
 import ProgressionPage from './pages/ProgressionPage';
 import LiveDetectionPage from './pages/LiveDetectionPage';
 import ComparePage from './pages/ComparePage';
+import MelodyPage from './pages/MelodyPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdBanner from './components/AdBanner';
 import { useResearchMode } from './context/ResearchMode';
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -32,6 +33,7 @@ function getPage(): Page {
   if (hash === 'progression') return 'progression';
   if (hash === 'live') return 'live';
   if (hash === 'compare') return 'compare';
+  if (hash === 'melody') return 'melody';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -83,6 +85,8 @@ export default function App() {
                 ? 'Detect pitches in real time from your microphone'
                 : page === 'compare'
                 ? 'Compare two pieces side by side for symmetry differences'
+                : page === 'melody'
+                ? 'Analyze melodic contour — shape, symmetry, and similarity'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -181,6 +185,14 @@ export default function App() {
             >
               Compare
             </a>
+            <a
+              href="#melody"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'melody' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Melody
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -208,6 +220,7 @@ export default function App() {
         {page === 'progression' && <ProgressionPage />}
         {page === 'live' && <LiveDetectionPage />}
         {page === 'compare' && <ComparePage />}
+        {page === 'melody' && <MelodyPage />}
 
         <AdBanner slot="bottom-banner" format="horizontal" />
       </div>

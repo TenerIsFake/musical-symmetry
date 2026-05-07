@@ -5,10 +5,10 @@ import './types.js';
 type Tier = 'anonymous' | 'free' | 'pro' | 'research';
 
 const TIER_LIMITS: Record<Tier, Record<string, number>> = {
-  anonymous: { classify: 50, batch: 0, analyze: 3, og: 20, report: 0, 'genre-detect': 5, 'genre-suggest': 0 },
-  free:      { classify: 100, batch: 10, analyze: 10, og: 50, report: 1, 'genre-detect': 20, 'genre-suggest': 0 },
-  pro:       { classify: 1000, batch: 100, analyze: 100, og: -1, report: 20, 'genre-detect': -1, 'genre-suggest': 200 },
-  research:  { classify: 10000, batch: 1000, analyze: 1000, og: -1, report: -1, 'genre-detect': -1, 'genre-suggest': -1 },
+  anonymous: { classify: 50, batch: 0, analyze: 3, og: 20, report: 0, 'genre-detect': 5, 'genre-suggest': 0, contour: 5 },
+  free:      { classify: 100, batch: 10, analyze: 10, og: 50, report: 1, 'genre-detect': 20, 'genre-suggest': 0, contour: 5 },
+  pro:       { classify: 1000, batch: 100, analyze: 100, og: -1, report: 20, 'genre-detect': -1, 'genre-suggest': 200, contour: 100 },
+  research:  { classify: 10000, batch: 1000, analyze: 1000, og: -1, report: -1, 'genre-detect': -1, 'genre-suggest': -1, contour: 1000 },
 };
 
 function resolveUser(req: Request): { user: User | null; tier: Tier } {

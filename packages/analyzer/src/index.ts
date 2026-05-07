@@ -13,6 +13,7 @@ import { atlasRouter } from './atlas/routes.js';
 import { workspacesRouter } from './workspaces/routes.js';
 import { digestRouter } from './digest/routes.js';
 import { genreRouter } from './genre/routes.js';
+import { contourRouter } from './contour/routes.js';
 import { runDigestMigration, sendWeeklyDigests, getLastDigestSentAt } from './digest/weekly-digest.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
@@ -76,6 +77,7 @@ app.use('/api/atlas', atlasRouter);
 app.use('/api/workspaces', workspacesRouter);
 app.use('/api/digest', digestRouter);
 app.use('/api/genre', genreRouter);
+app.use('/api/contour', contourRouter);
 
 // Existing API routes
 app.use('/api', router);
