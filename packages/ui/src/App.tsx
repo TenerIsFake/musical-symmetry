@@ -43,8 +43,9 @@ const SketchpadPage = lazy(() => import('./pages/SketchpadPage'));
 const ConstraintComposerPage = lazy(() => import('./pages/ConstraintComposerPage'));
 const HarmonicPathPage = lazy(() => import('./pages/HarmonicPathPage'));
 const MidiIOPage = lazy(() => import('./pages/MidiIOPage'));
+const OrchestrationPage = lazy(() => import('./pages/OrchestrationPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette' | 'sketchpad' | 'compose' | 'harmonic-path' | 'midi-io';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette' | 'sketchpad' | 'compose' | 'harmonic-path' | 'midi-io' | 'orchestration';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -93,6 +94,7 @@ function getPage(): Page {
   if (hash === 'compose') return 'compose';
   if (hash === 'harmonic-path') return 'harmonic-path';
   if (hash === 'midi-io') return 'midi-io';
+  if (hash === 'orchestration') return 'orchestration';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -208,6 +210,8 @@ export default function App() {
                 ? 'Walk the Tonnetz — build progressions through PLR transformations'
                 : page === 'midi-io'
                 ? 'Real-time MIDI input/output with theory-aware processing'
+                : page === 'orchestration'
+                ? 'Instrument voicing suggestions based on interval content and range'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -491,6 +495,14 @@ export default function App() {
             >
               MIDI
             </a>
+            <a
+              href="#orchestration"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'orchestration' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Orchestrate
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -555,6 +567,7 @@ export default function App() {
           {page === 'compose' && <ConstraintComposerPage />}
           {page === 'harmonic-path' && <HarmonicPathPage />}
           {page === 'midi-io' && <MidiIOPage />}
+          {page === 'orchestration' && <OrchestrationPage />}
           {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
             const hash = window.location.hash.replace('#', '').split('?')[0];
             const parts = hash.split('/');

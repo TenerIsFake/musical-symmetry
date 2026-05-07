@@ -44,6 +44,9 @@ export { generateCandidates } from './constraint-composer';
 
 export { quantizeToSet } from './quantize';
 
+export type { InstrumentSpec, VoicingAssignment, OrchestrationSuggestion } from './orchestration';
+export { suggestOrchestrations } from './orchestration';
+
 import type { PitchClass, SymmetryAnalysis } from './types';
 import { transpositionalStabilizer, inversionalAxes, stabilizerOrder, distinctTranspositions, abstractGroup } from './symmetry';
 import { intervalVector, myhillProperty } from './intervals';
