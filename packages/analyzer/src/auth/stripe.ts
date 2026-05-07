@@ -12,22 +12,24 @@ function getStripe(): Stripe | null {
   return new Stripe(key, { apiVersion: '2026-04-22.dahlia' });
 }
 
-export function isValidTier(tier: string): tier is 'pro' | 'research' {
-  return tier === 'pro' || tier === 'research';
+export function isValidTier(tier: string): tier is 'student' | 'pro' | 'research' {
+  return tier === 'student' || tier === 'pro' || tier === 'research';
 }
 
 export async function createCheckoutUrl(
   userId: string,
-  tier: 'pro' | 'research',
+  tier: 'student' | 'pro' | 'research',
   email: string,
 ): Promise<string | null> {
   const stripe = getStripe();
   if (!stripe) return null;
 
   const priceId =
-    tier === 'pro'
-      ? process.env.STRIPE_PRICE_PRO
-      : process.env.STRIPE_PRICE_RESEARCH;
+    tier === 'student'
+      ? process.env.STRIPE_PRICE_STUDENT
+      : tier === 'pro'
+        ? process.env.STRIPE_PRICE_PRO
+        : process.env.STRIPE_PRICE_RESEARCH;
 
   if (!priceId) return null;
 
@@ -50,7 +52,7 @@ billingRouter.post('/checkout', requireAuth, async (req, res) => {
   try {
     const { tier } = req.body;
     if (!tier || !isValidTier(tier)) {
-      res.status(400).json({ error: 'tier must be "pro" or "research"' });
+      res.status(400).json({ error: 'tier must be "student", "pro", or "research"' });
       return;
     }
 

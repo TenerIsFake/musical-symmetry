@@ -2,11 +2,12 @@ import type { Request, Response, NextFunction } from 'express';
 import { getUserByApiKey, getUserById, recordUsage, getUsageCount, type User } from './db.js';
 import './types.js';
 
-type Tier = 'anonymous' | 'free' | 'pro' | 'research';
+type Tier = 'anonymous' | 'free' | 'student' | 'pro' | 'research';
 
 const TIER_LIMITS: Record<Tier, Record<string, number>> = {
   anonymous: { classify: 50, batch: 0, analyze: 3, og: 20, report: 0, 'genre-detect': 5, 'genre-suggest': 0, contour: 5, bulk: 0, 'link-analyze': 0, corpus: 0 },
   free:      { classify: 100, batch: 10, analyze: 10, og: 50, report: 1, 'genre-detect': 20, 'genre-suggest': 0, contour: 5, bulk: 0, 'link-analyze': 1, corpus: 0 },
+  student:   { classify: 500, batch: 50, analyze: 50, og: 50, report: 5, 'genre-detect': 50, 'genre-suggest': 50, contour: 50, bulk: 0, 'link-analyze': 3, corpus: 0 },
   pro:       { classify: 1000, batch: 100, analyze: 100, og: -1, report: 20, 'genre-detect': -1, 'genre-suggest': 200, contour: 100, bulk: 0, 'link-analyze': 10, corpus: 0 },
   research:  { classify: 10000, batch: 1000, analyze: 1000, og: -1, report: -1, 'genre-detect': -1, 'genre-suggest': -1, contour: 1000, bulk: 100, 'link-analyze': -1, corpus: 20 },
 };
