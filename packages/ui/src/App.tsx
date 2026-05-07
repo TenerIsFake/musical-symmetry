@@ -37,8 +37,9 @@ const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 const RoomPage = lazy(() => import('./pages/RoomPage'));
 const CorpusPage = lazy(() => import('./pages/CorpusPage'));
 const LearningPathPage = lazy(() => import('./pages/LearningPathPage'));
+const TransformChainPage = lazy(() => import('./pages/TransformChainPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -81,6 +82,7 @@ function getPage(): Page {
     if (parts.length >= 2 && parts[1]) return 'profile-collection';
     return 'profile';
   }
+  if (hash === 'transform') return 'transform';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -184,6 +186,8 @@ export default function App() {
                 ? 'Learning path overview'
                 : page === 'learn-lesson'
                 ? 'Guided lesson with quiz and practice task'
+                : page === 'transform'
+                ? 'Apply T/I/PLR operations to build transformation chains'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -419,6 +423,14 @@ export default function App() {
             >
               Corpus
             </a>
+            <a
+              href="#transform"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'transform' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Transform
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -477,6 +489,7 @@ export default function App() {
             return <RoomPage roomId={roomId} />;
           })()}
           {page === 'corpus' && <CorpusPage />}
+          {page === 'transform' && <TransformChainPage />}
           {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
             const hash = window.location.hash.replace('#', '').split('?')[0];
             const parts = hash.split('/');

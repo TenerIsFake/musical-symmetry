@@ -16,6 +16,8 @@ export type { CSEG, COMMatrix, ContourAnalysis } from './contour';
 export { toCSEG, comMatrix, contourAdjacencySeries, contourInversion, contourRetrograde, contourRetrogradeInversion, isContourPalindrome, isInversionallySymmetric, contourSimilarity, contourDepth, contourClass, analyzeContour } from './contour';
 export type { Beat, RhythmPattern, RhythmAnalysis } from './rhythm';
 export { analyzeRhythm, rotateRhythm, rhythmNecklaceClass, rhythmEvenness, interOnsetIntervals, isMaximallyEvenRhythm, rhythmSimilarity } from './rhythm';
+export type { Operation, ChainStep } from './transform-chain';
+export { evaluateChain, operationLabel, randomChain } from './transform-chain';
 export type { KnownClave } from './euclidean';
 export { euclidean, KNOWN_CLAVES, matchClave } from './euclidean';
 export type { TuningSystem } from './tuning';
