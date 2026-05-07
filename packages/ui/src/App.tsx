@@ -29,8 +29,9 @@ const ScoreAnnotationPage = lazy(() => import('./pages/ScoreAnnotationPage'));
 const AssignmentsPage = lazy(() => import('./pages/AssignmentsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const EmbedPage = lazy(() => import('./pages/EmbedPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -59,6 +60,7 @@ function getPage(): Page {
   if (hash === 'assignments') return 'assignments';
   if (hash === 'privacy') return 'privacy';
   if (hash === 'history') return 'history';
+  if (hash === 'embed') return 'embed';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -72,6 +74,16 @@ export default function App() {
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
+
+  if (page === 'embed') {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="text-center py-12 text-gray-500">Loading…</div>}>
+          <EmbedPage />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
 
   if (page === 'home') {
     return (

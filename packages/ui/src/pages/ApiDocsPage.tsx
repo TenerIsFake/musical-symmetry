@@ -150,6 +150,13 @@ export default function ApiDocsPage() {
         Get your key from the <a href="#dashboard" className="text-indigo-400 underline">dashboard</a>.
       </p>
 
+      <h2 className="text-xl font-semibold mt-8 mb-3">Embed Widget</h2>
+      <p className="text-gray-400 mb-3">
+        Drop an interactive Chrometria classifier into any course website with a single <code className="bg-gray-800 px-1.5 py-0.5 rounded text-indigo-300">&lt;iframe&gt;</code>.
+        No authentication required. Supports <code className="bg-gray-800 px-1.5 py-0.5 rounded text-indigo-300">pcs</code>, <code className="bg-gray-800 px-1.5 py-0.5 rounded text-indigo-300">theme</code> (dark/light), and <code className="bg-gray-800 px-1.5 py-0.5 rounded text-indigo-300">size</code> (compact/full) query params.
+      </p>
+      <CodeBlock code={`<iframe\n  src="https://symmetry.tendrid.us/#embed?pcs=0,4,7&theme=dark&size=compact"\n  width="600" height="500"\n  frameborder="0"\n  allow="midi"\n></iframe>`} />
+
       <h2 className="text-xl font-semibold mt-8 mb-3">OpenAPI Spec</h2>
       <p className="text-gray-400">
         Download the full spec: <a href="/api/openapi.json" className="text-indigo-400 underline">/api/openapi.json</a>
