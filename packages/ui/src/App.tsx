@@ -365,6 +365,14 @@ export default function App() {
             >
               Flashcards
             </a>
+            <a
+              href="#challenge"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'challenge' ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Challenge
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -407,6 +415,7 @@ export default function App() {
           {page === 'privacy' && <PrivacyPage />}
           {page === 'history' && <HistoryPage />}
           {page === 'flashcards' && <FlashcardPage />}
+          {page === 'challenge' && <DailyChallengePage />}
           {page === 'profile' && (() => {
             const username = window.location.hash.replace('#u/', '').split('/')[0];
             return <PublicProfileIndexPage username={username} />;

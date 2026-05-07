@@ -3,6 +3,66 @@ import StripeCheckout from '../components/StripeCheckout';
 import { useAchievements } from '../hooks/useAchievements';
 import AchievementBadge from '../components/AchievementBadge';
 
+function DailyChallengeTeaser() {
+  const [submitted, setSubmitted] = useState<boolean | null>(null);
+  const [streak, setStreak] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/challenges/today', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { submitted?: boolean } | null) => {
+        if (data) setSubmitted(!!data.submitted);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+
+    fetch('/api/challenges/streak', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { streak?: number } | null) => {
+        if (data) setStreak(data.streak ?? 0);
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4 flex items-center justify-between gap-4">
+      <div>
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-amber-400 text-lg">🔥</span>
+          <h3 className="text-sm font-semibold text-white">Today's Challenge</h3>
+        </div>
+        {loading ? (
+          <p className="text-xs text-gray-500">Loading…</p>
+        ) : submitted ? (
+          <p className="text-xs text-gray-400">
+            Completed today
+            {streak !== null && streak > 0 && (
+              <span className="ml-2 text-amber-400 font-semibold">{streak}-day streak!</span>
+            )}
+          </p>
+        ) : (
+          <p className="text-xs text-gray-400">
+            {streak !== null && streak > 0
+              ? `${streak}-day streak — keep it going!`
+              : 'Answer today\'s set class question'}
+          </p>
+        )}
+      </div>
+      <a
+        href="#challenge"
+        className={`shrink-0 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+          submitted
+            ? 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+            : 'bg-amber-600 text-white hover:bg-amber-500'
+        }`}
+      >
+        {submitted ? 'View' : 'Play'}
+      </a>
+    </div>
+  );
+}
+
 interface UserProfile {
   email: string;
   tier: 'free' | 'pro' | 'research';
@@ -143,6 +203,9 @@ function LoggedInView({ user }: { user: UserProfile }) {
 
   return (
     <div className="space-y-6">
+      {/* Daily Challenge Teaser */}
+      <DailyChallengeTeaser />
+
       {/* Profile Card */}
       <div className="bg-gray-800 rounded-lg p-6">
         <div className="flex items-center justify-between">
