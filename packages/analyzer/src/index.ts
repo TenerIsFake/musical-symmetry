@@ -36,6 +36,8 @@ import { corpusRouter } from './corpus/routes.js';
 import { runCorpusMigration } from './corpus/db.js';
 import { sketchesRouter } from './sketches/routes.js';
 import { runSketchMigration } from './sketches/db.js';
+import { exercisesRouter } from './exercises/routes.js';
+import { runExerciseMigration } from './exercises/db.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -111,6 +113,7 @@ app.use('/api/link-analyze', linkAnalyzerRouter);
 app.use('/api/learning', learningRouter);
 app.use('/api/corpus', corpusRouter);
 app.use('/api/sketches', sketchesRouter);
+app.use('/api/exercises', exercisesRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -135,6 +138,7 @@ generateTodayChallenge();
 runLearningMigration();
 runCorpusMigration();
 runSketchMigration();
+runExerciseMigration();
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { useSketchpad, type MelodyNote, type SavedSketch } from '../hooks/useSketchpad';
+import ExerciseSuggestions from '../components/ExerciseSuggestions';
 import {
   exportSketchAsMidi,
   exportSketchAsMusicXML,
@@ -682,6 +683,9 @@ export default function SketchpadPage() {
           ))}
         </div>
       )}
+
+      {/* Practice exercises widget — only shown to authenticated users */}
+      {user && <ExerciseSuggestions maxVisible={3} />}
     </div>
   );
 }
