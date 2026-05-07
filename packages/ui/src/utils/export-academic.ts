@@ -1,4 +1,5 @@
 import type { SymmetryAnalysis, PitchClass } from '@musical-symmetry/core';
+import { forteNumber } from '../data/forte-numbers';
 
 const PC_TO_LILYPOND: Record<PitchClass, string> = {
   0: 'c',
@@ -131,8 +132,9 @@ export function generateLaTeX(analysis: SymmetryAnalysis): string {
   const group = groupToLatex(analysis.abstractGroup);
   const iv = analysis.intervalVector.join(', ');
 
-  const forteClause = analysis.forteNumber
-    ? ` (Forte number ${analysis.forteNumber})`
+  const forte = forteNumber(analysis.pitchClasses);
+  const forteClause = forte
+    ? ` (Forte number ${forte})`
     : '';
 
   return [
