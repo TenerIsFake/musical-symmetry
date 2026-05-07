@@ -39,6 +39,11 @@ export {
   nearestTwelveTET,
 } from './tuning';
 
+export type { CompositionConstraints, CompositionCandidate } from './constraint-composer';
+export { generateCandidates } from './constraint-composer';
+
+export { quantizeToSet } from './quantize';
+
 import type { PitchClass, SymmetryAnalysis } from './types';
 import { transpositionalStabilizer, inversionalAxes, stabilizerOrder, distinctTranspositions, abstractGroup } from './symmetry';
 import { intervalVector, myhillProperty } from './intervals';
