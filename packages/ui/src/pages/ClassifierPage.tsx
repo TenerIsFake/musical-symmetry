@@ -4,6 +4,8 @@ import { NOTE_NAMES } from '@musical-symmetry/core';
 import { useClassifier } from '../hooks/useClassifier';
 import { useChord } from '../hooks/useChord';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useLiveMidi } from '../hooks/useLiveMidi';
+import { useUser } from '../context/UserContext';
 import PianoKeyboard from '../components/PianoKeyboard';
 import TextInput from '../components/TextInput';
 import Presets from '../components/Presets';
@@ -98,6 +100,12 @@ function reducer(state: AppState, action: Action): AppState {
   }
 }
 
+function formatSessionTime(seconds: number): string {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
 export default function ClassifierPage() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [showShare, setShowShare] = useState(false);
@@ -106,6 +114,9 @@ export default function ClassifierPage() {
   const analysis = useClassifier(state.selectedPCs);
   const chord = useChord(state.selectedPCs);
   const prevAnalysisRef = useRef<string | null>(null);
+  const { user } = useUser();
+  const liveMidi = useLiveMidi();
+  const isFree = !user || user.tier === 'free';
 
   // Keyboard shortcuts
   const keyboardActions = useCallback(
@@ -118,6 +129,12 @@ export default function ClassifierPage() {
     [],
   );
   useKeyboardShortcuts(keyboardActions());
+
+  // Sync live MIDI pitch classes into classifier when live mode is active
+  useEffect(() => {
+    if (!liveMidi.isLive) return;
+    dispatch({ type: 'SET_PCS', pcs: liveMidi.pitchClasses });
+  }, [liveMidi.isLive, liveMidi.pitchClasses]);
 
   // Track analysis changes and add to history
   useEffect(() => {
@@ -166,6 +183,70 @@ export default function ClassifierPage() {
       <main className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="space-y-4 sm:space-y-6">
           <MidiInput onNotesChange={(pcs) => dispatch({ type: 'SET_PCS', pcs })} />
+
+          {/* MIDI Live Mode controls */}
+          {liveMidi.isAvailable && (
+            <div className="bg-gray-800 rounded-lg p-3 flex flex-wrap items-center gap-3">
+              <button
+                onClick={liveMidi.toggleLive}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  liveMidi.isLive
+                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                    : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                }`}
+                title="Toggle MIDI keyboard live input mode"
+              >
+                {liveMidi.isLive ? '● MIDI Live' : 'MIDI Live'}
+              </button>
+
+              {liveMidi.isLive && (
+                <>
+                  <button
+                    onClick={liveMidi.toggleSustain}
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                      liveMidi.sustained
+                        ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                    }`}
+                    title="Freeze current notes (sustain)"
+                  >
+                    {liveMidi.sustained ? 'Sustained' : 'Sustain'}
+                  </button>
+
+                  {liveMidi.deviceName && (
+                    <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">
+                      {liveMidi.deviceName}
+                    </span>
+                  )}
+
+                  {isFree && (
+                    <span className="ml-auto text-xs text-gray-400 font-mono tabular-nums">
+                      {formatSessionTime(liveMidi.sessionElapsed)} / 05:00
+                    </span>
+                  )}
+                </>
+              )}
+
+              {!liveMidi.isLive && liveMidi.deviceName && (
+                <span className="text-xs text-gray-500">Last: {liveMidi.deviceName}</span>
+              )}
+            </div>
+          )}
+
+          {/* Free tier session limit banner */}
+          {liveMidi.sessionLimitReached && (
+            <div className="bg-amber-900/60 border border-amber-600 rounded-lg px-4 py-2 text-sm text-amber-200">
+              Free tier: 5-minute MIDI session reached. Upgrade to Pro for unlimited.
+            </div>
+          )}
+
+          {/* MIDI disconnected banner (was live, now disconnected) */}
+          {liveMidi.isLive && !liveMidi.deviceName && (
+            <div className="bg-red-900/60 border border-red-600 rounded-lg px-4 py-2 text-sm text-red-200">
+              MIDI disconnected — analysis frozen at last state.
+            </div>
+          )}
+
           <div data-tour="piano">
             <PianoKeyboard
               selectedPCs={state.selectedPCs}
