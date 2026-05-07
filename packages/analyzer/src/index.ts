@@ -23,6 +23,10 @@ import { runDigestMigration, sendWeeklyDigests, getLastDigestSentAt } from './di
 import { runHistoryMigration } from './history/db.js';
 import { runAchievementMigration } from './achievements/db.js';
 import { runFlashcardMigration } from './flashcards/db.js';
+import { runPublicProfilesMigration } from './public-profiles/db.js';
+import { publicProfilesRouter } from './public-profiles/routes.js';
+import { challengesRouter } from './challenges/routes.js';
+import { runChallengeMigration, generateTodayChallenge } from './challenges/db.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -91,6 +95,8 @@ app.use('/api/history', historyRouter);
 app.use('/api/achievements', achievementsRouter);
 app.use('/api/bulk', bulkRouter);
 app.use('/api/flashcards', flashcardsRouter);
+app.use('/api/public', publicProfilesRouter);
+app.use('/api/challenges', challengesRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -109,6 +115,9 @@ runDigestMigration();
 runHistoryMigration();
 runAchievementMigration();
 runFlashcardMigration();
+runPublicProfilesMigration();
+runChallengeMigration();
+generateTodayChallenge();
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 

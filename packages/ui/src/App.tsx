@@ -31,8 +31,11 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 const EmbedPage = lazy(() => import('./pages/EmbedPage'));
 const FlashcardPage = lazy(() => import('./pages/FlashcardPage'));
+const DailyChallengePage = lazy(() => import('./pages/DailyChallengePage'));
+const PublicProfileIndexPage = lazy(() => import('./pages/PublicProfileIndexPage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -63,6 +66,12 @@ function getPage(): Page {
   if (hash === 'history') return 'history';
   if (hash === 'embed') return 'embed';
   if (hash === 'flashcards') return 'flashcards';
+  if (hash === 'challenge') return 'challenge';
+  if (hash.startsWith('u/')) {
+    const parts = hash.slice(2).split('/');
+    if (parts.length >= 2 && parts[1]) return 'profile-collection';
+    return 'profile';
+  }
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -152,6 +161,8 @@ export default function App() {
                 ? 'Browse, bookmark, and tag your past analyses'
                 : page === 'flashcards'
                 ? 'Build custom decks and study set classes with spaced repetition'
+                : page === 'challenge'
+                ? 'One set class question per day — build your streak'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -396,6 +407,16 @@ export default function App() {
           {page === 'privacy' && <PrivacyPage />}
           {page === 'history' && <HistoryPage />}
           {page === 'flashcards' && <FlashcardPage />}
+          {page === 'profile' && (() => {
+            const username = window.location.hash.replace('#u/', '').split('/')[0];
+            return <PublicProfileIndexPage username={username} />;
+          })()}
+          {page === 'profile-collection' && (() => {
+            const parts = window.location.hash.replace('#u/', '').split('/');
+            const username = parts[0];
+            const slug = parts[1] || '';
+            return <PublicProfilePage username={username} slug={slug} />;
+          })()}
         </Suspense>
 
         <AdBanner slot="bottom-banner" format="horizontal" />
