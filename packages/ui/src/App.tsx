@@ -84,7 +84,7 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Musical Symmetry</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Chrometria</h1>
             <p className="text-gray-400 mt-1 text-sm sm:text-base">
               {page === 'classifier'
                 ? 'Select notes to see their hidden geometry'
@@ -135,7 +135,7 @@ export default function App() {
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
-          <nav className="flex items-center gap-2">
+          <nav className="flex flex-wrap items-center gap-2">
             <a
               href="#home"
               className="px-3 py-1.5 rounded text-sm font-medium transition-colors bg-gray-700 text-gray-300 hover:bg-gray-600"

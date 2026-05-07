@@ -61,7 +61,7 @@ export default function EmbedWidget({ initialPcs, style, interactive, showWaterm
       {showWatermark && (
         <div style={{ textAlign: 'center', fontSize: 10, color: '#4b5563', padding: '2px 0' }}>
           <a href="https://symmetry.tendrid.us" target="_blank" rel="noopener" style={{ color: '#6366f1', textDecoration: 'none' }}>
-            Musical Symmetry
+            Chrometria
           </a>
         </div>
       )}

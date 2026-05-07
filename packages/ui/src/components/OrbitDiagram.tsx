@@ -4,6 +4,7 @@ import { NOTE_NAMES } from '@musical-symmetry/core';
 interface Props {
   selectedPCs: PitchClass[];
   analysis: SymmetryAnalysis | null;
+  onTogglePC?: (pc: PitchClass) => void;
 }
 
 const CX = 150;
@@ -16,7 +17,7 @@ function pcToXY(pc: PitchClass, radius = RADIUS): [number, number] {
   return [CX + radius * Math.cos(angle), CY + radius * Math.sin(angle)];
 }
 
-export default function OrbitDiagram({ selectedPCs, analysis }: Props) {
+export default function OrbitDiagram({ selectedPCs, analysis, onTogglePC }: Props) {
   const allPCs: PitchClass[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
   const axes: [number, number, number, number][] = [];
@@ -85,7 +86,7 @@ export default function OrbitDiagram({ selectedPCs, analysis }: Props) {
           const labelRadius = RADIUS + 22;
           const [lx, ly] = pcToXY(pc, labelRadius);
           return (
-            <g key={pc}>
+            <g key={pc} onClick={() => onTogglePC?.(pc)} className={onTogglePC ? 'cursor-pointer' : ''}>
               <circle
                 cx={x}
                 cy={y}
@@ -93,6 +94,7 @@ export default function OrbitDiagram({ selectedPCs, analysis }: Props) {
                 fill={isActive ? '#22c55e' : '#1f2937'}
                 stroke={isActive ? '#16a34a' : '#4b5563'}
                 strokeWidth={isActive ? 2.5 : 1.5}
+                className={onTogglePC ? 'hover:stroke-indigo-400 hover:stroke-[2.5] transition-colors' : ''}
               />
               <text
                 x={x}

@@ -135,7 +135,7 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
     return `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
   }, [shareUrl, chordName, group, pcs]);
 
-  const embedCode = `<img src="${shareUrl}" alt="Musical Symmetry Card" width="1200" height="630"/>`;
+  const embedCode = `<img src="${shareUrl}" alt="Chrometria Card" width="1200" height="630"/>`;
 
   // Close on Escape
   useEffect(() => {

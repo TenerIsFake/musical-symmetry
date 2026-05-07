@@ -86,14 +86,14 @@ export function toLatexIntervalVector(iv: number[]): string {
 }
 
 /**
- * Generate a BibTeX citation for the Musical Symmetry analysis tool.
+ * Generate a BibTeX citation for the Chrometria analysis tool.
  */
 export function toBibtex(): string {
   const year = new Date().getFullYear();
   return [
     '@software{musical-symmetry,',
     '  author  = {Tendrid},',
-    '  title   = {{Musical Symmetry}: A Pitch-Class Set Analyzer},',
+    '  title   = {{Chrometria}: A Pitch-Class Set Analyzer},',
     `  year    = {${year}},`,
     '  url     = {https://symmetry.tendrid.us},',
     '  note    = {Interactive web tool for symmetry group analysis of',

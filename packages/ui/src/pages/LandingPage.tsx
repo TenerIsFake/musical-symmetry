@@ -5,7 +5,7 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-50 bg-gray-950/80 backdrop-blur border-b border-gray-800">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <a href="#home" className="text-lg font-bold tracking-tight">
-            Musical Symmetry
+            Chrometria
           </a>
           <div className="flex items-center gap-4 text-sm">
             <a href="#home" className="text-gray-400 hover:text-white transition-colors hidden sm:inline">Home</a>
@@ -176,86 +176,124 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="py-20 sm:py-28 px-4">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">Features</h2>
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">24 Tools. One Platform.</h2>
           <p className="text-gray-400 text-center mb-16 max-w-xl mx-auto">
-            Everything you need to explore the mathematics of music.
+            From a single chord to a full score — everything you need to explore, create, and teach musical symmetry.
           </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: (
-                  <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="12" stroke="#818cf8" strokeWidth="1.5" />
-                    <polygon points="16,4 27,22 5,22" fill="none" stroke="#a78bfa" strokeWidth="1.5" />
-                  </svg>
-                ),
-                title: 'Symmetry Classification',
-                desc: 'Full D\u2081\u2082 group theory analysis of any pitch-class set. Orbit decomposition, stabilizer subgroups, and abstract group identification.',
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
-                    <path d="M4 24 L10 12 L18 18 L28 6" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" />
-                    <circle cx="4" cy="24" r="2" fill="#a78bfa" />
-                    <circle cx="28" cy="6" r="2" fill="#a78bfa" />
-                  </svg>
-                ),
-                title: 'Voice-Leading Distance',
-                desc: 'Measure harmonic motion between any two chords using optimal voice-leading distance computation.',
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
-                    <rect x="4" y="4" width="24" height="24" rx="4" stroke="#818cf8" strokeWidth="1.5" />
-                    <rect x="8" y="8" width="16" height="16" rx="2" fill="#a78bfa" fillOpacity="0.3" />
-                    <circle cx="16" cy="16" r="3" fill="#818cf8" />
-                  </svg>
-                ),
-                title: '20 Share Card Styles',
-                desc: 'Orbit diagrams, neon glows, blueprints, constellations, and more. Beautiful OG-ready SVG graphics.',
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
-                    <rect x="6" y="20" width="3" height="8" rx="1" fill="#818cf8" />
-                    <rect x="11" y="14" width="3" height="14" rx="1" fill="#a78bfa" />
-                    <rect x="16" y="10" width="3" height="18" rx="1" fill="#818cf8" />
-                    <rect x="21" y="16" width="3" height="12" rx="1" fill="#a78bfa" />
-                  </svg>
-                ),
-                title: 'MIDI Analysis',
-                desc: 'Upload MIDI or MusicXML files and see how symmetry evolves across an entire piece of music.',
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
-                    <circle cx="11" cy="16" r="7" stroke="#818cf8" strokeWidth="1.5" />
-                    <circle cx="21" cy="16" r="7" stroke="#a78bfa" strokeWidth="1.5" />
-                  </svg>
-                ),
-                title: 'Comparison Mode',
-                desc: 'Place two chords side by side. See their orbits, shared stabilizers, and voice-leading path.',
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
-                    <path d="M8 8h16M8 14h12M8 20h16M8 26h10" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" />
-                    <circle cx="26" cy="26" r="4" stroke="#a78bfa" strokeWidth="1.5" />
-                  </svg>
-                ),
-                title: 'Research Mode',
-                desc: 'Academic-grade tools: Forte numbers, Mulliken labels, interval vectors, character tables, and more.',
-              },
-            ].map((f, i) => (
-              <div
-                key={i}
-                className="p-6 rounded-2xl bg-gray-800/50 border border-gray-700/50 hover:border-indigo-500/30 transition-colors"
-              >
-                <div className="mb-4">{f.icon}</div>
-                <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
-              </div>
+
+          {/* Analyze */}
+          <div className="mb-14">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 shrink-0" />
+              <h3 className="text-xl font-bold text-indigo-400">Analyze</h3>
+              <span className="text-gray-600 text-sm ml-1">7 tools</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { title: 'Classifier', desc: 'Select notes to see symmetry group, Forte number, and interval vector.' },
+                { title: 'Analyzer', desc: 'Upload audio or MIDI for symmetry analysis across time.' },
+                { title: 'Live Detection', desc: 'Real-time pitch detection straight from your microphone.' },
+                { title: 'Compare', desc: 'Side-by-side analysis of two pieces with shared stabilizers.' },
+                { title: 'Timeline', desc: 'Trace how symmetry evolves measure by measure across a piece.' },
+                { title: 'Score Annotation', desc: 'Upload MusicXML and annotate every chord with symmetry data.' },
+                { title: 'Search', desc: 'Query all 4,096 pitch-class subsets by symmetry properties.' },
+              ].map((tool) => (
+                <div key={tool.title} className="p-4 rounded-xl bg-gray-800/50 border border-indigo-900/40 hover:border-indigo-500/40 transition-colors">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+                    <span className="font-semibold text-sm text-white">{tool.title}</span>
+                  </div>
+                  <p className="text-gray-400 text-xs leading-relaxed">{tool.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Explore */}
+          <div className="mb-14">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-400 shrink-0" />
+              <h3 className="text-xl font-bold text-purple-400">Explore</h3>
+              <span className="text-gray-600 text-sm ml-1">5 tools</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { title: 'Atlas', desc: 'Browse all 224 set classes organized by symmetry group.' },
+                { title: 'Interval Cycles', desc: 'Geometric visualization of interval patterns on a chromatic clock face.' },
+                { title: 'Voice-Leading Graph', desc: 'Force-directed graph of minimal chord movements across a progression.' },
+                { title: 'Rhythm', desc: 'Rhythmic symmetry explorer with an interactive circular step sequencer.' },
+                { title: 'Tuning', desc: 'Microtonal analysis across 19-, 24-, 31-TET and Bohlen-Pierce scales.' },
+              ].map((tool) => (
+                <div key={tool.title} className="p-4 rounded-xl bg-gray-800/50 border border-purple-900/40 hover:border-purple-500/40 transition-colors">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
+                    <span className="font-semibold text-sm text-white">{tool.title}</span>
+                  </div>
+                  <p className="text-gray-400 text-xs leading-relaxed">{tool.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Create */}
+          <div className="mb-14">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="w-2.5 h-2.5 rounded-full bg-pink-400 shrink-0" />
+              <h3 className="text-xl font-bold text-pink-400">Create</h3>
+              <span className="text-gray-600 text-sm ml-1">4 tools</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { title: 'Progression Builder', desc: 'Build chord progressions with voice-leading optimization and symmetry scoring.' },
+                { title: 'Melody', desc: 'Melodic contour analysis using CSEG notation and similarity measures.' },
+                { title: 'Assignments', desc: 'Educator worksheet builder — generate printable symmetry exercises.' },
+                { title: 'Classroom', desc: 'Real-time collaborative analysis sessions for live instruction.' },
+              ].map((tool) => (
+                <div key={tool.title} className="p-4 rounded-xl bg-gray-800/50 border border-pink-900/40 hover:border-pink-500/40 transition-colors">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 shrink-0" />
+                    <span className="font-semibold text-sm text-white">{tool.title}</span>
+                  </div>
+                  <p className="text-gray-400 text-xs leading-relaxed">{tool.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Train */}
+          <div className="mb-14">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+              <h3 className="text-xl font-bold text-emerald-400">Train</h3>
+              <span className="text-gray-600 text-sm ml-1">4 tools</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { title: 'Ear Training', desc: 'Listen to chord examples and identify their pitch-class sets by ear.' },
+                { title: 'Quiz', desc: 'Spaced-repetition flashcards powered by the SM-2 algorithm.' },
+                { title: 'Practice', desc: 'Sing along and test your melodic contour accuracy with mic feedback.' },
+                { title: 'The Math', desc: 'Interactive explanations of group theory, orbits, and Forte notation.' },
+              ].map((tool) => (
+                <div key={tool.title} className="p-4 rounded-xl bg-gray-800/50 border border-emerald-900/40 hover:border-emerald-500/40 transition-colors">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="font-semibold text-sm text-white">{tool.title}</span>
+                  </div>
+                  <p className="text-gray-400 text-xs leading-relaxed">{tool.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Plus strip */}
+          <div className="rounded-xl bg-gray-800/30 border border-gray-700/40 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-400">
+            <span className="text-gray-500 font-semibold uppercase tracking-wider text-xs">Also included</span>
+            {['Dashboard', 'API Docs', 'Academic Export (Lilypond / LaTeX / BibTeX)'].map((item) => (
+              <span key={item} className="flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-gray-500" />
+                {item}
+              </span>
             ))}
           </div>
         </div>
@@ -407,7 +445,7 @@ export default function LandingPage() {
             <span>MIT License</span>
           </div>
           <div className="text-sm text-gray-600">
-            &copy; {new Date().getFullYear()} Musical Symmetry
+            &copy; {new Date().getFullYear()} Chrometria
           </div>
         </div>
       </footer>

@@ -11,7 +11,7 @@
   <rect width="1200" height="630" fill="#111827"/>
 
   <!-- Title and subtitle -->
-  <text x="600" y="80" text-anchor="middle" class="title" fill="#ffffff">Musical Symmetry</text>
+  <text x="600" y="80" text-anchor="middle" class="title" fill="#ffffff">Chrometria</text>
   <text x="600" y="120" text-anchor="middle" class="subtitle" fill="#9ca3af">See the hidden geometry of chords</text>
 
   <!-- Orbit circle: center (600, 370), radius 220 -->

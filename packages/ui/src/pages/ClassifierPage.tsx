@@ -194,9 +194,9 @@ export default function ClassifierPage() {
         </div>
         <div className="space-y-4 sm:space-y-6">
           <div data-tour="orbit">
-            <OrbitDiagram selectedPCs={state.selectedPCs} analysis={analysis} />
+            <OrbitDiagram selectedPCs={state.selectedPCs} analysis={analysis} onTogglePC={(pc) => dispatch({ type: 'TOGGLE_PC', pc })} />
           </div>
-          <TonnetzViz chord={chord} targetChord={null} />
+          <TonnetzViz chord={chord} targetChord={null} onChordChange={(c) => dispatch({ type: 'SET_PCS', pcs: c.pitchClasses as PitchClass[] })} />
           <ModeExplorer
             selectedPCs={state.selectedPCs}
             onSelectMode={(pcs) => dispatch({ type: 'SET_PCS', pcs })}

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e1b4b;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Subtle glow filter for symmetry lines -->
+    <filter id="lineGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Node glow -->
+    <filter id="nodeGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Ring track gradient (subtle) -->
+    <radialGradient id="ringGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0" />
+      <stop offset="75%" style="stop-color:#6366f1;stop-opacity:0.12" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0" />
+    </radialGradient>
+
+    <!-- Chromatic node colors (12 hues) -->
+    <!-- 0=C  1=C#  2=D  3=D#  4=E  5=F  6=F#  7=G  8=G#  9=A  10=A#  11=B -->
+    <radialGradient id="n0"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#a5b4fc"/><stop offset="100%" stop-color="#6366f1"/></radialGradient>
+    <radialGradient id="n1"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#7c3aed"/></radialGradient>
+    <radialGradient id="n2"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#e879f9"/><stop offset="100%" stop-color="#a21caf"/></radialGradient>
+    <radialGradient id="n3"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#f472b6"/><stop offset="100%" stop-color="#be185d"/></radialGradient>
+    <radialGradient id="n4"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#fb7185"/><stop offset="100%" stop-color="#be123c"/></radialGradient>
+    <radialGradient id="n5"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#fb923c"/><stop offset="100%" stop-color="#c2410c"/></radialGradient>
+    <radialGradient id="n6"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#b45309"/></radialGradient>
+    <radialGradient id="n7"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#a3e635"/><stop offset="100%" stop-color="#4d7c0f"/></radialGradient>
+    <radialGradient id="n8"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#065f46"/></radialGradient>
+    <radialGradient id="n9"  cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#0e7490"/></radialGradient>
+    <radialGradient id="n10" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0369a1"/></radialGradient>
+    <radialGradient id="n11" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#818cf8"/><stop offset="100%" stop-color="#4338ca"/></radialGradient>
+  </defs>
+
+  <!-- Background rounded rectangle -->
+  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="url(#bgGrad)"/>
+
+  <!-- Subtle radial ring area -->
+  <circle cx="256" cy="256" r="220" fill="url(#ringGrad)"/>
+
+  <!-- Ring track -->
+  <circle cx="256" cy="256" r="190"
+    fill="none"
+    stroke="#6366f1"
+    stroke-width="1.5"
+    stroke-opacity="0.25"/>
+
+  <!-- Center dot -->
+  <circle cx="256" cy="256" r="5" fill="#6366f1" fill-opacity="0.6"/>
+
+  <!-- Symmetry lines (tritone axes: 0-6, 1-7, 2-8) -->
+  <!-- Line 0-6: C to F# (vertical) -->
+  <line x1="256" y1="66" x2="256" y2="446"
+    stroke="#6366f1" stroke-width="1.5" stroke-opacity="0.55"
+    filter="url(#lineGlow)"/>
+
+  <!-- Line 1-7: C# to G -->
+  <line x1="351" y1="91.46" x2="161" y2="420.54"
+    stroke="#818cf8" stroke-width="1.5" stroke-opacity="0.45"
+    filter="url(#lineGlow)"/>
+
+  <!-- Line 2-8: D to G# -->
+  <line x1="420.54" y1="161" x2="91.46" y2="351"
+    stroke="#a5b4fc" stroke-width="1.5" stroke-opacity="0.4"
+    filter="url(#lineGlow)"/>
+
+  <!-- Pitch class nodes — placed after lines so they appear on top -->
+
+  <!-- 0: C (top, 12 o'clock) -->
+  <circle cx="256" cy="66" r="18" fill="url(#n0)" filter="url(#nodeGlow)"/>
+
+  <!-- 1: C# -->
+  <circle cx="351" cy="91.46" r="18" fill="url(#n1)" filter="url(#nodeGlow)"/>
+
+  <!-- 2: D -->
+  <circle cx="420.54" cy="161" r="18" fill="url(#n2)" filter="url(#nodeGlow)"/>
+
+  <!-- 3: D# -->
+  <circle cx="446" cy="256" r="18" fill="url(#n3)" filter="url(#nodeGlow)"/>
+
+  <!-- 4: E -->
+  <circle cx="420.54" cy="351" r="18" fill="url(#n4)" filter="url(#nodeGlow)"/>
+
+  <!-- 5: F -->
+  <circle cx="351" cy="420.54" r="18" fill="url(#n5)" filter="url(#nodeGlow)"/>
+
+  <!-- 6: F# (bottom) -->
+  <circle cx="256" cy="446" r="18" fill="url(#n6)" filter="url(#nodeGlow)"/>
+
+  <!-- 7: G -->
+  <circle cx="161" cy="420.54" r="18" fill="url(#n7)" filter="url(#nodeGlow)"/>
+
+  <!-- 8: G# -->
+  <circle cx="91.46" cy="351" r="18" fill="url(#n8)" filter="url(#nodeGlow)"/>
+
+  <!-- 9: A -->
+  <circle cx="66" cy="256" r="18" fill="url(#n9)" filter="url(#nodeGlow)"/>
+
+  <!-- 10: A# -->
+  <circle cx="91.46" cy="161" r="18" fill="url(#n10)" filter="url(#nodeGlow)"/>
+
+  <!-- 11: B -->
+  <circle cx="161" cy="91.46" r="18" fill="url(#n11)" filter="url(#nodeGlow)"/>
+
+</svg>

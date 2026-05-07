@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="500" fill="url(#bg)"/>
+
+  <!-- Chromatic circle — left side -->
+  <g transform="translate(250, 250)" filter="url(#softglow)">
+    <!-- Ring track -->
+    <circle cx="0" cy="0" r="140" fill="none" stroke="#4338ca" stroke-width="1" opacity="0.3"/>
+
+    <!-- Symmetry lines (tritones) -->
+    <line x1="0" y1="-140" x2="0" y2="140" stroke="#6366f1" stroke-width="1.5" opacity="0.4"/>
+    <line x1="-121.2" y1="-70" x2="121.2" y2="70" stroke="#6366f1" stroke-width="1.5" opacity="0.3"/>
+    <line x1="-121.2" y1="70" x2="121.2" y2="-70" stroke="#6366f1" stroke-width="1.5" opacity="0.3"/>
+
+    <!-- 12 pitch class nodes -->
+    <circle cx="0" cy="-140" r="10" fill="#6366f1"/>
+    <circle cx="70" cy="-121.2" r="10" fill="#7c3aed"/>
+    <circle cx="121.2" cy="-70" r="10" fill="#9333ea"/>
+    <circle cx="140" cy="0" r="10" fill="#c026d3"/>
+    <circle cx="121.2" cy="70" r="10" fill="#e11d48"/>
+    <circle cx="70" cy="121.2" r="10" fill="#f97316"/>
+    <circle cx="0" cy="140" r="10" fill="#eab308"/>
+    <circle cx="-70" cy="121.2" r="10" fill="#84cc16"/>
+    <circle cx="-121.2" cy="70" r="10" fill="#22c55e"/>
+    <circle cx="-140" cy="0" r="10" fill="#14b8a6"/>
+    <circle cx="-121.2" cy="-70" r="10" fill="#06b6d4"/>
+    <circle cx="-70" cy="-121.2" r="10" fill="#3b82f6"/>
+
+    <!-- Highlight a triad (C-E-G#, augmented — maximally symmetric) -->
+    <line x1="0" y1="-140" x2="140" y2="0" stroke="#a78bfa" stroke-width="2" opacity="0.6"/>
+    <line x1="140" y1="0" x2="0" y2="140" stroke="#a78bfa" stroke-width="2" opacity="0.6"/>
+    <line x1="0" y1="140" x2="0" y2="-140" stroke="#a78bfa" stroke-width="2" opacity="0.6"/>
+  </g>
+
+  <!-- App name -->
+  <text x="512" y="200" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="white" text-anchor="middle" letter-spacing="-1">
+    Chrometria
+  </text>
+
+  <!-- Tagline -->
+  <text x="512" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="#a5b4fc" text-anchor="middle" letter-spacing="0.5">
+    The geometry of music, in your hands
+  </text>
+
+  <!-- Subtle feature pills -->
+  <g font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#94a3b8" text-anchor="middle">
+    <rect x="382" y="300" width="80" height="28" rx="14" fill="#1e293b"/>
+    <text x="422" y="318">Classify</text>
+
+    <rect x="472" y="300" width="80" height="28" rx="14" fill="#1e293b"/>
+    <text x="512" y="318">Analyze</text>
+
+    <rect x="562" y="300" width="80" height="28" rx="14" fill="#1e293b"/>
+    <text x="602" y="318">Explore</text>
+
+    <rect x="427" y="338" width="80" height="28" rx="14" fill="#1e293b"/>
+    <text x="467" y="356">Train</text>
+
+    <rect x="517" y="338" width="80" height="28" rx="14" fill="#1e293b"/>
+    <text x="557" y="356">Compose</text>
+  </g>
+
+  <!-- Second decorative element — interval vector bars (right side) -->
+  <g transform="translate(780, 150)" opacity="0.5">
+    <rect x="0" y="0" width="8" height="120" rx="4" fill="#6366f1"/>
+    <rect x="16" y="30" width="8" height="90" rx="4" fill="#7c3aed"/>
+    <rect x="32" y="50" width="8" height="70" rx="4" fill="#9333ea"/>
+    <rect x="48" y="20" width="8" height="100" rx="4" fill="#c026d3"/>
+    <rect x="64" y="60" width="8" height="60" rx="4" fill="#e11d48"/>
+    <rect x="80" y="40" width="8" height="80" rx="4" fill="#f97316"/>
+  </g>
+
+  <!-- Second decorative element — another set of bars bottom right -->
+  <g transform="translate(780, 310)" opacity="0.35">
+    <rect x="0" y="0" width="8" height="80" rx="4" fill="#14b8a6"/>
+    <rect x="16" y="20" width="8" height="60" rx="4" fill="#22c55e"/>
+    <rect x="32" y="10" width="8" height="70" rx="4" fill="#84cc16"/>
+    <rect x="48" y="30" width="8" height="50" rx="4" fill="#eab308"/>
+    <rect x="64" y="5" width="8" height="75" rx="4" fill="#3b82f6"/>
+    <rect x="80" y="25" width="8" height="55" rx="4" fill="#06b6d4"/>
+  </g>
+</svg>

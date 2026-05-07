@@ -23,7 +23,7 @@ function pcToXY(pc: PitchClass): [number, number] {
 export interface OgImageOptions {
   /** Pitch classes to highlight (0-11) */
   selectedPCs: PitchClass[];
-  /** Title text (default: "Musical Symmetry") */
+  /** Title text (default: "Chrometria") */
   title?: string;
   /** Subtitle text (default: "See the hidden geometry of chords") */
   subtitle?: string;
@@ -34,7 +34,7 @@ export interface OgImageOptions {
 export function generateOgSvg(options: OgImageOptions): string {
   const {
     selectedPCs,
-    title = 'Musical Symmetry',
+    title = 'Chrometria',
     subtitle = 'See the hidden geometry of chords',
     axes = [],
   } = options;

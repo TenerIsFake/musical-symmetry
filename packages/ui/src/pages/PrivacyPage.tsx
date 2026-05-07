@@ -3,7 +3,7 @@ export default function PrivacyPage() {
     <article className="prose prose-invert prose-lg max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold mb-2">Privacy Policy</h2>
       <p className="text-gray-400 text-sm mb-8">
-        Effective date: May 7, 2026. Applies to Musical Symmetry at{' '}
+        Effective date: May 7, 2026. Applies to Chrometria at{' '}
         <a href="https://symmetry.tendrid.us" className="text-indigo-400 hover:text-indigo-300">
           symmetry.tendrid.us
         </a>{' '}
@@ -186,7 +186,7 @@ export default function PrivacyPage() {
       <section className="mb-10">
         <h3 className="text-xl font-semibold text-indigo-300 mb-3">7. Children's Privacy</h3>
         <p className="text-gray-300">
-          Musical Symmetry is not directed at children under 13. We do not knowingly collect personal
+          Chrometria is not directed at children under 13. We do not knowingly collect personal
           information from children under 13. If you believe a child has provided us personal
           information, please contact us and we will delete it promptly.
         </p>
