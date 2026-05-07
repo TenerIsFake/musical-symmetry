@@ -119,21 +119,29 @@ export interface User {
   last_login: string | null;
 }
 
+const CREATOR_EMAILS = ['tenerjenkins@gmail.com'];
+
 export function getOrCreateUser(provider: string, data: ProviderData): User {
   const db = getDb();
+  const isCreator = CREATOR_EMAILS.includes(data.email.toLowerCase());
 
   const existing = db.prepare('SELECT * FROM users WHERE email = ?').get(data.email) as User | undefined;
   if (existing) {
     db.prepare('UPDATE users SET last_login = datetime(\'now\') WHERE id = ?').run(existing.id);
+    if (isCreator && existing.tier !== 'research') {
+      db.prepare('UPDATE users SET tier = ? WHERE id = ?').run('research', existing.id);
+      return { ...existing, tier: 'research', last_login: new Date().toISOString() };
+    }
     return { ...existing, last_login: new Date().toISOString() };
   }
 
   const id = generateId();
   const apiKey = generateApiKey();
+  const tier = isCreator ? 'research' : 'free';
   db.prepare(`
-    INSERT INTO users (id, email, name, provider, provider_id, api_key, last_login)
-    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-  `).run(id, data.email, data.name || null, provider, data.providerId || null, apiKey);
+    INSERT INTO users (id, email, name, provider, provider_id, api_key, tier, last_login)
+    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+  `).run(id, data.email, data.name || null, provider, data.providerId || null, apiKey, tier);
 
   return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User;
 }
