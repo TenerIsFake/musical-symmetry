@@ -8,6 +8,7 @@ import {
   downloadAsFile,
   generateLaTeX,
 } from '../utils/export-academic';
+import { toMusicXML } from '../utils/musicxml-writer';
 
 interface Props {
   analysis: SymmetryAnalysis | null;
@@ -24,6 +25,7 @@ export default function ExportMenu({ analysis, pcs }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isResearch = user?.tier === 'research';
+  const isPro = user?.tier === 'pro' || user?.tier === 'research';
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -44,6 +46,16 @@ export default function ExportMenu({ analysis, pcs }: Props) {
 
   function guard(fn: () => void) {
     if (!isResearch) {
+      setOpen(false);
+      setShowUpgrade(true);
+      return;
+    }
+    fn();
+    setOpen(false);
+  }
+
+  function guardPro(fn: () => void) {
+    if (!isPro) {
       setOpen(false);
       setShowUpgrade(true);
       return;
@@ -78,7 +90,30 @@ export default function ExportMenu({ analysis, pcs }: Props) {
 
   const setLabel = pcs.join('');
 
+  function getMusicXML(): string {
+    const title = `Pitch-Class Set {${pcs.join(',')}}`;
+    // Map pitch classes to MIDI notes in octave 4 (middle C = 60)
+    const notes = pcs.map(pc => ({ pitch: 60 + pc, duration: 1, rest: false }));
+    return toMusicXML({
+      title,
+      tempo: 120,
+      timeSignature: [4, 4],
+      parts: [{ name: 'Pitch-Class Set', notes }],
+    });
+  }
+
   const actions: Array<{ label: string; onClick: () => void }> = [
+    {
+      label: 'Download MusicXML',
+      onClick: () =>
+        guardPro(() =>
+          downloadAsFile(
+            getMusicXML(),
+            `set-${setLabel}.musicxml`,
+            'application/vnd.recordare.musicxml+xml',
+          ),
+        ),
+    },
     {
       label: 'Copy as Lilypond',
       onClick: () => guard(() => copyToClipboard(getLilypond(), 'Lilypond')),

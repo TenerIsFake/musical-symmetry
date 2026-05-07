@@ -93,6 +93,102 @@ export function progressionToMidi(chords: number[][], bpm: number = 120): Blob {
   return new Blob([new Uint8Array(header)], { type: 'audio/midi' });
 }
 
+export interface MultiTrackNote {
+  midiNote: number;
+  startTick: number;
+  durationTicks: number;
+  velocity: number;
+}
+
+export interface MidiTrack {
+  name: string;
+  channel: number;
+  notes: MultiTrackNote[];
+}
+
+/**
+ * Convert multiple tracks to a Type-1 (multi-track) MIDI file Blob.
+ * One MTrk chunk is produced per track, plus a tempo track at index 0.
+ */
+export function multiTrackToMidi(
+  tracks: MidiTrack[],
+  bpm: number,
+  ppq: number = 480,
+): Blob {
+  const microsecondsPerBeat = Math.round(60_000_000 / bpm);
+
+  // --- Tempo track (track 0) ---
+  const tempoEvents: number[] = [
+    ...writeVarLen(0),       // delta = 0
+    0xff, 0x51, 0x03,
+    ...uint32BE(microsecondsPerBeat).slice(1),
+    ...writeVarLen(0),       // delta = 0
+    0xff, 0x2f, 0x00,        // end of track
+  ];
+
+  // --- Encode each track ---
+  function encodeTrack(track: MidiTrack): number[] {
+    // Build flat event list: [tick, type, note, velocity]
+    type RawEvent = { tick: number; data: number[] };
+    const events: RawEvent[] = [];
+
+    // Track name meta event
+    const nameBytes = Array.from(track.name).map(c => c.charCodeAt(0));
+    events.push({
+      tick: 0,
+      data: [0xff, 0x03, nameBytes.length, ...nameBytes],
+    });
+
+    for (const n of track.notes) {
+      const ch = (track.channel - 1) & 0x0f;
+      events.push({
+        tick: n.startTick,
+        data: [0x90 | ch, n.midiNote & 0x7f, n.velocity & 0x7f],
+      });
+      events.push({
+        tick: n.startTick + n.durationTicks,
+        data: [0x80 | ch, n.midiNote & 0x7f, 0x00],
+      });
+    }
+
+    events.sort((a, b) => a.tick - b.tick);
+
+    const trackBytes: number[] = [];
+    let prevTick = 0;
+    for (const ev of events) {
+      const delta = ev.tick - prevTick;
+      prevTick = ev.tick;
+      trackBytes.push(...writeVarLen(delta), ...ev.data);
+    }
+    // End of track
+    trackBytes.push(...writeVarLen(0), 0xff, 0x2f, 0x00);
+    return trackBytes;
+  }
+
+  const encodedTracks = tracks.map(encodeTrack);
+  const numTracks = 1 + encodedTracks.length; // tempo track + data tracks
+
+  const header = [
+    0x4d, 0x54, 0x68, 0x64,   // MThd
+    ...uint32BE(6),             // header length = 6
+    ...uint16BE(1),             // format = 1 (multi-track)
+    ...uint16BE(numTracks),
+    ...uint16BE(ppq),
+  ];
+
+  function makeChunk(trackData: number[]): number[] {
+    return [0x4d, 0x54, 0x72, 0x6b, ...uint32BE(trackData.length), ...trackData];
+  }
+
+  const allBytes: number[] = [
+    ...header,
+    ...makeChunk(tempoEvents),
+    ...encodedTracks.flatMap(makeChunk),
+  ];
+
+  return new Blob([new Uint8Array(allBytes)], { type: 'audio/midi' });
+}
+
 export function downloadMidi(chords: number[][], bpm: number = 120, filename = 'progression.mid'): void {
   const blob = progressionToMidi(chords, bpm);
   const url = URL.createObjectURL(blob);

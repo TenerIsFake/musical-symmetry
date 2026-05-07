@@ -1,6 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { useSketchpad, type MelodyNote, type SavedSketch } from '../hooks/useSketchpad';
+import {
+  exportSketchAsMidi,
+  exportSketchAsMusicXML,
+  exportSketchAsLilypond,
+  type SketchData,
+} from '../utils/sketch-export';
 
 const STEPS_PER_BEAT = 4;
 const PITCH_CLASSES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -126,9 +132,49 @@ export default function SketchpadPage() {
 
   // UI state
   const [showLoadPanel, setShowLoadPanel] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [chordEditBar, setChordEditBar] = useState<number | null>(null);
   const [chordInput, setChordInput] = useState('');
+
+  const isPro = tier === 'pro' || tier === 'research';
+  const isResearch = tier === 'research';
+
+  // Build a normalized SketchData snapshot for export functions
+  function buildSketchData(): SketchData {
+    // Parse chord slots (string labels) into structured chord data
+    const chordData: SketchData['chordData'] = chordSlots
+      .map((name, bar) => ({ pcs: [], name, bar }))
+      .filter(c => c.name !== '');
+
+    return {
+      name: currentSketch.name,
+      tempo,
+      timeSigTop: currentSketch.time_sig_top,
+      timeSigBottom: currentSketch.time_sig_bottom,
+      bars,
+      melodyData: melodyNotes.map(n => ({ pc: n.pc, step: n.step })),
+      rhythmData: rhythmBeats,
+      chordData,
+    };
+  }
+
+  function handleExportMidi() {
+    setShowExport(false);
+    exportSketchAsMidi(buildSketchData());
+  }
+
+  function handleExportMusicXML() {
+    if (!isPro) return;
+    setShowExport(false);
+    exportSketchAsMusicXML(buildSketchData());
+  }
+
+  function handleExportLilypond() {
+    if (!isResearch) return;
+    setShowExport(false);
+    exportSketchAsLilypond(buildSketchData());
+  }
 
   // ---- Track editing helpers ----
 
@@ -553,6 +599,42 @@ export default function SketchpadPage() {
         >
           Load {sketches.length > 0 ? `(${sketches.length})` : '▾'}
         </button>
+
+        {/* Export menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowExport(v => !v)}
+            className="px-4 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm text-white"
+          >
+            Export ▾
+          </button>
+          {showExport && (
+            <div className="absolute top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10 min-w-max">
+              <button
+                onClick={handleExportMidi}
+                className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700"
+              >
+                MIDI File (.mid)
+              </button>
+              <button
+                onClick={handleExportMusicXML}
+                className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-700 ${isPro ? 'text-white' : 'text-gray-500 cursor-not-allowed'}`}
+                disabled={!isPro}
+                title={!isPro ? 'Pro tier required' : undefined}
+              >
+                MusicXML (.musicxml) {!isPro && '🔒'}
+              </button>
+              <button
+                onClick={handleExportLilypond}
+                className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-700 ${isResearch ? 'text-white' : 'text-gray-500 cursor-not-allowed'}`}
+                disabled={!isResearch}
+                title={!isResearch ? 'Research tier required' : undefined}
+              >
+                Lilypond (.ly) {!isResearch && '🔒'}
+              </button>
+            </div>
+          )}
+        </div>
 
         {!user && (
           <span className="text-xs text-gray-500">
