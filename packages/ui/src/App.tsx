@@ -38,8 +38,9 @@ const RoomPage = lazy(() => import('./pages/RoomPage'));
 const CorpusPage = lazy(() => import('./pages/CorpusPage'));
 const LearningPathPage = lazy(() => import('./pages/LearningPathPage'));
 const TransformChainPage = lazy(() => import('./pages/TransformChainPage'));
+const SetClassPalettePage = lazy(() => import('./pages/SetClassPalettePage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -83,6 +84,7 @@ function getPage(): Page {
     return 'profile';
   }
   if (hash === 'transform') return 'transform';
+  if (hash === 'palette') return 'palette';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -188,6 +190,8 @@ export default function App() {
                 ? 'Guided lesson with quiz and practice task'
                 : page === 'transform'
                 ? 'Apply T/I/PLR operations to build transformation chains'
+                : page === 'palette'
+                ? 'Browse all transpositions and inversions of any set class'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -431,6 +435,14 @@ export default function App() {
             >
               Transform
             </a>
+            <a
+              href="#palette"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'palette' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Palette
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -490,6 +502,7 @@ export default function App() {
           })()}
           {page === 'corpus' && <CorpusPage />}
           {page === 'transform' && <TransformChainPage />}
+          {page === 'palette' && <SetClassPalettePage />}
           {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
             const hash = window.location.hash.replace('#', '').split('?')[0];
             const parts = hash.split('/');

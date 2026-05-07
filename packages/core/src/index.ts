@@ -18,6 +18,8 @@ export type { Beat, RhythmPattern, RhythmAnalysis } from './rhythm';
 export { analyzeRhythm, rotateRhythm, rhythmNecklaceClass, rhythmEvenness, interOnsetIntervals, isMaximallyEvenRhythm, rhythmSimilarity } from './rhythm';
 export type { Operation, ChainStep } from './transform-chain';
 export { evaluateChain, operationLabel, randomChain } from './transform-chain';
+export type { PcSetForm } from './voicings';
+export { allTranspositions, allInversions, allForms } from './voicings';
 export type { KnownClave } from './euclidean';
 export { euclidean, KNOWN_CLAVES, matchClave } from './euclidean';
 export type { TuningSystem } from './tuning';
