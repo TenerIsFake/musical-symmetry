@@ -16,6 +16,12 @@ export type { CSEG, COMMatrix, ContourAnalysis } from './contour';
 export { toCSEG, comMatrix, contourAdjacencySeries, contourInversion, contourRetrograde, contourRetrogradeInversion, isContourPalindrome, isInversionallySymmetric, contourSimilarity, contourDepth, contourClass, analyzeContour } from './contour';
 export type { Beat, RhythmPattern, RhythmAnalysis } from './rhythm';
 export { analyzeRhythm, rotateRhythm, rhythmNecklaceClass, rhythmEvenness, interOnsetIntervals, isMaximallyEvenRhythm, rhythmSimilarity } from './rhythm';
+export type { Operation, ChainStep } from './transform-chain';
+export { evaluateChain, operationLabel, randomChain } from './transform-chain';
+export type { PcSetForm } from './voicings';
+export { allTranspositions, allInversions, allForms } from './voicings';
+export type { KnownClave } from './euclidean';
+export { euclidean, KNOWN_CLAVES, matchClave } from './euclidean';
 export type { TuningSystem } from './tuning';
 export {
   TUNING_12TET,
@@ -32,6 +38,14 @@ export {
   generalizedMaximallyEven,
   nearestTwelveTET,
 } from './tuning';
+
+export type { CompositionConstraints, CompositionCandidate } from './constraint-composer';
+export { generateCandidates } from './constraint-composer';
+
+export { quantizeToSet } from './quantize';
+
+export type { InstrumentSpec, VoicingAssignment, OrchestrationSuggestion } from './orchestration';
+export { suggestOrchestrations } from './orchestration';
 
 import type { PitchClass, SymmetryAnalysis } from './types';
 import { transpositionalStabilizer, inversionalAxes, stabilizerOrder, distinctTranspositions, abstractGroup } from './symmetry';

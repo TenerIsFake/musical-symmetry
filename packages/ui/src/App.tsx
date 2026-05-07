@@ -20,6 +20,7 @@ const IntervalCyclesPage = lazy(() => import('./pages/IntervalCyclesPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
 const RhythmPage = lazy(() => import('./pages/RhythmPage'));
+const EuclideanPage = lazy(() => import('./pages/EuclideanPage'));
 const VoiceLeadingGraphPage = lazy(() => import('./pages/VoiceLeadingGraphPage'));
 const TimelinePage = lazy(() => import('./pages/TimelinePage'));
 const PracticePage = lazy(() => import('./pages/PracticePage'));
@@ -36,8 +37,15 @@ const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 const RoomPage = lazy(() => import('./pages/RoomPage'));
 const CorpusPage = lazy(() => import('./pages/CorpusPage'));
 const LearningPathPage = lazy(() => import('./pages/LearningPathPage'));
+const TransformChainPage = lazy(() => import('./pages/TransformChainPage'));
+const SetClassPalettePage = lazy(() => import('./pages/SetClassPalettePage'));
+const SketchpadPage = lazy(() => import('./pages/SketchpadPage'));
+const ConstraintComposerPage = lazy(() => import('./pages/ConstraintComposerPage'));
+const HarmonicPathPage = lazy(() => import('./pages/HarmonicPathPage'));
+const MidiIOPage = lazy(() => import('./pages/MidiIOPage'));
+const OrchestrationPage = lazy(() => import('./pages/OrchestrationPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette' | 'sketchpad' | 'compose' | 'harmonic-path' | 'midi-io' | 'orchestration';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -58,6 +66,7 @@ function getPage(): Page {
   if (hash === 'search') return 'search';
   if (hash === 'quiz') return 'quiz';
   if (hash === 'rhythm') return 'rhythm';
+  if (hash === 'euclidean') return 'euclidean';
   if (hash === 'vl-graph') return 'vl-graph';
   if (hash === 'timeline') return 'timeline';
   if (hash === 'practice') return 'practice';
@@ -79,6 +88,13 @@ function getPage(): Page {
     if (parts.length >= 2 && parts[1]) return 'profile-collection';
     return 'profile';
   }
+  if (hash === 'transform') return 'transform';
+  if (hash === 'palette') return 'palette';
+  if (hash === 'sketchpad') return 'sketchpad';
+  if (hash === 'compose') return 'compose';
+  if (hash === 'harmonic-path') return 'harmonic-path';
+  if (hash === 'midi-io') return 'midi-io';
+  if (hash === 'orchestration') return 'orchestration';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -150,6 +166,8 @@ export default function App() {
                 ? 'Spaced-repetition flashcards for set class mastery'
                 : page === 'rhythm'
                 ? 'Rhythmic symmetry — cyclic geometry of beat patterns'
+                : page === 'euclidean'
+                ? "Generate maximally even rhythms with Bjorklund's algorithm"
                 : page === 'vl-graph'
                 ? 'Voice-leading landscape — explore minimal chord movements'
                 : page === 'timeline'
@@ -180,6 +198,20 @@ export default function App() {
                 ? 'Learning path overview'
                 : page === 'learn-lesson'
                 ? 'Guided lesson with quiz and practice task'
+                : page === 'transform'
+                ? 'Apply T/I/PLR operations to build transformation chains'
+                : page === 'palette'
+                ? 'Browse all transpositions and inversions of any set class'
+                : page === 'sketchpad'
+                ? 'Multi-track composition workspace — melody, rhythm, and chords'
+                : page === 'compose'
+                ? 'Generate melodies from set-class and contour constraints'
+                : page === 'harmonic-path'
+                ? 'Walk the Tonnetz — build progressions through PLR transformations'
+                : page === 'midi-io'
+                ? 'Real-time MIDI input/output with theory-aware processing'
+                : page === 'orchestration'
+                ? 'Instrument voicing suggestions based on interval content and range'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -319,6 +351,14 @@ export default function App() {
               Rhythm
             </a>
             <a
+              href="#euclidean"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'euclidean' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Euclidean
+            </a>
+            <a
               href="#vl-graph"
               className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 page === 'vl-graph' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -407,6 +447,62 @@ export default function App() {
             >
               Corpus
             </a>
+            <a
+              href="#transform"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'transform' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Transform
+            </a>
+            <a
+              href="#palette"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'palette' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Palette
+            </a>
+            <a
+              href="#sketchpad"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'sketchpad' ? 'bg-emerald-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Sketchpad
+            </a>
+            <a
+              href="#compose"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'compose' ? 'bg-violet-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Compose
+            </a>
+            <a
+              href="#harmonic-path"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'harmonic-path' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Paths
+            </a>
+            <a
+              href="#midi-io"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'midi-io' ? 'bg-cyan-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              MIDI
+            </a>
+            <a
+              href="#orchestration"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'orchestration' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Orchestrate
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -439,6 +535,7 @@ export default function App() {
           {page === 'search' && <SearchPage />}
           {page === 'quiz' && <QuizPage />}
           {page === 'rhythm' && <RhythmPage />}
+          {page === 'euclidean' && <EuclideanPage />}
           {page === 'vl-graph' && <VoiceLeadingGraphPage />}
           {page === 'timeline' && <TimelinePage />}
           {page === 'practice' && <PracticePage />}
@@ -464,6 +561,13 @@ export default function App() {
             return <RoomPage roomId={roomId} />;
           })()}
           {page === 'corpus' && <CorpusPage />}
+          {page === 'transform' && <TransformChainPage />}
+          {page === 'palette' && <SetClassPalettePage />}
+          {page === 'sketchpad' && <SketchpadPage />}
+          {page === 'compose' && <ConstraintComposerPage />}
+          {page === 'harmonic-path' && <HarmonicPathPage />}
+          {page === 'midi-io' && <MidiIOPage />}
+          {page === 'orchestration' && <OrchestrationPage />}
           {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
             const hash = window.location.hash.replace('#', '').split('?')[0];
             const parts = hash.split('/');
