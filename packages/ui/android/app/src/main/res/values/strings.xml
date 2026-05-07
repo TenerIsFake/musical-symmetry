@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Chrometria</string>
+    <string name="title_activity_main">Chrometria</string>
+    <string name="package_name">us.tendrid.chrometria</string>
+    <string name="custom_url_scheme">us.tendrid.chrometria</string>
+</resources>

@@ -3,3 +3,15 @@ node_modules/
 
 # Build artifacts
 *.tsbuildinfo
+
+# Android (Capacitor)
+packages/ui/android/.gradle/
+packages/ui/android/build/
+packages/ui/android/app/build/
+packages/ui/android/app/src/main/assets/public/
+packages/ui/android/app/src/main/assets/capacitor.config.json
+packages/ui/android/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
