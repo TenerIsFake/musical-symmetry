@@ -8,11 +8,15 @@ import ApiDocsPage from './pages/ApiDocsPage';
 import ClassroomPage from './pages/ClassroomPage';
 import AtlasPage from './pages/AtlasPage';
 import AtlasEntryPage from './pages/AtlasEntryPage';
+import EarTrainingPage from './pages/EarTrainingPage';
+import ProgressionPage from './pages/ProgressionPage';
+import LiveDetectionPage from './pages/LiveDetectionPage';
+import ComparePage from './pages/ComparePage';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdBanner from './components/AdBanner';
 import { useResearchMode } from './context/ResearchMode';
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -24,6 +28,10 @@ function getPage(): Page {
   if (hash === 'classroom') return 'classroom';
   if (hash === 'atlas') return 'atlas';
   if (hash.startsWith('atlas/')) return 'atlas-entry';
+  if (hash === 'ear-training') return 'ear-training';
+  if (hash === 'progression') return 'progression';
+  if (hash === 'live') return 'live';
+  if (hash === 'compare') return 'compare';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -67,6 +75,14 @@ export default function App() {
                 ? 'Every pitch-class set class, classified by symmetry group'
                 : page === 'atlas-entry'
                 ? 'Set class detail'
+                : page === 'ear-training'
+                ? 'Train your ear to recognize pitch-class sets'
+                : page === 'progression'
+                ? 'Build and optimize chord progressions with voice-leading analysis'
+                : page === 'live'
+                ? 'Detect pitches in real time from your microphone'
+                : page === 'compare'
+                ? 'Compare two pieces side by side for symmetry differences'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -133,6 +149,38 @@ export default function App() {
             >
               Atlas
             </a>
+            <a
+              href="#ear-training"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'ear-training' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Ear Training
+            </a>
+            <a
+              href="#progression"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'progression' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Progression
+            </a>
+            <a
+              href="#live"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'live' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Live
+            </a>
+            <a
+              href="#compare"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'compare' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Compare
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -156,6 +204,10 @@ export default function App() {
         {page === 'classroom' && <ClassroomPage />}
         {page === 'atlas' && <AtlasPage />}
         {page === 'atlas-entry' && <AtlasEntryPage forteNumber={window.location.hash.replace('#atlas/', '')} />}
+        {page === 'ear-training' && <EarTrainingPage />}
+        {page === 'progression' && <ProgressionPage />}
+        {page === 'live' && <LiveDetectionPage />}
+        {page === 'compare' && <ComparePage />}
 
         <AdBanner slot="bottom-banner" format="horizontal" />
       </div>

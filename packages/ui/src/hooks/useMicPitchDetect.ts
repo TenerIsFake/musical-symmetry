@@ -56,6 +56,7 @@ function freqToPitchClass(freq: number): PitchClass {
 export function useMicPitchDetect() {
   const [isListening, setIsListening] = useState(false);
   const [detectedPC, setDetectedPC] = useState<PitchClass | null>(null);
+  const [detectedFreq, setDetectedFreq] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const contextRef = useRef<AudioContext | null>(null);
@@ -73,8 +74,10 @@ export function useMicPitchDetect() {
     const freq = autoCorrelate(buffer, contextRef.current.sampleRate);
     if (freq !== null) {
       setDetectedPC(freqToPitchClass(freq));
+      setDetectedFreq(freq);
     } else {
       setDetectedPC(null);
+      setDetectedFreq(null);
     }
 
     rafRef.current = requestAnimationFrame(detect);
@@ -111,11 +114,12 @@ export function useMicPitchDetect() {
     streamRef.current = null;
     setIsListening(false);
     setDetectedPC(null);
+    setDetectedFreq(null);
   }, []);
 
   useEffect(() => {
     return () => { stop(); };
   }, [stop]);
 
-  return { isListening, detectedPC, error, start, stop };
+  return { isListening, detectedPC, detectedFreq, error, start, stop };
 }

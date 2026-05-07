@@ -10,6 +10,10 @@ import { collectionsRouter } from './collections/routes.js';
 import { classroomRouter } from './classroom/routes.js';
 import { initClassroomWs } from './classroom/ws.js';
 import { atlasRouter } from './atlas/routes.js';
+import { workspacesRouter } from './workspaces/routes.js';
+import { digestRouter } from './digest/routes.js';
+import { genreRouter } from './genre/routes.js';
+import { runDigestMigration, sendWeeklyDigests, getLastDigestSentAt } from './digest/weekly-digest.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -69,6 +73,9 @@ app.use('/api/billing', billingRouter);
 app.use('/api/collections', collectionsRouter);
 app.use('/api/classroom', classroomRouter);
 app.use('/api/atlas', atlasRouter);
+app.use('/api/workspaces', workspacesRouter);
+app.use('/api/digest', digestRouter);
+app.use('/api/genre', genreRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -81,6 +88,42 @@ function pruneStaleData() {
 
 pruneStaleData();
 setInterval(pruneStaleData, 60 * 60 * 1000);
+
+// Digest migrations and scheduler
+runDigestMigration();
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function checkAndSendDigest(): void {
+  const lastSent = getLastDigestSentAt();
+  if (lastSent) {
+    const elapsed = Date.now() - new Date(lastSent).getTime();
+    if (elapsed < SEVEN_DAYS_MS) {
+      const nextMs = SEVEN_DAYS_MS - elapsed;
+      const nextHours = Math.round(nextMs / (60 * 60 * 1000));
+      console.log(`[digest] Last sent ${lastSent} — next digest in ~${nextHours}h`);
+      return;
+    }
+  }
+
+  // Check if it's Sunday 9am CT (UTC-5 standard / UTC-6 daylight)
+  // We fire if we're within the same Sunday-9am window, or if no digest has ever been sent
+  const now = new Date();
+  const ctOffset = -6; // CDT; use -5 for CST
+  const ctHour = (now.getUTCHours() + 24 + ctOffset) % 24;
+  const ctDay = new Date(now.getTime() + ctOffset * 60 * 60 * 1000).getUTCDay(); // 0 = Sunday
+
+  if (!lastSent || (ctDay === 0 && ctHour >= 9 && ctHour < 10)) {
+    console.log('[digest] Triggering weekly digest send...');
+    sendWeeklyDigests().catch((err: unknown) => {
+      console.error('[digest] Scheduler error:', err);
+    });
+  }
+}
+
+// Check on startup, then every hour
+checkAndSendDigest();
+setInterval(checkAndSendDigest, 60 * 60 * 1000);
 
 const server = createServer(app);
 initClassroomWs(server);

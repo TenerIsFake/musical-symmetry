@@ -248,8 +248,9 @@ export default function ClassifierPage() {
           </span>
         )}
         <SaveButton
-          pitchClasses={state.selectedPCs}
-          chordName={chord ? `${NOTE_NAMES[chord.root]} ${chord.quality}` : undefined}
+          type="classifier"
+          data={{ pitchClasses: state.selectedPCs, chord: chord ? `${NOTE_NAMES[chord.root]} ${chord.quality}` : undefined }}
+          defaultName={chord ? `${NOTE_NAMES[chord.root]} ${chord.quality}` : `Set {${state.selectedPCs.join(',')}}`}
         />
       </div>
       {showShare && (

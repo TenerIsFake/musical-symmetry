@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <style>
+      .note-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 48px; font-weight: 700; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 24px; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#111827"/>
+
+  <!-- Title and subtitle -->
+  <text x="600" y="80" text-anchor="middle" class="title" fill="#ffffff">Musical Symmetry</text>
+  <text x="600" y="120" text-anchor="middle" class="subtitle" fill="#9ca3af">See the hidden geometry of chords</text>
+
+  <!-- Orbit circle: center (600, 370), radius 220 -->
+  <circle cx="600" cy="370" r="220" fill="none" stroke="#374151" stroke-width="1.5"/>
+
+  <!-- Symmetry axes for C major (inversional axes at pc 0-6 and pc 3.5-9.5 approximated as pc 2-8) -->
+  <!-- Axis 1: through pc 0 (top) and pc 6 (bottom) -->
+  <line x1="600" y1="135" x2="600" y2="605" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"/>
+  <!-- Axis 2: through midpoint of pc 3/4 and midpoint of pc 9/10 — angle 15deg and 195deg -->
+  <line x1="803.7" y1="252.5" x2="396.3" y2="487.5" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"/>
+
+  <!-- Polygon connecting C major: pc 0, pc 4, pc 7 -->
+  <!-- pc 0: (600, 150) | pc 4: (790.5, 480) | pc 7: (490, 560.4) -->
+  <polygon points="600,150 790.5,480 490,560.4" fill="rgba(34, 197, 94, 0.15)" stroke="#22c55e" stroke-width="2"/>
+
+  <!-- Note positions: angle = (pc * 30 - 90) deg -->
+  <!-- pc 0  C  : (600.0, 150.0) ACTIVE -->
+  <!-- pc 1  C# : (710.0, 179.6) -->
+  <!-- pc 2  D  : (790.5, 260.0) -->
+  <!-- pc 3  Eb : (820.0, 370.0) -->
+  <!-- pc 4  E  : (790.5, 480.0) ACTIVE -->
+  <!-- pc 5  F  : (710.0, 560.4) -->
+  <!-- pc 6  F# : (600.0, 590.0) -->
+  <!-- pc 7  G  : (490.0, 560.4) ACTIVE -->
+  <!-- pc 8  Ab : (409.5, 480.0) -->
+  <!-- pc 9  A  : (380.0, 370.0) -->
+  <!-- pc 10 Bb : (409.5, 260.0) -->
+  <!-- pc 11 B  : (490.0, 179.6) -->
+
+  <!-- pc 0 - C (active) -->
+  <circle cx="600" cy="150" r="20" fill="#22c55e" stroke="#16a34a" stroke-width="2"/>
+  <text x="600" y="155" text-anchor="middle" class="note-label" fill="#ffffff">C</text>
+
+  <!-- pc 1 - C# -->
+  <circle cx="710" cy="179.6" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="710" y="184.6" text-anchor="middle" class="note-label" fill="#9ca3af">C#</text>
+
+  <!-- pc 2 - D -->
+  <circle cx="790.5" cy="260" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="790.5" y="265" text-anchor="middle" class="note-label" fill="#9ca3af">D</text>
+
+  <!-- pc 3 - Eb -->
+  <circle cx="820" cy="370" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="820" y="375" text-anchor="middle" class="note-label" fill="#9ca3af">Eb</text>
+
+  <!-- pc 4 - E (active) -->
+  <circle cx="790.5" cy="480" r="20" fill="#22c55e" stroke="#16a34a" stroke-width="2"/>
+  <text x="790.5" y="485" text-anchor="middle" class="note-label" fill="#ffffff">E</text>
+
+  <!-- pc 5 - F -->
+  <circle cx="710" cy="560.4" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="710" y="565.4" text-anchor="middle" class="note-label" fill="#9ca3af">F</text>
+
+  <!-- pc 6 - F# -->
+  <circle cx="600" cy="590" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="600" y="595" text-anchor="middle" class="note-label" fill="#9ca3af">F#</text>
+
+  <!-- pc 7 - G (active) -->
+  <circle cx="490" cy="560.4" r="20" fill="#22c55e" stroke="#16a34a" stroke-width="2"/>
+  <text x="490" y="565.4" text-anchor="middle" class="note-label" fill="#ffffff">G</text>
+
+  <!-- pc 8 - Ab -->
+  <circle cx="409.5" cy="480" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="409.5" y="485" text-anchor="middle" class="note-label" fill="#9ca3af">Ab</text>
+
+  <!-- pc 9 - A -->
+  <circle cx="380" cy="370" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="380" y="375" text-anchor="middle" class="note-label" fill="#9ca3af">A</text>
+
+  <!-- pc 10 - Bb -->
+  <circle cx="409.5" cy="260" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="409.5" y="265" text-anchor="middle" class="note-label" fill="#9ca3af">Bb</text>
+
+  <!-- pc 11 - B -->
+  <circle cx="490" cy="179.6" r="20" fill="#1f2937" stroke="#4b5563" stroke-width="2"/>
+  <text x="490" y="184.6" text-anchor="middle" class="note-label" fill="#9ca3af">B</text>
+</svg>
