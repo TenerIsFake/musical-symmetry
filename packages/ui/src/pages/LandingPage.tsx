@@ -179,7 +179,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">24 Tools. One Platform.</h2>
           <p className="text-gray-400 text-center mb-16 max-w-xl mx-auto">
-            From a single chord to a full score — everything you need to explore, create, and teach musical symmetry.
+            From a single chord to a full score — everything you need to explore, create, and teach with Chrometria.
           </p>
 
           {/* Analyze */}
