@@ -10,6 +10,7 @@ import { renderCard } from './cards/renderer.js';
 import type { CardStyle } from './cards/types.js';
 import { rateLimit } from './auth/middleware.js';
 import { insertHistory } from './history/db.js';
+import { checkAndGrantAchievements } from './achievements/db.js';
 import { generateAnalysisReport } from './reports/pdf-generator.js';
 import { getOpenApiSpec } from './api-docs/openapi.js';
 
@@ -86,6 +87,11 @@ router.post('/analyze', upload.single('file'), rateLimit('analyze'), async (req,
     });
 
     res.json(timeline);
+
+    // Fire-and-forget achievement check
+    if ((req as any).user?.id) {
+      try { checkAndGrantAchievements((req as any).user.id); } catch {}
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     const safeMessage = message.length > 200 ? message.slice(0, 200) : message;
@@ -174,6 +180,8 @@ router.post('/classify', rateLimit('classify'), (req, res) => {
           JSON.stringify(analysis.intervalVector)
         );
       } catch {}
+      // Fire-and-forget achievement check
+      try { checkAndGrantAchievements((req as any).user.id); } catch {}
     }
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });

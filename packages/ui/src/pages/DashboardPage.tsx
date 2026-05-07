@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import StripeCheckout from '../components/StripeCheckout';
+import { useAchievements } from '../hooks/useAchievements';
+import AchievementBadge from '../components/AchievementBadge';
 
 interface UserProfile {
   email: string;
@@ -90,6 +92,46 @@ function MaskedKey({ apiKey, onCopy, onRegenerate }: { apiKey: string; onCopy: (
   );
 }
 
+function AchievementsSection() {
+  const { achievements, earned, total, loading } = useAchievements(true);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-800 rounded-lg p-6">
+        <h3 className="text-sm font-semibold text-gray-300 mb-4">Achievements</h3>
+        <div className="flex justify-center py-4">
+          <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (achievements.length === 0) return null;
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-300">Achievements</h3>
+        <span className="text-xs text-gray-400">
+          {earned}/{total} earned
+        </span>
+      </div>
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+        {achievements.map(a => (
+          <AchievementBadge
+            key={a.id}
+            icon={a.icon}
+            name={a.name}
+            description={a.description}
+            earned={a.earned}
+            grantedAt={a.grantedAt}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function LoggedInView({ user }: { user: UserProfile }) {
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(user.apiKey).catch(() => {});
@@ -126,6 +168,9 @@ function LoggedInView({ user }: { user: UserProfile }) {
 
       {/* API Key */}
       <MaskedKey apiKey={user.apiKey} onCopy={handleCopy} onRegenerate={handleRegenerate} />
+
+      {/* Achievements */}
+      <AchievementsSection />
 
       {/* Subscription */}
       <div className="bg-gray-800 rounded-lg p-6">
