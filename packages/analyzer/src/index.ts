@@ -17,9 +17,12 @@ import { contourRouter } from './contour/routes.js';
 import { assignmentsRouter } from './assignments/routes.js';
 import { historyRouter } from './history/routes.js';
 import { achievementsRouter } from './achievements/routes.js';
+import { bulkRouter } from './bulk/routes.js';
+import { flashcardsRouter } from './flashcards/routes.js';
 import { runDigestMigration, sendWeeklyDigests, getLastDigestSentAt } from './digest/weekly-digest.js';
 import { runHistoryMigration } from './history/db.js';
 import { runAchievementMigration } from './achievements/db.js';
+import { runFlashcardMigration } from './flashcards/db.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -86,6 +89,8 @@ app.use('/api/contour', contourRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/achievements', achievementsRouter);
+app.use('/api/bulk', bulkRouter);
+app.use('/api/flashcards', flashcardsRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -103,6 +108,7 @@ setInterval(pruneStaleData, 60 * 60 * 1000);
 runDigestMigration();
 runHistoryMigration();
 runAchievementMigration();
+runFlashcardMigration();
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 

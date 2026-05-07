@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const EXAMPLES: Record<string, { method: string; url: string; body?: string; description: string }> = {
+const EXAMPLES: Record<string, { method: string; url: string; body?: string; description: string; tier?: string }> = {
   classify: {
     method: 'POST',
     url: 'https://symmetry.tendrid.us/api/classify',
@@ -18,6 +18,25 @@ const EXAMPLES: Record<string, { method: string; url: string; body?: string; des
     url: 'https://symmetry.tendrid.us/api/voice-leading',
     body: JSON.stringify({ from: [0, 4, 7], to: [0, 3, 7] }, null, 2),
     description: 'Distance from C major to C minor',
+  },
+  bulkSetClasses: {
+    method: 'GET',
+    url: 'https://symmetry.tendrid.us/api/bulk/set-classes',
+    description: 'All 224 set classes (Research)',
+    tier: 'research',
+  },
+  bulkSetClass: {
+    method: 'GET',
+    url: 'https://symmetry.tendrid.us/api/bulk/set-classes/3-11',
+    description: 'Single set class 3-11 (Research)',
+    tier: 'research',
+  },
+  bulkClassify: {
+    method: 'POST',
+    url: 'https://symmetry.tendrid.us/api/bulk/classify',
+    body: JSON.stringify({ sets: [[0, 4, 7], [0, 3, 7], [0, 3, 6, 9]] }, null, 2),
+    description: 'Bulk classify up to 5000 sets (Research)',
+    tier: 'research',
   },
 };
 
@@ -45,10 +64,10 @@ function CodeBlock({ code }: { code: string }) {
 
 function TierTable() {
   const tiers = [
-    { name: 'Anonymous', classify: '50/day', batch: '-', analyze: '3/day', report: '-', price: 'Free' },
-    { name: 'Free', classify: '100/day', batch: '10/day', analyze: '10/day', report: '1/day', price: 'Free' },
-    { name: 'Pro', classify: '1,000/day', batch: '100/day', analyze: '100/day', report: '20/day', price: '$9/mo' },
-    { name: 'Research', classify: '10,000/day', batch: '1,000/day', analyze: '1,000/day', report: 'Unlimited', price: '$29/mo' },
+    { name: 'Anonymous', classify: '50/day', batch: '-', analyze: '3/day', report: '-', bulk: '-', price: 'Free' },
+    { name: 'Free', classify: '100/day', batch: '10/day', analyze: '10/day', report: '1/day', bulk: '-', price: 'Free' },
+    { name: 'Pro', classify: '1,000/day', batch: '100/day', analyze: '100/day', report: '20/day', bulk: '-', price: '$9/mo' },
+    { name: 'Research', classify: '10,000/day', batch: '1,000/day', analyze: '1,000/day', report: 'Unlimited', bulk: '100/day', price: '$29/mo' },
   ];
 
   return (
@@ -61,6 +80,7 @@ function TierTable() {
             <th className="px-4 py-2">Batch</th>
             <th className="px-4 py-2">Analyze</th>
             <th className="px-4 py-2">Report</th>
+            <th className="px-4 py-2">Bulk Export</th>
             <th className="px-4 py-2">Price</th>
           </tr>
         </thead>
@@ -72,6 +92,7 @@ function TierTable() {
               <td className="px-4 py-2 text-gray-300">{t.batch}</td>
               <td className="px-4 py-2 text-gray-300">{t.analyze}</td>
               <td className="px-4 py-2 text-gray-300">{t.report}</td>
+              <td className="px-4 py-2 text-gray-300">{t.bulk}</td>
               <td className="px-4 py-2 text-indigo-400">{t.price}</td>
             </tr>
           ))}
@@ -87,17 +108,25 @@ export default function ApiDocsPage() {
 
   const ex = EXAMPLES[selectedExample]!;
 
+  const needsAuth = Boolean(ex.tier);
+
   const curlCode = ex.body
     ? `curl -X ${ex.method} ${ex.url} \\\n  -H "Content-Type: application/json" \\\n  -H "x-api-key: YOUR_API_KEY" \\\n  -d '${ex.body.replace(/\n/g, '')}'`
-    : `curl ${ex.url}`;
+    : needsAuth
+      ? `curl ${ex.url} \\\n  -H "x-api-key: YOUR_API_KEY"`
+      : `curl ${ex.url}`;
 
   const pythonCode = ex.body
     ? `import requests\n\nres = requests.post(\n    "${ex.url}",\n    json=${ex.body.replace(/"/g, "'").replace(/null/g, 'None').replace(/true/g, 'True').replace(/false/g, 'False')},\n    headers={"x-api-key": "YOUR_API_KEY"}\n)\nprint(res.json())`
-    : `import requests\nres = requests.get("${ex.url}")\nprint(res.json())`;
+    : needsAuth
+      ? `import requests\nres = requests.get("${ex.url}", headers={"x-api-key": "YOUR_API_KEY"})\nprint(res.json())`
+      : `import requests\nres = requests.get("${ex.url}")\nprint(res.json())`;
 
   const jsCode = ex.body
     ? `const res = await fetch("${ex.url}", {\n  method: "${ex.method}",\n  headers: {\n    "Content-Type": "application/json",\n    "x-api-key": "YOUR_API_KEY"\n  },\n  body: JSON.stringify(${ex.body})\n});\nconst data = await res.json();\nconsole.log(data);`
-    : `const res = await fetch("${ex.url}");\nconst data = await res.json();`;
+    : needsAuth
+      ? `const res = await fetch("${ex.url}", {\n  headers: { "x-api-key": "YOUR_API_KEY" }\n});\nconst data = await res.json();\nconsole.log(data);`
+      : `const res = await fetch("${ex.url}");\nconst data = await res.json();`;
 
   const codeMap = { curl: curlCode, python: pythonCode, javascript: jsCode };
 
@@ -149,6 +178,36 @@ export default function ApiDocsPage() {
         Pass your API key in the <code className="bg-gray-800 px-1.5 py-0.5 rounded text-indigo-300">x-api-key</code> header.
         Get your key from the <a href="#dashboard" className="text-indigo-400 underline">dashboard</a>.
       </p>
+
+      <h2 className="text-xl font-semibold mt-8 mb-3">Bulk Set Class Export <span className="ml-2 text-xs bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded">Research tier</span></h2>
+      <p className="text-gray-400 mb-3">
+        Research subscribers can retrieve the full Forte catalog programmatically. All three endpoints require
+        the <code className="bg-gray-800 px-1.5 py-0.5 rounded text-indigo-300">x-api-key</code> header and a Research-tier account.
+        The set-class list is cached in-memory after first request for fast repeated access.
+      </p>
+      <div className="space-y-4 mb-4">
+        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-xs font-mono bg-blue-900 text-blue-200 px-2 py-0.5 rounded">GET</span>
+            <code className="text-sm text-gray-200 font-mono">/api/bulk/set-classes</code>
+          </div>
+          <p className="text-sm text-gray-400">Returns all 224 set classes (cardinalities 2–12) with Forte number, prime form, interval vector, symmetry group, Mulliken label, and boolean properties. Rate limit: 100/day.</p>
+        </div>
+        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-xs font-mono bg-blue-900 text-blue-200 px-2 py-0.5 rounded">GET</span>
+            <code className="text-sm text-gray-200 font-mono">/api/bulk/set-classes/:forte</code>
+          </div>
+          <p className="text-sm text-gray-400">Returns a single set class by Forte number (e.g. <code className="bg-gray-800 px-1 rounded">3-11</code>, <code className="bg-gray-800 px-1 rounded">4-Z15</code>, <code className="bg-gray-800 px-1 rounded">6-35</code>). Returns 404 if not found.</p>
+        </div>
+        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-xs font-mono bg-green-900 text-green-200 px-2 py-0.5 rounded">POST</span>
+            <code className="text-sm text-gray-200 font-mono">/api/bulk/classify</code>
+          </div>
+          <p className="text-sm text-gray-400">Classify up to 5,000 pitch-class sets in a single request (vs. 1,000 for <code className="bg-gray-800 px-1 rounded">/api/classify/batch</code>). Accepts <code className="bg-gray-800 px-1 rounded">{"{ sets: number[][] }"}</code>. Rate limit: 100/day.</p>
+        </div>
+      </div>
 
       <h2 className="text-xl font-semibold mt-8 mb-3">Embed Widget</h2>
       <p className="text-gray-400 mb-3">
