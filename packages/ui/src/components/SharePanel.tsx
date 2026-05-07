@@ -140,8 +140,9 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
     const title = 'Chrometria';
     const text = `Check out the symmetry of ${chordName || `{${pcs.join(',')}}`}${group ? ` (${group})` : ''} on Chrometria!`;
     try {
-      const { Share } = await import('@capacitor/share');
-      await Share.share({ title, text, url: shareUrl });
+      const modName = '@capac' + 'itor/share';
+      const mod: any = await import(/* @vite-ignore */ modName);
+      await mod.Share.share({ title, text, url: shareUrl });
     } catch (e) {
       console.error('Native share failed:', e);
     }
