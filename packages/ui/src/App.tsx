@@ -42,8 +42,9 @@ const SetClassPalettePage = lazy(() => import('./pages/SetClassPalettePage'));
 const SketchpadPage = lazy(() => import('./pages/SketchpadPage'));
 const ConstraintComposerPage = lazy(() => import('./pages/ConstraintComposerPage'));
 const HarmonicPathPage = lazy(() => import('./pages/HarmonicPathPage'));
+const MidiIOPage = lazy(() => import('./pages/MidiIOPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette' | 'sketchpad' | 'compose' | 'harmonic-path';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'euclidean' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson' | 'transform' | 'palette' | 'sketchpad' | 'compose' | 'harmonic-path' | 'midi-io';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -91,6 +92,7 @@ function getPage(): Page {
   if (hash === 'sketchpad') return 'sketchpad';
   if (hash === 'compose') return 'compose';
   if (hash === 'harmonic-path') return 'harmonic-path';
+  if (hash === 'midi-io') return 'midi-io';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -204,6 +206,8 @@ export default function App() {
                 ? 'Generate melodies from set-class and contour constraints'
                 : page === 'harmonic-path'
                 ? 'Walk the Tonnetz — build progressions through PLR transformations'
+                : page === 'midi-io'
+                ? 'Real-time MIDI input/output with theory-aware processing'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -479,6 +483,14 @@ export default function App() {
             >
               Paths
             </a>
+            <a
+              href="#midi-io"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'midi-io' ? 'bg-cyan-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              MIDI
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -542,6 +554,7 @@ export default function App() {
           {page === 'sketchpad' && <SketchpadPage />}
           {page === 'compose' && <ConstraintComposerPage />}
           {page === 'harmonic-path' && <HarmonicPathPage />}
+          {page === 'midi-io' && <MidiIOPage />}
           {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
             const hash = window.location.hash.replace('#', '').split('?')[0];
             const parts = hash.split('/');
