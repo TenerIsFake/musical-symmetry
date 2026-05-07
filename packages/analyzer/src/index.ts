@@ -9,6 +9,8 @@ import { billingRouter } from './auth/stripe.js';
 import { collectionsRouter } from './collections/routes.js';
 import { classroomRouter } from './classroom/routes.js';
 import { initClassroomWs } from './classroom/ws.js';
+import { roomsRouter } from './rooms/routes.js';
+import { initRoomsWs } from './rooms/ws.js';
 import { atlasRouter } from './atlas/routes.js';
 import { workspacesRouter } from './workspaces/routes.js';
 import { digestRouter } from './digest/routes.js';
@@ -27,6 +29,11 @@ import { runPublicProfilesMigration } from './public-profiles/db.js';
 import { publicProfilesRouter } from './public-profiles/routes.js';
 import { challengesRouter } from './challenges/routes.js';
 import { runChallengeMigration, generateTodayChallenge } from './challenges/db.js';
+import { linkAnalyzerRouter } from './link-analyzer/routes.js';
+import { learningRouter } from './learning/routes.js';
+import { runLearningMigration } from './learning/db.js';
+import { corpusRouter } from './corpus/routes.js';
+import { runCorpusMigration } from './corpus/db.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -97,6 +104,9 @@ app.use('/api/bulk', bulkRouter);
 app.use('/api/flashcards', flashcardsRouter);
 app.use('/api/public', publicProfilesRouter);
 app.use('/api/challenges', challengesRouter);
+app.use('/api/rooms', roomsRouter);
+app.use('/api/link-analyze', linkAnalyzerRouter);
+app.use('/api/learning', learningRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -118,6 +128,7 @@ runFlashcardMigration();
 runPublicProfilesMigration();
 runChallengeMigration();
 generateTodayChallenge();
+runLearningMigration();
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -154,6 +165,7 @@ setInterval(checkAndSendDigest, 60 * 60 * 1000);
 
 const server = createServer(app);
 initClassroomWs(server);
+initRoomsWs(server);
 
 server.listen(PORT, () => {
   console.log(`Analyzer service running on port ${PORT}`);

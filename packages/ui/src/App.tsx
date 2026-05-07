@@ -34,8 +34,9 @@ const FlashcardPage = lazy(() => import('./pages/FlashcardPage'));
 const DailyChallengePage = lazy(() => import('./pages/DailyChallengePage'));
 const PublicProfileIndexPage = lazy(() => import('./pages/PublicProfileIndexPage'));
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
+const RoomPage = lazy(() => import('./pages/RoomPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -67,6 +68,7 @@ function getPage(): Page {
   if (hash === 'embed') return 'embed';
   if (hash === 'flashcards') return 'flashcards';
   if (hash === 'challenge') return 'challenge';
+  if (hash.startsWith('room/')) return 'room';
   if (hash.startsWith('u/')) {
     const parts = hash.slice(2).split('/');
     if (parts.length >= 2 && parts[1]) return 'profile-collection';
@@ -163,6 +165,8 @@ export default function App() {
                 ? 'Build custom decks and study set classes with spaced repetition'
                 : page === 'challenge'
                 ? 'One set class question per day — build your streak'
+                : page === 'room'
+                ? 'Collaborative live analysis — share and explore pitch-class sets together'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -425,6 +429,10 @@ export default function App() {
             const username = parts[0];
             const slug = parts[1] || '';
             return <PublicProfilePage username={username} slug={slug} />;
+          })()}
+          {page === 'room' && (() => {
+            const roomId = window.location.hash.replace('#room/', '');
+            return <RoomPage roomId={roomId} />;
           })()}
         </Suspense>
 

@@ -109,6 +109,7 @@ function formatSessionTime(seconds: number): string {
 export default function ClassifierPage() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [showShare, setShowShare] = useState(false);
+  const [creatingRoom, setCreatingRoom] = useState(false);
   const [showTour, setShowTour] = useState(() => localStorage.getItem('tour-completed') !== 'true');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const analysis = useClassifier(state.selectedPCs);
@@ -117,6 +118,23 @@ export default function ClassifierPage() {
   const { user } = useUser();
   const liveMidi = useLiveMidi();
   const isFree = !user || user.tier === 'free';
+
+  const handleNewRoom = useCallback(async () => {
+    if (!user) return;
+    setCreatingRoom(true);
+    try {
+      const res = await fetch('/api/rooms', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const { roomId } = await res.json() as { roomId: string };
+        window.location.hash = `room/${roomId}`;
+      }
+    } finally {
+      setCreatingRoom(false);
+    }
+  }, [user]);
 
   // Keyboard shortcuts
   const keyboardActions = useCallback(
@@ -335,6 +353,16 @@ export default function ClassifierPage() {
           defaultName={chord ? `${NOTE_NAMES[chord.root]} ${chord.quality}` : `Set {${state.selectedPCs.join(',')}}`}
         />
         <ExportMenu analysis={analysis} pcs={state.selectedPCs} />
+        {user && (
+          <button
+            onClick={handleNewRoom}
+            disabled={creatingRoom}
+            className="ml-auto px-4 py-2 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-medium text-white transition-colors"
+            title="Start a live collaborative analysis room"
+          >
+            {creatingRoom ? 'Creating…' : 'New Room'}
+          </button>
+        )}
       </div>
       {showShare && (
         <SharePanel
