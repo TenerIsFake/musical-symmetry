@@ -2,7 +2,6 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import ClassifierPage from './pages/ClassifierPage';
 import LandingPage from './pages/LandingPage';
 import ErrorBoundary from './components/ErrorBoundary';
-import AdBanner from './components/AdBanner';
 import { useResearchMode } from './context/ResearchMode';
 
 const AnalyzerPage = lazy(() => import('./pages/AnalyzerPage'));
@@ -36,8 +35,9 @@ const PublicProfileIndexPage = lazy(() => import('./pages/PublicProfileIndexPage
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 const RoomPage = lazy(() => import('./pages/RoomPage'));
 const CorpusPage = lazy(() => import('./pages/CorpusPage'));
+const LearningPathPage = lazy(() => import('./pages/LearningPathPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -71,6 +71,9 @@ function getPage(): Page {
   if (hash === 'challenge') return 'challenge';
   if (hash.startsWith('room/')) return 'room';
   if (hash === 'corpus') return 'corpus';
+  if (hash === 'learn') return 'learn';
+  if (/^learn\/[^/]+\/[^/]+/.test(hash)) return 'learn-lesson';
+  if (hash.startsWith('learn/')) return 'learn-path';
   if (hash.startsWith('u/')) {
     const parts = hash.slice(2).split('/');
     if (parts.length >= 2 && parts[1]) return 'profile-collection';
@@ -171,6 +174,12 @@ export default function App() {
                 ? 'Collaborative live analysis — share and explore pitch-class sets together'
                 : page === 'corpus'
                 ? 'Batch upload files, compute aggregate corpus statistics, and compare corpora'
+                : page === 'learn'
+                ? 'Structured lessons guiding you through music theory and symmetry'
+                : page === 'learn-path'
+                ? 'Learning path overview'
+                : page === 'learn-lesson'
+                ? 'Guided lesson with quiz and practice task'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -403,7 +412,6 @@ export default function App() {
           </nav>
         </header>
 
-        <AdBanner slot="top-banner" format="horizontal" />
 
         {page === 'classifier' && <ClassifierPage />}
         <Suspense fallback={<div className="text-center py-12 text-gray-500">Loading…</div>}>
@@ -450,7 +458,6 @@ export default function App() {
           {page === 'corpus' && <CorpusPage />}
         </Suspense>
 
-        <AdBanner slot="bottom-banner" format="horizontal" />
       </div>
     </ErrorBoundary>
   );
