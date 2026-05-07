@@ -107,6 +107,7 @@ app.use('/api/challenges', challengesRouter);
 app.use('/api/rooms', roomsRouter);
 app.use('/api/link-analyze', linkAnalyzerRouter);
 app.use('/api/learning', learningRouter);
+app.use('/api/corpus', corpusRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -129,6 +130,7 @@ runPublicProfilesMigration();
 runChallengeMigration();
 generateTodayChallenge();
 runLearningMigration();
+runCorpusMigration();
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
