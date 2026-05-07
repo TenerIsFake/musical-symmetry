@@ -6,6 +6,7 @@ import {
   toLatexTable,
   toBibtex,
   downloadAsFile,
+  generateLaTeX,
 } from '../utils/export-academic';
 
 interface Props {
@@ -113,6 +114,13 @@ export default function ExportMenu({ analysis, pcs }: Props) {
     {
       label: 'Copy BibTeX citation',
       onClick: () => guard(() => copyToClipboard(toBibtex(), 'BibTeX')),
+    },
+    {
+      label: 'Copy LaTeX Theorem',
+      onClick: () => guard(() => copyToClipboard(
+        analysis ? generateLaTeX(analysis) : '% No analysis available',
+        'LaTeX Theorem',
+      )),
     },
   ];
 

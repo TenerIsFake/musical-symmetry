@@ -1,4 +1,5 @@
 import type { SymmetryAnalysis, PitchClass } from '@musical-symmetry/core';
+import { forteNumber } from '../data/forte-numbers';
 
 const PC_TO_LILYPOND: Record<PitchClass, string> = {
   0: 'c',
@@ -99,6 +100,49 @@ export function toBibtex(): string {
     '  note    = {Interactive web tool for symmetry group analysis of',
     '             pitch-class sets},',
     '}',
+  ].join('\n');
+}
+
+/**
+ * Map abstractGroup strings to LaTeX notation.
+ */
+function groupToLatex(abstractGroup: string): string {
+  const map: Record<string, string> = {
+    C1: '$C_1$',
+    Z2: '$\\mathbb{Z}_2$',
+    C2: '$C_2$',
+    C3: '$C_3$',
+    C4: '$C_4$',
+    C6: '$C_6$',
+    D2: '$D_2$',
+    D3: '$D_3$',
+    D4: '$D_4$',
+    D6: '$D_6$',
+    D12: '$D_{12}$',
+  };
+  return map[abstractGroup] ?? `$${abstractGroup}$`;
+}
+
+/**
+ * Generate a LaTeX theorem environment block from a symmetry analysis.
+ * Requires \usepackage{amsthm} in the document preamble.
+ */
+export function generateLaTeX(analysis: SymmetryAnalysis): string {
+  const setLiteral = `\\{${analysis.pitchClasses.join(', ')}\\}`;
+  const group = groupToLatex(analysis.abstractGroup);
+  const iv = analysis.intervalVector.join(', ');
+
+  const forte = forteNumber(analysis.pitchClasses);
+  const forteClause = forte
+    ? ` (Forte number ${forte})`
+    : '';
+
+  return [
+    '\\newtheorem{proposition}{Proposition}',
+    '\\begin{proposition}',
+    `The pitch-class set $${setLiteral}$${forteClause} admits the symmetry group ${group} under the action of the dihedral group $D_{12}$ on $\\mathbb{Z}_{12}$.`,
+    `The interval vector is $\\langle ${iv} \\rangle$, and the stabilizer has order $${analysis.stabilizerOrder}$.`,
+    '\\end{proposition}',
   ].join('\n');
 }
 

@@ -185,7 +185,93 @@ function getUserWeeklyStats(userId: string): UserDigestStats | null {
   };
 }
 
-function buildDigestHtml(stats: UserDigestStats, setClass: SetClassOfWeek, unsubToken: string): string {
+const Z_PAIRS: Array<{ a: string; b: string }> = [
+  { a: '4-Z15', b: '4-Z29' },
+  { a: '5-Z12', b: '5-Z36' },
+  { a: '5-Z17', b: '5-Z37' },
+  { a: '5-Z18', b: '5-Z38' },
+  { a: '6-Z3',  b: '6-Z36' },
+  { a: '6-Z4',  b: '6-Z37' },
+  { a: '6-Z6',  b: '6-Z38' },
+  { a: '6-Z10', b: '6-Z39' },
+  { a: '6-Z11', b: '6-Z40' },
+  { a: '6-Z12', b: '6-Z41' },
+  { a: '6-Z13', b: '6-Z42' },
+  { a: '6-Z17', b: '6-Z43' },
+  { a: '6-Z19', b: '6-Z44' },
+  { a: '6-Z23', b: '6-Z45' },
+  { a: '6-Z24', b: '6-Z46' },
+  { a: '6-Z25', b: '6-Z47' },
+  { a: '6-Z26', b: '6-Z48' },
+  { a: '6-Z28', b: '6-Z49' },
+  { a: '6-Z29', b: '6-Z50' },
+];
+
+function getUserStreak(userId: string): number {
+  const db = getDb();
+  try {
+    const rows = db.prepare(`
+      SELECT DISTINCT date(created_at) as d
+      FROM analysis_history
+      WHERE user_id = ?
+      ORDER BY d DESC
+    `).all(userId) as { d: string }[];
+
+    if (rows.length === 0) return 0;
+
+    let streak = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    let expected = today;
+
+    for (const row of rows) {
+      if (row.d === expected) {
+        streak++;
+        const prev = new Date(expected);
+        prev.setDate(prev.getDate() - 1);
+        expected = prev.toISOString().slice(0, 10);
+      } else if (streak === 0 && row.d === (() => { const y = new Date(today); y.setDate(y.getDate() - 1); return y.toISOString().slice(0, 10); })()) {
+        // Allow streak to start from yesterday
+        streak = 1;
+        const prev = new Date(row.d);
+        prev.setDate(prev.getDate() - 1);
+        expected = prev.toISOString().slice(0, 10);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  } catch {
+    // analysis_history table may not exist yet
+    return 0;
+  }
+}
+
+function getZPairsInHistory(userId: string): Array<{ a: string; b: string }> {
+  const db = getDb();
+  try {
+    const rows = db.prepare(`
+      SELECT DISTINCT forte_number
+      FROM analysis_history
+      WHERE user_id = ?
+    `).all(userId) as { forte_number: string }[];
+
+    const seen = new Set(rows.map(r => r.forte_number));
+    const found: Array<{ a: string; b: string }> = [];
+
+    for (const pair of Z_PAIRS) {
+      if (seen.has(pair.a) && seen.has(pair.b)) {
+        found.push(pair);
+        if (found.length >= 3) break;
+      }
+    }
+    return found;
+  } catch {
+    // analysis_history table may not exist yet
+    return [];
+  }
+}
+
+function buildDigestHtml(stats: UserDigestStats, setClass: SetClassOfWeek, unsubToken: string, streak: number, zPairs: Array<{ a: string; b: string }>): string {
   const totalActions = stats.classifications + stats.analyses + stats.voiceLeadingCalculations;
   const unsubUrl = `${APP_URL}/api/digest/unsubscribe?token=${unsubToken}`;
   const ctaUrl = APP_URL;
@@ -240,6 +326,27 @@ function buildDigestHtml(stats: UserDigestStats, setClass: SetClassOfWeek, unsub
       ${statsSection}
     </div>
 
+    <!-- Streak -->
+    ${streak >= 1 ? `
+    <div style="background:#111827;border-radius:12px;padding:24px;margin-bottom:24px;border-left:3px solid #f59e0b;">
+      <h2 style="color:#e5e7eb;font-size:16px;font-weight:600;margin:0 0 8px;">Current Streak 🔥</h2>
+      <p style="color:#fbbf24;font-size:28px;font-weight:700;margin:0 0 4px;">${streak} day${streak === 1 ? '' : 's'}</p>
+      <p style="color:#9ca3af;font-size:13px;margin:0;">Keep the momentum going — your next session extends the streak!</p>
+    </div>
+    ` : ''}
+
+    <!-- Z-Pairs -->
+    ${zPairs.length > 0 ? `
+    <div style="background:#111827;border-radius:12px;padding:24px;margin-bottom:24px;border-left:3px solid #10b981;">
+      <h2 style="color:#e5e7eb;font-size:16px;font-weight:600;margin:0 0 8px;">Did you know?</h2>
+      <p style="color:#9ca3af;font-size:14px;line-height:1.6;margin:0 0 12px;">
+        You've analyzed both <strong style="color:#d1d5db;">${zPairs[0].a}</strong> and <strong style="color:#d1d5db;">${zPairs[0].b}</strong> — a Z-related pair!
+        Z-related sets share the same interval vector but are not transpositionally or inversionally equivalent.
+      </p>
+      <a href="${APP_URL}" style="color:#10b981;font-size:13px;text-decoration:none;">Compare them in Musical Symmetry &rarr;</a>
+    </div>
+    ` : ''}
+
     <!-- Set Class of the Week -->
     <div style="background:#111827;border-radius:12px;padding:24px;margin-bottom:24px;border-left:3px solid #6366f1;">
       <p style="color:#6366f1;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 8px;">Set Class of the Week</p>
@@ -275,9 +382,17 @@ function buildDigestHtml(stats: UserDigestStats, setClass: SetClassOfWeek, unsub
 </html>`;
 }
 
-function buildDigestText(stats: UserDigestStats, setClass: SetClassOfWeek, unsubToken: string): string {
+function buildDigestText(stats: UserDigestStats, setClass: SetClassOfWeek, unsubToken: string, streak: number, zPairs: Array<{ a: string; b: string }>): string {
   const unsubUrl = `${APP_URL}/api/digest/unsubscribe?token=${unsubToken}`;
   const greeting = stats.name ? `Hi ${stats.name},` : 'Hi there,';
+
+  const streakSection = streak >= 1
+    ? `\nCurrent Streak 🔥\n-----------------\n${streak} day${streak === 1 ? '' : 's'} — keep the momentum going!\n`
+    : '';
+
+  const zSection = zPairs.length > 0
+    ? `\nDid you know?\n-------------\nYou've analyzed both ${zPairs[0].a} and ${zPairs[0].b} — a Z-related pair!\nZ-related sets share the same interval vector but are not transpositionally or inversionally equivalent.\nCompare them at: ${APP_URL}\n`
+    : '';
 
   return `Your week in Musical Symmetry
 ${greeting}
@@ -287,7 +402,7 @@ This Week's Activity
 Classifications:              ${stats.classifications}
 Analyses:                     ${stats.analyses}
 Voice-Leading Calculations:   ${stats.voiceLeadingCalculations}
-
+${streakSection}${zSection}
 Set Class of the Week: ${setClass.forteNumber} ${setClass.primeForm}
 Interval vector: ${setClass.intervalVector}
 
@@ -343,8 +458,13 @@ export async function sendWeeklyDigests(): Promise<SendDigestResult> {
 
       // Generate a simple unsubscribe token (base64 of user id)
       const unsubToken = Buffer.from(user.id).toString('base64url');
-      const html = buildDigestHtml(stats, setClass, unsubToken);
-      const text = buildDigestText(stats, setClass, unsubToken);
+      const streak = getUserStreak(user.id);
+      const zPairs = getZPairsInHistory(user.id);
+      const html = buildDigestHtml(stats, setClass, unsubToken, streak, zPairs);
+      const text = buildDigestText(stats, setClass, unsubToken, streak, zPairs);
+      const subject = streak >= 7
+        ? `Your ${streak}-day streak — keep it going 🎵`
+        : 'Your week in Musical Symmetry';
 
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -355,7 +475,7 @@ export async function sendWeeklyDigests(): Promise<SendDigestResult> {
         body: JSON.stringify({
           from: FROM_ADDRESS,
           to: user.email,
-          subject: 'Your week in Musical Symmetry',
+          subject,
           html,
           text,
         }),
@@ -395,7 +515,9 @@ export function buildPreviewHtml(userId: string): string | null {
 
   const setClass = getSetClassOfTheWeek();
   const unsubToken = Buffer.from(userId).toString('base64url');
-  return buildDigestHtml(stats, setClass, unsubToken);
+  const streak = getUserStreak(userId);
+  const zPairs = getZPairsInHistory(userId);
+  return buildDigestHtml(stats, setClass, unsubToken, streak, zPairs);
 }
 
 export function getLastDigestSentAt(): string | null {

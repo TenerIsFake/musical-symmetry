@@ -9,13 +9,31 @@ import { billingRouter } from './auth/stripe.js';
 import { collectionsRouter } from './collections/routes.js';
 import { classroomRouter } from './classroom/routes.js';
 import { initClassroomWs } from './classroom/ws.js';
+import { roomsRouter } from './rooms/routes.js';
+import { initRoomsWs } from './rooms/ws.js';
 import { atlasRouter } from './atlas/routes.js';
 import { workspacesRouter } from './workspaces/routes.js';
 import { digestRouter } from './digest/routes.js';
 import { genreRouter } from './genre/routes.js';
 import { contourRouter } from './contour/routes.js';
 import { assignmentsRouter } from './assignments/routes.js';
+import { historyRouter } from './history/routes.js';
+import { achievementsRouter } from './achievements/routes.js';
+import { bulkRouter } from './bulk/routes.js';
+import { flashcardsRouter } from './flashcards/routes.js';
 import { runDigestMigration, sendWeeklyDigests, getLastDigestSentAt } from './digest/weekly-digest.js';
+import { runHistoryMigration } from './history/db.js';
+import { runAchievementMigration } from './achievements/db.js';
+import { runFlashcardMigration } from './flashcards/db.js';
+import { runPublicProfilesMigration } from './public-profiles/db.js';
+import { publicProfilesRouter } from './public-profiles/routes.js';
+import { challengesRouter } from './challenges/routes.js';
+import { runChallengeMigration, generateTodayChallenge } from './challenges/db.js';
+import { linkAnalyzerRouter } from './link-analyzer/routes.js';
+import { learningRouter } from './learning/routes.js';
+import { runLearningMigration } from './learning/db.js';
+import { corpusRouter } from './corpus/routes.js';
+import { runCorpusMigration } from './corpus/db.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -80,6 +98,16 @@ app.use('/api/digest', digestRouter);
 app.use('/api/genre', genreRouter);
 app.use('/api/contour', contourRouter);
 app.use('/api/assignments', assignmentsRouter);
+app.use('/api/history', historyRouter);
+app.use('/api/achievements', achievementsRouter);
+app.use('/api/bulk', bulkRouter);
+app.use('/api/flashcards', flashcardsRouter);
+app.use('/api/public', publicProfilesRouter);
+app.use('/api/challenges', challengesRouter);
+app.use('/api/rooms', roomsRouter);
+app.use('/api/link-analyze', linkAnalyzerRouter);
+app.use('/api/learning', learningRouter);
+app.use('/api/corpus', corpusRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -95,6 +123,14 @@ setInterval(pruneStaleData, 60 * 60 * 1000);
 
 // Digest migrations and scheduler
 runDigestMigration();
+runHistoryMigration();
+runAchievementMigration();
+runFlashcardMigration();
+runPublicProfilesMigration();
+runChallengeMigration();
+generateTodayChallenge();
+runLearningMigration();
+runCorpusMigration();
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -131,6 +167,7 @@ setInterval(checkAndSendDigest, 60 * 60 * 1000);
 
 const server = createServer(app);
 initClassroomWs(server);
+initRoomsWs(server);
 
 server.listen(PORT, () => {
   console.log(`Analyzer service running on port ${PORT}`);

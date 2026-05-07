@@ -2,7 +2,6 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import ClassifierPage from './pages/ClassifierPage';
 import LandingPage from './pages/LandingPage';
 import ErrorBoundary from './components/ErrorBoundary';
-import AdBanner from './components/AdBanner';
 import { useResearchMode } from './context/ResearchMode';
 
 const AnalyzerPage = lazy(() => import('./pages/AnalyzerPage'));
@@ -28,8 +27,17 @@ const TuningPage = lazy(() => import('./pages/TuningPage'));
 const ScoreAnnotationPage = lazy(() => import('./pages/ScoreAnnotationPage'));
 const AssignmentsPage = lazy(() => import('./pages/AssignmentsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const EmbedPage = lazy(() => import('./pages/EmbedPage'));
+const FlashcardPage = lazy(() => import('./pages/FlashcardPage'));
+const DailyChallengePage = lazy(() => import('./pages/DailyChallengePage'));
+const PublicProfileIndexPage = lazy(() => import('./pages/PublicProfileIndexPage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
+const RoomPage = lazy(() => import('./pages/RoomPage'));
+const CorpusPage = lazy(() => import('./pages/CorpusPage'));
+const LearningPathPage = lazy(() => import('./pages/LearningPathPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history' | 'embed' | 'flashcards' | 'challenge' | 'profile' | 'profile-collection' | 'room' | 'corpus' | 'learn' | 'learn-path' | 'learn-lesson';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -57,6 +65,20 @@ function getPage(): Page {
   if (hash === 'annotate') return 'annotate';
   if (hash === 'assignments') return 'assignments';
   if (hash === 'privacy') return 'privacy';
+  if (hash === 'history') return 'history';
+  if (hash === 'embed') return 'embed';
+  if (hash === 'flashcards') return 'flashcards';
+  if (hash === 'challenge') return 'challenge';
+  if (hash.startsWith('room/')) return 'room';
+  if (hash === 'corpus') return 'corpus';
+  if (hash === 'learn') return 'learn';
+  if (/^learn\/[^/]+\/[^/]+/.test(hash)) return 'learn-lesson';
+  if (hash.startsWith('learn/')) return 'learn-path';
+  if (hash.startsWith('u/')) {
+    const parts = hash.slice(2).split('/');
+    if (parts.length >= 2 && parts[1]) return 'profile-collection';
+    return 'profile';
+  }
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -70,6 +92,16 @@ export default function App() {
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
+
+  if (page === 'embed') {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="text-center py-12 text-gray-500">Loading…</div>}>
+          <EmbedPage />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
 
   if (page === 'home') {
     return (
@@ -132,6 +164,22 @@ export default function App() {
                 ? 'Create and complete music theory assignments'
                 : page === 'privacy'
                 ? 'How we collect, use, and protect your data'
+                : page === 'history'
+                ? 'Browse, bookmark, and tag your past analyses'
+                : page === 'flashcards'
+                ? 'Build custom decks and study set classes with spaced repetition'
+                : page === 'challenge'
+                ? 'One set class question per day — build your streak'
+                : page === 'room'
+                ? 'Collaborative live analysis — share and explore pitch-class sets together'
+                : page === 'corpus'
+                ? 'Batch upload files, compute aggregate corpus statistics, and compare corpora'
+                : page === 'learn'
+                ? 'Structured lessons guiding you through music theory and symmetry'
+                : page === 'learn-path'
+                ? 'Learning path overview'
+                : page === 'learn-lesson'
+                ? 'Guided lesson with quiz and practice task'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -318,6 +366,47 @@ export default function App() {
             >
               Assignments
             </a>
+            <a
+              href="#history"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'history' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              History
+            </a>
+            <a
+              href="#flashcards"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'flashcards' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Flashcards
+            </a>
+            <a
+              href="#challenge"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'challenge' ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Challenge
+            </a>
+            <a
+              href="#learn"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'learn' || page === 'learn-path' || page === 'learn-lesson' ? 'bg-teal-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Learn
+            </a>
+            <a
+              href="#corpus"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'corpus' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+              title="Research tier: Comparative Corpus Analysis"
+            >
+              Corpus
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -331,7 +420,6 @@ export default function App() {
           </nav>
         </header>
 
-        <AdBanner slot="top-banner" format="horizontal" />
 
         {page === 'classifier' && <ClassifierPage />}
         <Suspense fallback={<div className="text-center py-12 text-gray-500">Loading…</div>}>
@@ -358,9 +446,33 @@ export default function App() {
           {page === 'annotate' && <ScoreAnnotationPage />}
           {page === 'assignments' && <AssignmentsPage />}
           {page === 'privacy' && <PrivacyPage />}
+          {page === 'history' && <HistoryPage />}
+          {page === 'flashcards' && <FlashcardPage />}
+          {page === 'challenge' && <DailyChallengePage />}
+          {page === 'profile' && (() => {
+            const username = window.location.hash.replace('#u/', '').split('/')[0];
+            return <PublicProfileIndexPage username={username} />;
+          })()}
+          {page === 'profile-collection' && (() => {
+            const parts = window.location.hash.replace('#u/', '').split('/');
+            const username = parts[0];
+            const slug = parts[1] || '';
+            return <PublicProfilePage username={username} slug={slug} />;
+          })()}
+          {page === 'room' && (() => {
+            const roomId = window.location.hash.replace('#room/', '');
+            return <RoomPage roomId={roomId} />;
+          })()}
+          {page === 'corpus' && <CorpusPage />}
+          {(page === 'learn' || page === 'learn-path' || page === 'learn-lesson') && (() => {
+            const hash = window.location.hash.replace('#', '').split('?')[0];
+            const parts = hash.split('/');
+            const pathId = parts[1] || undefined;
+            const lessonId = parts[2] || undefined;
+            return <LearningPathPage pathId={pathId} lessonId={lessonId} />;
+          })()}
         </Suspense>
 
-        <AdBanner slot="bottom-banner" format="horizontal" />
       </div>
     </ErrorBoundary>
   );

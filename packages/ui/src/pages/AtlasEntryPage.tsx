@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
+import { useUser } from '../context/UserContext';
+import { useFlashcards } from '../hooks/useFlashcards';
 
 interface AtlasEntry {
   forteNumber: string;
@@ -17,6 +19,84 @@ interface AtlasEntry {
 
 interface Props {
   forteNumber: string;
+}
+
+function QuickAddButton({ forteNumber }: { forteNumber: string }) {
+  const { user } = useUser();
+  const { decks, fetchDecks, addCard } = useFlashcards();
+  const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState('');
+  const [adding, setAdding] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) fetchDecks();
+  }, [open]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  if (!user) return null;
+
+  async function handleSelect(deckId: number) {
+    setOpen(false);
+    setAdding(true);
+    try {
+      await addCard(deckId, forteNumber);
+      setToast(`Added to deck!`);
+      setTimeout(() => setToast(''), 2500);
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Failed to add');
+      setTimeout(() => setToast(''), 3000);
+    }
+    setAdding(false);
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        disabled={adding}
+        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition text-sm"
+      >
+        {adding ? 'Adding…' : '+ Add to Deck'}
+      </button>
+      {toast && (
+        <div className="absolute right-0 top-12 bg-gray-700 text-sm text-white px-3 py-2 rounded shadow-lg whitespace-nowrap z-10">
+          {toast}
+        </div>
+      )}
+      {open && (
+        <div className="absolute right-0 top-12 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-10 min-w-[180px]">
+          {decks.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-gray-400">
+              No decks yet.{' '}
+              <a href="#flashcards" className="text-indigo-400 hover:underline">Create one</a>
+            </div>
+          ) : (
+            <ul className="py-1">
+              {decks.map(deck => (
+                <li key={deck.id}>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-colors"
+                    onClick={() => handleSelect(deck.id)}
+                  >
+                    <span className="block font-medium">{deck.name}</span>
+                    <span className="block text-xs text-gray-500">{deck.card_count} cards</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AtlasEntryPage({ forteNumber }: Props) {
@@ -40,6 +120,9 @@ export default function AtlasEntryPage({ forteNumber }: Props) {
       <div className="flex items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold font-mono">{entry.forteNumber}</h1>
         <span className="px-3 py-1 bg-indigo-900 text-indigo-300 rounded text-lg">{entry.group}</span>
+        <div className="ml-auto">
+          <QuickAddButton forteNumber={entry.forteNumber} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -30,6 +30,20 @@ function downloadFile(content: string, filename: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
+function mapSlices(rawSlices: any[]): SliceData[] {
+  return rawSlices.map((s: any) => ({
+    startBeat: s.slice.startBeat,
+    endBeat: s.slice.endBeat,
+    abstractGroup: s.analysis.abstractGroup,
+    mullikenLabel: s.analysis.mullikenLabel,
+    stabilizerOrder: s.analysis.stabilizerOrder,
+    chordName: s.chord ? `${NOTE_NAMES[s.chord.root] ?? '?'} ${s.chord.quality}` : null,
+    voiceLeadingFromPrev: s.analysis.voiceLeadingFromPrev ?? null,
+  }));
+}
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export default function AnalyzerPage() {
   const { researchMode } = useResearchMode();
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -39,6 +53,13 @@ export default function AnalyzerPage() {
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const sliceMode = 'beat';
   const minNotes = 2;
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'upload' | 'link'>('upload');
+
+  // Link analysis state
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkProgress, setLinkProgress] = useState<string[]>([]);
 
   const handleUpload = useCallback(async (file: File) => {
     setIsLoading(true);
@@ -65,22 +86,12 @@ export default function AnalyzerPage() {
 
       const data = await res.json();
 
-      const slices: SliceData[] = data.slices.map((s: any) => ({
-        startBeat: s.slice.startBeat,
-        endBeat: s.slice.endBeat,
-        abstractGroup: s.analysis.abstractGroup,
-        mullikenLabel: s.analysis.mullikenLabel,
-        stabilizerOrder: s.analysis.stabilizerOrder,
-        chordName: s.chord ? `${NOTE_NAMES[s.chord.root] ?? '?'} ${s.chord.quality}` : null,
-        voiceLeadingFromPrev: s.analysis.voiceLeadingFromPrev ?? null,
-      }));
-
       setResult({
         filename: data.filename,
         format: data.format,
         totalBeats: data.totalBeats,
         totalMeasures: data.totalMeasures,
-        slices,
+        slices: mapSlices(data.slices),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -89,18 +100,150 @@ export default function AnalyzerPage() {
     }
   }, []);
 
+  const handleLinkAnalyze = useCallback(async () => {
+    if (!linkUrl.trim()) return;
+
+    setIsLoading(true);
+    setError(null);
+    setResult(null);
+    setSelectedIndex(null);
+    setCurrentFile(null);
+    setLinkProgress([]);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/link-analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ url: linkUrl.trim() }),
+      });
+
+      if (!response.ok || !response.body) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error((body as any).error || `HTTP ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE lines: each event is "data: {...}\n\n"
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() ?? '';
+
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data: ')) continue;
+          let parsed: any;
+          try {
+            parsed = JSON.parse(line.slice(6));
+          } catch {
+            continue;
+          }
+
+          if (parsed.type === 'progress') {
+            setLinkProgress(prev => [...prev, parsed.message as string]);
+          } else if (parsed.type === 'result') {
+            const data = parsed.data;
+            setResult({
+              filename: data.filename,
+              format: data.format,
+              totalBeats: data.totalBeats,
+              totalMeasures: data.totalMeasures,
+              slices: mapSlices(data.slices),
+            });
+          } else if (parsed.type === 'error') {
+            throw new Error(parsed.message as string);
+          }
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Link analysis failed');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [linkUrl]);
+
   return (
     <div className="space-y-6">
-      <FileUpload onUpload={handleUpload} isLoading={isLoading} />
+      {/* Tab bar */}
+      <div className="flex border-b border-gray-700">
+        <button
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'upload'
+              ? 'text-indigo-400 border-b-2 border-indigo-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+          onClick={() => setActiveTab('upload')}
+        >
+          Upload File
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'link'
+              ? 'text-indigo-400 border-b-2 border-indigo-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+          onClick={() => setActiveTab('link')}
+        >
+          Paste Link
+        </button>
+      </div>
 
-      {!result && !isLoading && !error && (
-        <div className="text-center py-2">
-          <p className="text-gray-400 text-sm">Or try one of our sample songs</p>
-          <div className="text-gray-500 text-lg leading-none mt-1 animate-bounce">&#8595;</div>
-        </div>
+      {activeTab === 'upload' && (
+        <>
+          <FileUpload onUpload={handleUpload} isLoading={isLoading} />
+
+          {!result && !isLoading && !error && (
+            <div className="text-center py-2">
+              <p className="text-gray-400 text-sm">Or try one of our sample songs</p>
+              <div className="text-gray-500 text-lg leading-none mt-1 animate-bounce">&#8595;</div>
+            </div>
+          )}
+
+          <SampleSongs onSelect={handleUpload} isLoading={isLoading} />
+        </>
       )}
 
-      <SampleSongs onSelect={handleUpload} isLoading={isLoading} />
+      {activeTab === 'link' && (
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={e => setLinkUrl(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleLinkAnalyze(); }}
+              placeholder="https://www.youtube.com/watch?v=... or https://open.spotify.com/track/..."
+              disabled={isLoading}
+              className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+            />
+            <button
+              onClick={handleLinkAnalyze}
+              disabled={isLoading || !linkUrl.trim()}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? 'Analyzing...' : 'Analyze'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">
+            YouTube and Spotify links supported. Requires yt-dlp on the server. Audio is fetched server-side and not stored.
+          </p>
+
+          {linkProgress.length > 0 && (
+            <div className="bg-gray-900 rounded-lg p-3 font-mono text-xs text-gray-400 max-h-32 overflow-y-auto space-y-0.5">
+              {linkProgress.map((msg, i) => (
+                <div key={i}>{msg}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-300 text-sm">

@@ -138,6 +138,113 @@ export function getOpenApiSpec() {
           responses: { '200': { description: 'PDF file', content: { 'application/pdf': {} } } },
         },
       },
+      '/bulk/set-classes': {
+        get: {
+          summary: 'Get all 224 set classes',
+          description: 'Returns every set class in the Forte catalog (cardinalities 2–12) with computed symmetry properties. Result is cached in-memory after first request. Requires Research tier.',
+          security: [{ apiKey: [] }],
+          responses: {
+            '200': {
+              description: 'All set classes',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      count: { type: 'integer', example: 224 },
+                      setClasses: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/SetClassEntry' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Authentication required' },
+            '403': { description: 'Research tier required' },
+            '429': { description: 'Rate limit exceeded' },
+          },
+        },
+      },
+      '/bulk/set-classes/{forte}': {
+        get: {
+          summary: 'Get a single set class by Forte number',
+          description: 'Looks up one set class by its Forte number, e.g. "3-11". Returns 404 if not found. Requires Research tier.',
+          security: [{ apiKey: [] }],
+          parameters: [
+            {
+              name: 'forte',
+              in: 'path',
+              required: true,
+              schema: { type: 'string', example: '3-11' },
+              description: 'Forte number such as 3-11, 4-Z15, 6-35',
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Set class entry',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/SetClassEntry' } } },
+            },
+            '401': { description: 'Authentication required' },
+            '403': { description: 'Research tier required' },
+            '404': { description: 'Set class not found' },
+            '429': { description: 'Rate limit exceeded' },
+          },
+        },
+      },
+      '/bulk/classify': {
+        post: {
+          summary: 'Bulk classify up to 5000 pitch-class sets',
+          description: 'Higher-capacity batch endpoint for Research tier users. Accepts up to 5000 sets per request (vs 1000 for /classify/batch). Requires Research tier.',
+          security: [{ apiKey: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['sets'],
+                  properties: {
+                    sets: {
+                      type: 'array',
+                      items: {
+                        type: 'array',
+                        items: { type: 'integer', minimum: 0, maximum: 11 },
+                      },
+                      maxItems: 5000,
+                      example: [[0, 4, 7], [0, 3, 6, 9]],
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              description: 'Bulk classification results',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      results: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/ClassifyResponse' },
+                      },
+                      count: { type: 'integer' },
+                    },
+                  },
+                },
+              },
+            },
+            '400': { description: 'Invalid input or over 5000 sets' },
+            '401': { description: 'Authentication required' },
+            '403': { description: 'Research tier required' },
+            '429': { description: 'Rate limit exceeded' },
+          },
+        },
+      },
       '/og/{style}': {
         get: {
           summary: 'Generate OG card SVG',
@@ -151,6 +258,20 @@ export function getOpenApiSpec() {
     },
     components: {
       schemas: {
+        SetClassEntry: {
+          type: 'object',
+          properties: {
+            forte: { type: 'string', example: '3-11' },
+            primeForm: { type: 'array', items: { type: 'integer' }, example: [0, 3, 7] },
+            intervalVector: { type: 'array', items: { type: 'integer' }, minItems: 6, maxItems: 6 },
+            cardinality: { type: 'integer', example: 3 },
+            abstractGroup: { type: 'string', example: 'C1' },
+            mullikenLabel: { type: 'string' },
+            stabilizerOrder: { type: 'integer' },
+            maximallyEven: { type: 'boolean' },
+            myhillProperty: { type: 'boolean' },
+          },
+        },
         ClassifyResponse: {
           type: 'object',
           properties: {

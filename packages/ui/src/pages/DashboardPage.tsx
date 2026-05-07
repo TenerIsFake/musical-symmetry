@@ -1,5 +1,69 @@
 import { useState, useEffect, useCallback } from 'react';
 import StripeCheckout from '../components/StripeCheckout';
+import { useAchievements } from '../hooks/useAchievements';
+import AchievementBadge from '../components/AchievementBadge';
+import { LEARNING_PATHS } from '../data/learning-paths/index.js';
+import { useLearningProgress } from '../hooks/useLearningProgress.js';
+
+function DailyChallengeTeaser() {
+  const [submitted, setSubmitted] = useState<boolean | null>(null);
+  const [streak, setStreak] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/challenges/today', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { submitted?: boolean } | null) => {
+        if (data) setSubmitted(!!data.submitted);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+
+    fetch('/api/challenges/streak', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { streak?: number } | null) => {
+        if (data) setStreak(data.streak ?? 0);
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4 flex items-center justify-between gap-4">
+      <div>
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-amber-400 text-lg">🔥</span>
+          <h3 className="text-sm font-semibold text-white">Today's Challenge</h3>
+        </div>
+        {loading ? (
+          <p className="text-xs text-gray-500">Loading…</p>
+        ) : submitted ? (
+          <p className="text-xs text-gray-400">
+            Completed today
+            {streak !== null && streak > 0 && (
+              <span className="ml-2 text-amber-400 font-semibold">{streak}-day streak!</span>
+            )}
+          </p>
+        ) : (
+          <p className="text-xs text-gray-400">
+            {streak !== null && streak > 0
+              ? `${streak}-day streak — keep it going!`
+              : 'Answer today\'s set class question'}
+          </p>
+        )}
+      </div>
+      <a
+        href="#challenge"
+        className={`shrink-0 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+          submitted
+            ? 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+            : 'bg-amber-600 text-white hover:bg-amber-500'
+        }`}
+      >
+        {submitted ? 'View' : 'Play'}
+      </a>
+    </div>
+  );
+}
 
 interface UserProfile {
   email: string;
@@ -90,6 +154,136 @@ function MaskedKey({ apiKey, onCopy, onRegenerate }: { apiKey: string; onCopy: (
   );
 }
 
+function AchievementsSection() {
+  const { achievements, earned, total, loading } = useAchievements(true);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-800 rounded-lg p-6">
+        <h3 className="text-sm font-semibold text-gray-300 mb-4">Achievements</h3>
+        <div className="flex justify-center py-4">
+          <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (achievements.length === 0) return null;
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-300">Achievements</h3>
+        <span className="text-xs text-gray-400">
+          {earned}/{total} earned
+        </span>
+      </div>
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+        {achievements.map(a => (
+          <AchievementBadge
+            key={a.id}
+            icon={a.icon}
+            name={a.name}
+            description={a.description}
+            earned={a.earned}
+            grantedAt={a.grantedAt}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ContinueLearning() {
+  const { completedLessons, loading } = useLearningProgress(true);
+
+  if (loading) return null;
+
+  // Find paths with any progress
+  const startedPaths = LEARNING_PATHS.filter(p =>
+    p.lessons.some(l => completedLessons.has(`${p.id}/${l.id}`))
+  );
+
+  // Find next incomplete lesson across all paths
+  let nextLesson: { path: typeof LEARNING_PATHS[0]; lesson: typeof LEARNING_PATHS[0]['lessons'][0] } | null = null;
+  for (const path of LEARNING_PATHS) {
+    const firstIncomplete = path.lessons.find(l => !completedLessons.has(`${path.id}/${l.id}`));
+    if (firstIncomplete) {
+      nextLesson = { path, lesson: firstIncomplete };
+      break;
+    }
+  }
+
+  const allComplete = nextLesson === null;
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+          <span>📚</span> Continue Learning
+        </h3>
+        <a href="#learn" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+          All Paths →
+        </a>
+      </div>
+
+      {allComplete && startedPaths.length === 0 ? (
+        <div className="text-center py-2">
+          <p className="text-sm text-gray-400 mb-2">Start your first learning path</p>
+          <a
+            href="#learn"
+            className="inline-block px-3 py-1.5 bg-teal-700 text-white text-sm rounded hover:bg-teal-600 transition-colors"
+          >
+            Browse Paths
+          </a>
+        </div>
+      ) : allComplete ? (
+        <p className="text-sm text-green-400">All paths complete! Check back for new content.</p>
+      ) : (
+        <div className="space-y-3">
+          {nextLesson && (
+            <div className="flex items-center justify-between gap-3 bg-teal-900/30 border border-teal-800 rounded-lg px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-xs text-teal-400 mb-0.5">{nextLesson.path.title}</p>
+                <p className="text-sm text-white truncate">{nextLesson.lesson.title}</p>
+              </div>
+              <a
+                href={`#learn/${nextLesson.path.id}/${nextLesson.lesson.id}`}
+                className="shrink-0 px-3 py-1.5 bg-teal-700 text-white text-xs rounded hover:bg-teal-600 transition-colors font-medium"
+              >
+                Resume
+              </a>
+            </div>
+          )}
+          {startedPaths.length > 0 && (
+            <div className="space-y-2">
+              {startedPaths.map(path => {
+                const total = path.lessons.length;
+                const completed = path.lessons.filter(l => completedLessons.has(`${path.id}/${l.id}`)).length;
+                const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                return (
+                  <div key={path.id}>
+                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <span>{path.icon} {path.title}</span>
+                      <span>{completed}/{total}</span>
+                    </div>
+                    <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-teal-600 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LoggedInView({ user }: { user: UserProfile }) {
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(user.apiKey).catch(() => {});
@@ -101,6 +295,12 @@ function LoggedInView({ user }: { user: UserProfile }) {
 
   return (
     <div className="space-y-6">
+      {/* Daily Challenge Teaser */}
+      <DailyChallengeTeaser />
+
+      {/* Continue Learning */}
+      <ContinueLearning />
+
       {/* Profile Card */}
       <div className="bg-gray-800 rounded-lg p-6">
         <div className="flex items-center justify-between">
@@ -126,6 +326,9 @@ function LoggedInView({ user }: { user: UserProfile }) {
 
       {/* API Key */}
       <MaskedKey apiKey={user.apiKey} onCopy={handleCopy} onRegenerate={handleRegenerate} />
+
+      {/* Achievements */}
+      <AchievementsSection />
 
       {/* Subscription */}
       <div className="bg-gray-800 rounded-lg p-6">
