@@ -28,8 +28,9 @@ const TuningPage = lazy(() => import('./pages/TuningPage'));
 const ScoreAnnotationPage = lazy(() => import('./pages/ScoreAnnotationPage'));
 const AssignmentsPage = lazy(() => import('./pages/AssignmentsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 
-type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy';
+type Page = 'home' | 'classifier' | 'analyzer' | 'about' | 'dashboard' | 'api-docs' | 'classroom' | 'atlas' | 'atlas-entry' | 'ear-training' | 'progression' | 'live' | 'compare' | 'melody' | 'cycles' | 'search' | 'quiz' | 'rhythm' | 'vl-graph' | 'timeline' | 'practice' | 'tuning' | 'annotate' | 'assignments' | 'privacy' | 'history';
 
 function getPage(): Page {
   const hash = window.location.hash.replace('#', '').split('?')[0];
@@ -57,6 +58,7 @@ function getPage(): Page {
   if (hash === 'annotate') return 'annotate';
   if (hash === 'assignments') return 'assignments';
   if (hash === 'privacy') return 'privacy';
+  if (hash === 'history') return 'history';
   if (hash === '' || hash === 'home') return 'home';
   return 'home';
 }
@@ -132,6 +134,8 @@ export default function App() {
                 ? 'Create and complete music theory assignments'
                 : page === 'privacy'
                 ? 'How we collect, use, and protect your data'
+                : page === 'history'
+                ? 'Browse, bookmark, and tag your past analyses'
                 : 'Mathematical foundations for researchers'}
             </p>
           </div>
@@ -318,6 +322,14 @@ export default function App() {
             >
               Assignments
             </a>
+            <a
+              href="#history"
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                page === 'history' ? 'bg-indigo-700 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              History
+            </a>
             <span className="w-px h-5 bg-gray-600 mx-1" />
             <button
               onClick={toggleResearch}
@@ -358,6 +370,7 @@ export default function App() {
           {page === 'annotate' && <ScoreAnnotationPage />}
           {page === 'assignments' && <AssignmentsPage />}
           {page === 'privacy' && <PrivacyPage />}
+          {page === 'history' && <HistoryPage />}
         </Suspense>
 
         <AdBanner slot="bottom-banner" format="horizontal" />

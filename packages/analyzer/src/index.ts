@@ -15,7 +15,9 @@ import { digestRouter } from './digest/routes.js';
 import { genreRouter } from './genre/routes.js';
 import { contourRouter } from './contour/routes.js';
 import { assignmentsRouter } from './assignments/routes.js';
+import { historyRouter } from './history/routes.js';
 import { runDigestMigration, sendWeeklyDigests, getLastDigestSentAt } from './digest/weekly-digest.js';
+import { runHistoryMigration } from './history/db.js';
 import { getDb } from './auth/db.js';
 import { SqliteSessionStore } from './auth/session-store.js';
 
@@ -80,6 +82,7 @@ app.use('/api/digest', digestRouter);
 app.use('/api/genre', genreRouter);
 app.use('/api/contour', contourRouter);
 app.use('/api/assignments', assignmentsRouter);
+app.use('/api/history', historyRouter);
 
 // Existing API routes
 app.use('/api', router);
@@ -95,6 +98,7 @@ setInterval(pruneStaleData, 60 * 60 * 1000);
 
 // Digest migrations and scheduler
 runDigestMigration();
+runHistoryMigration();
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
