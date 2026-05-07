@@ -1,6 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'https://symmetry.tendrid.us';
+const isNative = typeof (window as any).Capacitor !== 'undefined';
+
 type CardStyle =
   | 'orbit' | 'identity' | 'spectrum' | 'comparison' | 'keyboard' | 'molecule'
   | 'interval-dna' | 'tonnetz' | 'gradient' | 'minimal' | 'academic' | 'neon'
@@ -50,15 +53,13 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
   const [copied, setCopied] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const baseUrl = 'https://symmetry.tendrid.us';
-
   const buildUrl = useCallback((style: CardStyle) => {
     const params = new URLSearchParams();
     params.set('pcs', pcs.join(','));
     if (chordName) params.set('chordName', chordName);
     if (group) params.set('group', group);
     if (comparePcs && comparePcs.length > 0) params.set('comparePcs', comparePcs.join(','));
-    return `${baseUrl}/api/og/${style}?${params.toString()}`;
+    return `${API_BASE}/api/og/${style}?${params.toString()}`;
   }, [pcs, comparePcs, chordName, group]);
 
   const shareUrl = buildUrl(selectedStyle);
@@ -134,6 +135,17 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
     const url = encodeURIComponent(shareUrl);
     return `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
   }, [shareUrl, chordName, group, pcs]);
+
+  const nativeShare = useCallback(async () => {
+    const title = 'Chrometria';
+    const text = `Check out the symmetry of ${chordName || `{${pcs.join(',')}}`}${group ? ` (${group})` : ''} on Chrometria!`;
+    try {
+      const { Share } = await import('@capacitor/share');
+      await Share.share({ title, text, url: shareUrl });
+    } catch (e) {
+      console.error('Native share failed:', e);
+    }
+  }, [shareUrl, chordName, pcs, group]);
 
   const embedCode = `<img src="${shareUrl}" alt="Chrometria Card" width="1200" height="630"/>`;
 
@@ -225,6 +237,15 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
           >
             Tweet
           </a>
+          {isNative && (
+            <button
+              onClick={nativeShare}
+              className="px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium text-white transition-colors"
+              aria-label="Share via native share sheet"
+            >
+              Share
+            </button>
+          )}
           <button
             onClick={() => copyToClipboard(embedCode, 'embed')}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium text-white transition-colors"
