@@ -190,7 +190,7 @@ function PlrSuggestions({ pcs, onSelect }: PlrProps) {
 
 interface GenreDnaProps {
   chords: ProgressionChord[];
-  tier: 'free' | 'pro' | 'research' | null;
+  tier: 'free' | 'student' | 'pro' | 'research' | null;
 }
 
 interface GenreMatch {

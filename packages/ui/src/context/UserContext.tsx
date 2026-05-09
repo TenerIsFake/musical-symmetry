@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 export interface User {
   id: string;
   email: string;
-  tier: 'free' | 'pro' | 'research';
+  tier: 'free' | 'student' | 'pro' | 'research';
   hasApiKey: boolean;
 }
 
