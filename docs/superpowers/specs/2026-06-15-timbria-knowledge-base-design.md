@@ -1,13 +1,13 @@
-# Tone — Sound, FX & Gear Knowledge Base (Feature B)
+# Timbria — Sound, FX & Gear Knowledge Base (Feature B)
 
 **Date:** 2026-06-15
 **Status:** Design approved, pending spec review
-**Sibling app to Chrometria** (working name: "Tone")
+**Sibling app to Chrometria** (name: "Timbria")
 
 ## Context
 
 Chrometria analyzes the *harmonic* dimension of music — pitch-class sets under
-the dihedral group D₁₂ (which notes, and their symmetry). This project addresses
+the dihedral group D₁₂ (which notes, and their symmetry). Timbria addresses
 the orthogonal **timbre/production** dimension: what effects, processing, and
 equipment give a song its *sound*. None of Chrometria's `core` symmetry engine
 applies here, so this is a **sibling app**, not a Chrometria section.
@@ -32,24 +32,24 @@ split.
 New packages in the existing `musical-symmetry` monorepo, deployed as a
 standalone sibling app:
 
-- **`packages/tone-ui`** — separate React frontend on its own subdomain
-  (`tone.tendrid.us`). Imports the existing design system, `UserContext`, and
+- **`packages/timbria-ui`** — separate React frontend on its own subdomain
+  (`timbria.tendrid.us`). Imports the existing design system, `UserContext`, and
   RevenueCat tier-gating from the monorepo so it inherits login/tiers/look
   without rebuilding them. Does **not** import `core` (irrelevant to timbre).
-- **`packages/tone-api`** — new Express/TS service mirroring the `analyzer`
+- **`packages/timbria-api`** — new Express/TS service mirroring the `analyzer`
   package's shape (Express + SQLite, node:20-alpine container). Serves the data
   API, runs the server-side gear lookup, and manages the review queue.
-- **Storage:** SQLite (`tone.db`) — matches the homelab pattern; data is
+- **Storage:** SQLite (`timbria.db`) — matches the homelab pattern; data is
   curated-plus-growing, well within SQLite's range.
-- **Deployment:** own container + Cloudflare tunnel hostname `tone.tendrid.us`
-  behind Cloudflare Access (like the other services). The `#review` admin view
-  is further gated to the owner.
+- **Deployment:** own container + Cloudflare tunnel hostname
+  `timbria.tendrid.us` behind Cloudflare Access (like the other services). The
+  `#review` admin view is further gated to the owner.
 
 Rejected alternative: a standalone repo in Python/Flask. Cleaner isolation but
 forces re-plumbing auth, tiers, and the design system — wasted work given the
 explicit "share login/tiers/look" requirement.
 
-## Data model (SQLite, in `tone-api`)
+## Data model (SQLite, in `timbria-api`)
 
 Six tables. Tables 1–3 are the vocabulary; 4–5 are the artist-gear registry;
 6 drives the identifier.
@@ -88,7 +88,7 @@ as separate join tables — simpler for SQLite and these are read whole, never
 queried by element. Cross-entity relations (`gear_item.fx_type_id`,
 `artist_gear.*`) remain proper FK columns.
 
-## User modes (`tone-ui`)
+## User modes (`timbria-ui`)
 
 Three hash-routed sections, like Chrometria:
 
@@ -113,11 +113,11 @@ Mirrors Chrometria's depth-tiering.
 
 On "Look it up" for an unknown/stale artist:
 
-1. **Draft.** `tone-api` runs a server-side lookup: web search for the artist's
-   gear → LLM structures findings into candidate `artist_gear` rows, each with
-   the **source URL** and a **confidence** (high = multiple corroborating
-   sources or a direct quote; low = single unsourced mention). Claims without a
-   citation are **dropped, not invented or downgraded**.
+1. **Draft.** `timbria-api` runs a server-side lookup: web search for the
+   artist's gear → LLM structures findings into candidate `artist_gear` rows,
+   each with the **source URL** and a **confidence** (high = multiple
+   corroborating sources or a direct quote; low = single unsourced mention).
+   Claims without a citation are **dropped, not invented or downgraded**.
 2. **Queue.** Rows insert as `status = draft`, visible immediately in the
    profile but badged "unverified — pending review."
 3. **Review.** `#review` (owner-gated) lists drafts (artist, gear, quoted
@@ -126,8 +126,8 @@ On "Look it up" for an unknown/stale artist:
 4. **Trust after.** Approved rows keep their citation permanently; every claim
    traces to a source.
 
-**Server-side rationale:** LLM/web API key stays in `tone-api` (never browser),
-rate-limited and cached (one lookup per artist, not repeated), logged.
+**Server-side rationale:** LLM/web API key stays in `timbria-api` (never
+browser), rate-limited and cached (one lookup per artist, not repeated), logged.
 
 **Stated limitation:** gear lore is frequently wrong or outdated even in good
 sources. The citation + confidence + approval chain does not make data *true* —
@@ -162,6 +162,7 @@ it makes it *traceable and reviewable*. The UI never presents a draft as fact.
 
 ## Open items
 
-- **App name** — working name "Tone"; final name TBD with user.
+- ~~App name~~ — **resolved: "Timbria"** (collision-checked 2026-06-15: no app/
+  software/company conflict; distinct from the existing academic tool "Timbra").
 - Curated seed scope — how many artists/sounds/fx_types to hand-seed before
   relying on lookup (decide during planning).
