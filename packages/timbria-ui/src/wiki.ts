@@ -2,10 +2,10 @@
 // Uses *search* (not a direct article path) because stylized fx names like
 // "FET Compressor (1176-style)" have no exact Wikipedia title — search always lands.
 // Base + book id are build-time configurable (Vite env), with sensible defaults.
-// NOTE: Kiwix is LAN-only (SRV-1 10.0.0.195:8089, not tunneled) — links resolve on
-// the home network; off-network they won't reach unless Kiwix is exposed.
+// Kiwix is exposed at kiwix.tendrid.us (Cloudflare tunnel, Home Network bypass +
+// Email) — links resolve on the LAN (bypassed) and off-network (after Email login).
 const KIWIX_BASE: string =
-  (import.meta as any).env?.VITE_KIWIX_BASE || 'http://10.0.0.195:8089';
+  (import.meta as any).env?.VITE_KIWIX_BASE || 'https://kiwix.tendrid.us';
 const WIKI_BOOK_ID: string =
   (import.meta as any).env?.VITE_KIWIX_WIKI_ID || '53a8f711-f7f9-ec23-08fc-38fcf579ba32';
 

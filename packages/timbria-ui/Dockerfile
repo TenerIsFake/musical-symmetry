@@ -9,7 +9,7 @@ RUN npm install --workspaces
 COPY packages/timbria-ui/ packages/timbria-ui/
 
 # Kiwix (offline Wikipedia) base + book id — baked into the static build.
-ARG VITE_KIWIX_BASE=http://10.0.0.195:8089
+ARG VITE_KIWIX_BASE=https://kiwix.tendrid.us
 ARG VITE_KIWIX_WIKI_ID=53a8f711-f7f9-ec23-08fc-38fcf579ba32
 ENV VITE_KIWIX_BASE=$VITE_KIWIX_BASE
 ENV VITE_KIWIX_WIKI_ID=$VITE_KIWIX_WIKI_ID
