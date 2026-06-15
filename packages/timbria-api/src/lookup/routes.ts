@@ -25,8 +25,8 @@ export function makeLookupRouter(deps: LookupRouteDeps): Router {
     const gearIndex = new Map<string, number>(
       (getDb().prepare('SELECT id, lower(name) AS n FROM gear_item').all() as any[]).map(x => [x.n, x.id]));
     const drafts = await deps.doLookup(name, gearIndex);
-    lastRun.set(name.toLowerCase(), Date.now());
     if (drafts.length === 0) return res.json({ status: 'no-sourced-gear', inserted: 0 });
+    lastRun.set(name.toLowerCase(), Date.now());
 
     const artistId = findArtistByName(name)?.id
       ?? insertArtist({ name, role: '', era: '', genre: '', notes: '' });
