@@ -5,6 +5,7 @@
     "packages/core",
     "packages/ui",
     "packages/analyzer",
-    "packages/timbria-api"
+    "packages/timbria-api",
+    "packages/timbria-ui"
   ]
 }
