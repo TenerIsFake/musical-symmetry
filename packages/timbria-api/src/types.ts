@@ -15,3 +15,11 @@ export interface Sound {
   chain: number[]; // ordered fx_type ids, JSON-encoded in db
   artist_id: number | null;
 }
+
+export interface IdNode {
+  id: number;
+  question: string;            // empty for leaf nodes
+  branches: Array<{ answer: string; next: number }>; // JSON in db
+  leaf_fx_type_ids: number[];  // JSON in db; non-empty => leaf
+  explanation: string;
+}
