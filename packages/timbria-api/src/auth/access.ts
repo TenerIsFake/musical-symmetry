@@ -5,8 +5,9 @@ export type Verifier = (token: string | undefined) => Promise<{ email: string } 
 
 // Production verifier: validates the CF Access JWT against the team JWKS + AUD.
 export function cfAccessVerifier(): Verifier {
-  const teamDomain = process.env.CF_ACCESS_TEAM_DOMAIN!; // e.g. https://tendrid.cloudflareaccess.com
-  const aud = process.env.CF_ACCESS_AUD!;
+  const teamDomain = process.env.CF_ACCESS_TEAM_DOMAIN;
+  const aud = process.env.CF_ACCESS_AUD;
+  if (!teamDomain || !aud) throw new Error('cfAccessVerifier: CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD must be set');
   const JWKS = createRemoteJWKSet(new URL(`${teamDomain}/cdn-cgi/access/certs`));
   return async (token) => {
     if (!token) return null;
@@ -27,8 +28,10 @@ export function makeAccessMiddleware(verify: Verifier): RequestHandler {
 }
 
 export function requireOwner(ownerEmail: string): RequestHandler {
+  if (!ownerEmail) throw new Error('requireOwner: ownerEmail is required');
   return (req, res, next) => {
-    if ((req as any).userEmail === ownerEmail) return next();
+    const email = (req as any).userEmail;
+    if (typeof email === 'string' && email === ownerEmail) return next();
     return res.status(403).json({ error: 'owner only' });
   };
 }

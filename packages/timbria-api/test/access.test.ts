@@ -12,6 +12,13 @@ function appWith(email: string | null) {
   return app;
 }
 
+describe('requireOwner misconfiguration', () => {
+  it('throws if constructed with empty ownerEmail (fail-closed config)', () => {
+    expect(() => requireOwner('')).toThrow();
+    expect(() => requireOwner(undefined as any)).toThrow();
+  });
+});
+
 describe('access middleware', () => {
   it('attaches verified email', async () => {
     const res = await request(appWith('a@x.com')).get('/me');
