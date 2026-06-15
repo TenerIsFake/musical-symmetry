@@ -23,3 +23,12 @@ export interface IdNode {
   leaf_fx_type_ids: number[];  // JSON in db; non-empty => leaf
   explanation: string;
 }
+
+export type Confidence = 'low' | 'med' | 'high';
+export type GearStatus = 'draft' | 'approved';
+export interface Artist { id: number; name: string; role: string; era: string; genre: string; notes: string; }
+export interface ArtistGear {
+  id: number; artist_id: number; gear_item_id: number; context: string;
+  source_url: string; confidence: Confidence; status: GearStatus;
+  added_by: 'curated' | 'llm-lookup'; reviewed_at: string | null;
+}
