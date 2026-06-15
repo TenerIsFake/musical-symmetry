@@ -10,12 +10,13 @@ export function parseLookup(raw: string, gearIndex: Map<string, number>): Parsed
   const out: ParsedGear[] = [];
   for (const row of rows) {
     const src = typeof row?.source_url === 'string' ? row.source_url.trim() : '';
-    if (!/^https?:\/\//.test(src)) continue;                 // drop uncited
-    const gearId = gearIndex.get(String(row?.gear ?? '').toLowerCase().trim());
-    if (!gearId) continue;                                   // drop unmappable
-    // invalid/absent confidence clamps to 'high' (a cited claim is corroborated
-    // by >=1 source); switch this default to 'low' if you prefer conservative.
-    const confidence: Confidence = VALID.includes(row?.confidence) ? row.confidence : 'high';
+    if (!/^https?:\/\//i.test(src)) continue;                // drop uncited
+    if (typeof row?.gear !== 'string') continue;             // gear must be a string
+    const gearId = gearIndex.get(row.gear.toLowerCase().trim());
+    if (gearId === undefined) continue;                      // drop unmappable
+    // invalid/absent confidence defaults to 'low' — unverified extracted data
+    // should not claim high confidence; only an explicit valid value is honored.
+    const confidence: Confidence = VALID.includes(row?.confidence) ? row.confidence : 'low';
     out.push({ gear_item_id: gearId, context: String(row?.context ?? '').slice(0, 120), source_url: src, confidence });
   }
   return out;
