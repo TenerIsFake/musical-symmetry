@@ -18,7 +18,7 @@ services:
       dockerfile: packages/analyzer/Dockerfile
     container_name: musical-symmetry-analyzer
     ports:
-      - "3010:3010"
+      - "3014:3010"
     environment:
       - PORT=3010
       - SESSION_SECRET=${SESSION_SECRET}
@@ -41,7 +41,7 @@ services:
       dockerfile: packages/timbria-api/Dockerfile
     container_name: timbria-api
     # Bound to localhost only — the UI reaches it over the compose network
-    # (timbria-api:3061). Keeps the Anthropic/RevenueCat/CF keys off the LAN;
+    # (timbria-api:3061). Keeps the Gemini/RevenueCat/CF keys off the LAN;
     # Cloudflare Access (on the UI hostname) is the sole public entry point.
     ports:
       - "127.0.0.1:3061:3061"
@@ -52,7 +52,7 @@ services:
       - CF_ACCESS_TEAM_DOMAIN=${CF_ACCESS_TEAM_DOMAIN:-https://tendrid.cloudflareaccess.com}
       - CF_ACCESS_AUD=${CF_ACCESS_AUD_TIMBRIA:-}
       - REVENUECAT_API_KEY=${REVENUECAT_API_KEY:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     volumes:
       - timbria-data:/data
     restart: unless-stopped
