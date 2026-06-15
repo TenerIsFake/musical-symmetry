@@ -63,6 +63,9 @@ services:
     build:
       context: .
       dockerfile: packages/timbria-ui/Dockerfile
+      args:
+        VITE_KIWIX_BASE: ${VITE_KIWIX_BASE:-http://10.0.0.195:8089}
+        VITE_KIWIX_WIKI_ID: ${VITE_KIWIX_WIKI_ID:-53a8f711-f7f9-ec23-08fc-38fcf579ba32}
     container_name: timbria-ui
     # Public entry point — LAN-exposed so SRV-1's cloudflared can reach it,
     # then fronted by the timbria.tendrid.us tunnel + Cloudflare Access.
