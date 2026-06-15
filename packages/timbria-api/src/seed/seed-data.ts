@@ -65,6 +65,15 @@ export const SEED_FX: Array<{ name: string; category: FxCategory; fingerprint: s
   { name: 'British Stack (Marshall Plexi-style)', category: 'amp', fingerprint: 'Crunchy, aggressive, midrange-forward rock roar.', tells: 'Singing midrange grind at volume.', era: '1965–', typical_use: 'Hard rock, classic rock' },
   // --- Utility ---
   { name: 'Multitrack Tape Machine', category: 'utility', fingerprint: 'Analog tape recorder — medium, not an effect per se.', tells: 'Imparts head-bump lows, wow/flutter, tape compression.', era: '1948–', typical_use: 'Tracking, mixdown, ADT/flanging' },
+  // --- Genre deepening: Punk / Rock ---
+  { name: 'Distortion Pedal (RAT-style)', category: 'distortion', fingerprint: 'Gritty, mid-rich hard-clipping distortion.', tells: 'Buzzsaw edge, more aggressive and compressed than overdrive.', era: '1978–', typical_use: 'Punk, alt, hard rock' },
+  { name: 'Talk Box', category: 'modulation', fingerprint: 'Guitar/synth "talking" through a tube into the mouth.', tells: 'Vowel-shaped, mouth-formant vocal-guitar hybrid.', era: '1970s–', typical_use: 'Rock leads, funk' },
+  { name: 'Solid-State Combo Amp', category: 'amp', fingerprint: 'Clean, loud, glassy transistor amp; tons of headroom.', tells: 'Pristine ultra-clean (JC-120 chorus) or harsh when clipped.', era: '1975–', typical_use: 'Post-punk, new wave, jazz' },
+  // --- Genre deepening: Jazz sources ---
+  { name: 'Double Bass (Upright)', category: 'source-instrument', fingerprint: 'Woody, round, acoustic upright bass.', tells: 'Finger thump and string buzz; the heartbeat of jazz.', era: '—', typical_use: 'Jazz, blues, folk' },
+  { name: 'Vibraphone', category: 'source-instrument', fingerprint: 'Shimmering metallic mallet keyboard with motor vibrato.', tells: 'Bell-like sustain with a pulsing tremolo from spinning fans.', era: '1921–', typical_use: 'Jazz, lounge' },
+  { name: 'Saxophone', category: 'source-instrument', fingerprint: 'Reedy, vocal, expressive brass woodwind.', tells: 'Breathy attack, growl, and wide vibrato.', era: '—', typical_use: 'Jazz, soul, rock' },
+  { name: 'Trumpet', category: 'source-instrument', fingerprint: 'Bright, brassy, piercing or muted-mellow brass.', tells: 'Buzzy attack; Harmon-mute "wah" in cool jazz.', era: '—', typical_use: 'Jazz, soul, big band' },
 ];
 
 export const SEED_GEAR: Array<{ name: string; fxName: string; manufacturer: string; kind: string }> = [
@@ -119,8 +128,24 @@ export const SEED_GEAR: Array<{ name: string; fxName: string; manufacturer: stri
   { name: 'ARP 2600', fxName: 'Semi-Modular Synth', manufacturer: 'ARP', kind: 'synth' },
   // Tape
   { name: 'Studer A800', fxName: 'Multitrack Tape Machine', manufacturer: 'Studer', kind: 'hardware' },
+  { name: 'Ampex ATR-102', fxName: 'Multitrack Tape Machine', manufacturer: 'Ampex', kind: 'hardware' },
   // Pitch
   { name: 'Antares Auto-Tune', fxName: 'Auto-Tune (audible)', manufacturer: 'Antares', kind: 'plugin' },
+  // Genre deepening — Jazz recording chain + sources
+  { name: 'Neumann U67', fxName: 'Tube Condenser Mic (U47-style)', manufacturer: 'Neumann', kind: 'mic' },
+  { name: 'Telefunken ELA M 251', fxName: 'Tube Condenser Mic (U47-style)', manufacturer: 'Telefunken', kind: 'mic' },
+  { name: 'RCA 77-DX', fxName: 'Ribbon Mic (RCA-style)', manufacturer: 'RCA', kind: 'mic' },
+  { name: 'Kay M-1 Upright Bass', fxName: 'Double Bass (Upright)', manufacturer: 'Kay', kind: 'instrument' },
+  { name: 'Selmer Mark VI Saxophone', fxName: 'Saxophone', manufacturer: 'Selmer', kind: 'instrument' },
+  { name: 'Deagan Vibraphone', fxName: 'Vibraphone', manufacturer: 'Deagan', kind: 'instrument' },
+  { name: 'Bach Stradivarius Trumpet', fxName: 'Trumpet', manufacturer: 'Bach', kind: 'instrument' },
+  // Genre deepening — Punk / Rock amps & dirt
+  { name: 'ProCo RAT', fxName: 'Distortion Pedal (RAT-style)', manufacturer: 'ProCo', kind: 'hardware' },
+  { name: 'Roland JC-120 Jazz Chorus', fxName: 'Solid-State Combo Amp', manufacturer: 'Roland', kind: 'amp' },
+  { name: 'Orange OR120', fxName: 'British Stack (Marshall Plexi-style)', manufacturer: 'Orange', kind: 'amp' },
+  { name: 'Hiwatt Custom 100 DR103', fxName: 'British Stack (Marshall Plexi-style)', manufacturer: 'Hiwatt', kind: 'amp' },
+  { name: 'Fender Bassman', fxName: 'American Tube Combo (Fender-style)', manufacturer: 'Fender', kind: 'amp' },
+  { name: 'Heil Talk Box', fxName: 'Talk Box', manufacturer: 'Heil Sound', kind: 'hardware' },
 ];
 
 export const SEED_SOUNDS: Array<{ name: string; description: string; chainFxNames: string[] }> = [
@@ -138,6 +163,14 @@ export const SEED_SOUNDS: Array<{ name: string; description: string; chainFxName
   { name: 'Funk clav', description: 'Percussive, wah-swept, syncopated keyboard riffing.', chainFxNames: ['Clavinet', 'Wah'] },
   { name: 'Prog Mellotron pad', description: 'Haunting tape-choir/strings bed under a band.', chainFxNames: ['Mellotron', 'Hall Reverb'] },
   { name: 'Punk wall of guitar', description: 'Loud, saturated, midrange-roaring rhythm guitar.', chainFxNames: ['British Stack (Marshall Plexi-style)', 'Big Muff Fuzz'] },
+  // Genre deepening — Jazz / Punk / Rock
+  { name: 'Blue Note jazz combo', description: 'Warm, intimate, naturally-recorded small-group jazz.', chainFxNames: ['Tube Condenser Mic (U47-style)', 'Plate Reverb'] },
+  { name: 'Bebop horn section', description: 'Bright, brassy horns with smooth vintage air.', chainFxNames: ['Ribbon Mic (RCA-style)', 'Chamber Reverb'] },
+  { name: 'Upright bass + brushes', description: 'Woody walking bass under softly-swept brushed drums.', chainFxNames: ['Double Bass (Upright)', 'Ribbon Mic (RCA-style)'] },
+  { name: 'Punk buzzsaw guitar', description: 'Fast, raw, mid-forward distorted downstrokes.', chainFxNames: ['British Stack (Marshall Plexi-style)', 'Distortion Pedal (RAT-style)'] },
+  { name: 'Post-punk clean chime', description: 'Glassy, chorused, ultra-clean solid-state guitar.', chainFxNames: ['Solid-State Combo Amp', 'Chorus'] },
+  { name: 'Talk-box solo', description: 'A guitar/synth made to "talk" with mouth-shaped vowels.', chainFxNames: ['Talk Box', 'British Stack (Marshall Plexi-style)'] },
+  { name: 'Garage-rock fuzz', description: 'Raw, jangly, fuzzed-out British-combo rhythm.', chainFxNames: ['Germanium Fuzz', 'British Combo (Vox AC30-style)'] },
 ];
 
 export const SEED_IDENTIFY: Array<{ key: string; question: string; branches: Array<{ answer: string; next: string }>; leafFxNames: string[]; explanation: string }> = [
