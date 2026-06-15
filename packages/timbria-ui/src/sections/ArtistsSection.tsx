@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getJSON } from '../api';
+import { getJSON, postJSON } from '../api';
 import { ConfidenceBadge } from '../components/ConfidenceBadge';
 interface Line { id: number; gear_name: string; context: string; source_url: string; confidence: string; status: string; }
 export function ArtistsSection() {
@@ -14,6 +14,7 @@ export function ArtistsSection() {
     <input placeholder="Artist name" value={name} onChange={e => setName(e.target.value)} />
     <button onClick={search}>Search</button>
     {err && <p>{err}</p>}
+    {err && <button onClick={async () => { await postJSON(`/api/artists/${encodeURIComponent(name)}/lookup`, {}); search(); }}>Look it up</button>}
     {prof && prof.gear.map(g => (<div key={g.id}>
       <strong>{g.gear_name}</strong> <em>{g.context}</em> — <ConfidenceBadge confidence={g.confidence} status={g.status} />
       {' '}<a href={g.source_url} target="_blank" rel="noreferrer">source</a></div>))}
