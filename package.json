@@ -4,6 +4,7 @@
   "workspaces": [
     "packages/core",
     "packages/ui",
-    "packages/analyzer"
+    "packages/analyzer",
+    "packages/timbria-api"
   ]
 }
