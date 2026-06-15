@@ -4,15 +4,19 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 export type Verifier = (token: string | undefined) => Promise<{ email: string } | null>;
 
 // Production verifier: validates the CF Access JWT against the team JWKS + AUD.
+// CF_ACCESS_AUD may be a comma-separated list — each Cloudflare Access app on the
+// hostname(s) mints its own AUD (e.g. the public app + a no-bypass admin app), and
+// a token from ANY of them is accepted (jose validates audience against the array).
 export function cfAccessVerifier(): Verifier {
   const teamDomain = process.env.CF_ACCESS_TEAM_DOMAIN;
-  const aud = process.env.CF_ACCESS_AUD;
-  if (!teamDomain || !aud) throw new Error('cfAccessVerifier: CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD must be set');
+  const audEnv = process.env.CF_ACCESS_AUD;
+  if (!teamDomain || !audEnv) throw new Error('cfAccessVerifier: CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD must be set');
+  const auds = audEnv.split(',').map((a) => a.trim()).filter(Boolean);
   const JWKS = createRemoteJWKSet(new URL(`${teamDomain}/cdn-cgi/access/certs`));
   return async (token) => {
     if (!token) return null;
     try {
-      const { payload } = await jwtVerify(token, JWKS, { issuer: teamDomain, audience: aud });
+      const { payload } = await jwtVerify(token, JWKS, { issuer: teamDomain, audience: auds });
       return typeof payload.email === 'string' ? { email: payload.email } : null;
     } catch { return null; }
   };
