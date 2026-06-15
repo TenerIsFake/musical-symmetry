@@ -35,5 +35,45 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
 
+  timbria-api:
+    build:
+      context: .
+      dockerfile: packages/timbria-api/Dockerfile
+    container_name: timbria-api
+    # Bound to localhost only — the UI reaches it over the compose network
+    # (timbria-api:3061). Keeps the Anthropic/RevenueCat/CF keys off the LAN;
+    # Cloudflare Access (on the UI hostname) is the sole public entry point.
+    ports:
+      - "127.0.0.1:3061:3061"
+    environment:
+      - PORT=3061
+      - TIMBRIA_DB=/data/timbria.db
+      - OWNER_EMAIL=${OWNER_EMAIL:-tenerjenkins@gmail.com}
+      - CF_ACCESS_TEAM_DOMAIN=${CF_ACCESS_TEAM_DOMAIN:-https://tendrid.cloudflareaccess.com}
+      - CF_ACCESS_AUD=${CF_ACCESS_AUD_TIMBRIA:-}
+      - REVENUECAT_API_KEY=${REVENUECAT_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - timbria-data:/data
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  timbria-ui:
+    build:
+      context: .
+      dockerfile: packages/timbria-ui/Dockerfile
+    container_name: timbria-ui
+    # Public entry point — LAN-exposed so SRV-1's cloudflared can reach it,
+    # then fronted by the timbria.tendrid.us tunnel + Cloudflare Access.
+    ports:
+      - "3017:80"
+    depends_on:
+      - timbria-api
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
 volumes:
   analyzer-data:
+  timbria-data:
