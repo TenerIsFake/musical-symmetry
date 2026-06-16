@@ -4,11 +4,12 @@ import { WikiLink } from '../components/WikiLink';
 
 interface Fx { id: number; name: string; category: string; fingerprint: string; tells: string; era: string; typical_use: string; }
 interface Gear { id: number; name: string; fx_type_id: number; manufacturer: string; kind: string; }
+interface Sound { id: number; name: string; description: string; chain: number[]; }
 
 const EFFECT_CATS = ['reverb', 'dynamics', 'distortion', 'delay', 'modulation', 'eq', 'pitch'];
 const EQUIP_KINDS = ['amp', 'mic', 'hardware', 'plugin'];
 const INSTRUMENT_KINDS = ['instrument', 'synth'];
-type Tab = 'fx' | 'equipment' | 'instruments';
+type Tab = 'fx' | 'equipment' | 'instruments' | 'sounds';
 
 function groupBy<T>(items: T[], key: (t: T) => string): [string, T[]][] {
   const m = new Map<string, T[]>();
@@ -23,11 +24,13 @@ function groupBy<T>(items: T[], key: (t: T) => string): [string, T[]][] {
 export function AtlasSection() {
   const [fx, setFx] = useState<Fx[]>([]);
   const [gear, setGear] = useState<Gear[]>([]);
+  const [sounds, setSounds] = useState<Sound[]>([]);
   const [tab, setTab] = useState<Tab>('fx');
 
   useEffect(() => {
     getJSON<Fx[]>('/api/fx').then(setFx).catch(() => setFx([]));
     getJSON<Gear[]>('/api/gear').then(setGear).catch(() => setGear([]));
+    getJSON<Sound[]>('/api/sounds').then(setSounds).catch(() => setSounds([]));
   }, []);
 
   const fxById = useMemo(() => new Map(fx.map((f) => [f.id, f])), [fx]);
@@ -45,6 +48,7 @@ export function AtlasSection() {
         <button className={tab === 'fx' ? 'active' : ''} onClick={() => setTab('fx')}>FX &amp; Processing</button>
         <button className={tab === 'equipment' ? 'active' : ''} onClick={() => setTab('equipment')}>Equipment</button>
         <button className={tab === 'instruments' ? 'active' : ''} onClick={() => setTab('instruments')}>Instruments</button>
+        <button className={tab === 'sounds' ? 'active' : ''} onClick={() => setTab('sounds')}>Sounds</button>
       </div>
 
       {tab === 'fx' && fxGroups.map(([cat, items]) => (
@@ -63,7 +67,7 @@ export function AtlasSection() {
         </section>
       ))}
 
-      {tab !== 'fx' && gearGroups.map(([kind, items]) => (
+      {(tab === 'equipment' || tab === 'instruments') && gearGroups.map(([kind, items]) => (
         <section key={kind} className="atlas-group">
           <h3 className="group-header">{kind} <span className="count">{items.length}</span></h3>
           <div className="atlas-grid">
@@ -81,6 +85,31 @@ export function AtlasSection() {
           </div>
         </section>
       ))}
+
+      {tab === 'sounds' && (
+        <section className="atlas-group">
+          <h3 className="group-header">iconic sounds & song breakdowns <span className="count">{sounds.length}</span></h3>
+          <div className="atlas-grid">
+            {sounds.map((s) => (
+              <article className="card" key={s.id}>
+                <header><strong>{s.name}</strong></header>
+                {s.description && <p className="fingerprint">{s.description}</p>}
+                {s.chain?.length > 0 && (
+                  <p className="chain">
+                    {s.chain.map((id, i) => (
+                      <span key={i}>
+                        {i > 0 && <span className="arrow"> → </span>}
+                        <span className="chain-link">{fxById.get(id)?.name ?? '?'}</span>
+                      </span>
+                    ))}
+                  </p>
+                )}
+                <footer><span className="meta" /><WikiLink name={s.name} /></footer>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

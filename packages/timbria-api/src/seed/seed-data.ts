@@ -206,6 +206,15 @@ export const SEED_SOUNDS: Array<{ name: string; description: string; chainFxName
   { name: 'Fusion harmonized lead', description: 'Singing fusion guitar thickened with shifted harmonies.', chainFxNames: ['Pitch Harmonizer', 'Tube Amp Overdrive'] },
   { name: 'Vocoder robot vocal', description: 'A talking synthesizer — voice riding a synth carrier.', chainFxNames: ['Vocoder', 'Analog Poly Synth'] },
   { name: 'EBow art-rock sustain', description: 'Infinite bowed-guitar sustain over a wash.', chainFxNames: ['EBow', 'Analog Delay'] },
+  // Song breakdowns — iconic tracks decomposed into their production chains
+  { name: "Tomorrow Never Knows — The Beatles", description: "Lennon's vocal fed through a rotating Leslie cabinet over tape-loop collage and Abbey Road's prized tube limiters (1966).", chainFxNames: ['Rotary Speaker (Leslie)', 'Multitrack Tape Machine', 'Vari-Mu Compressor (Fairchild-style)'] },
+  { name: "London Calling — The Clash", description: "Strummer's Telecaster into a Fender combo with Mick Jones' tape-echo throws; Wessex Studios, Bill Price engineering (1979).", chainFxNames: ['American Tube Combo (Fender-style)', 'Tape Echo'] },
+  { name: "Riders on the Storm — The Doors", description: "Manzarek's Fender Rhodes electric piano, Krieger's blackface Fender combo, and a wash of spring reverb under whispered, doubled vocals (1971).", chainFxNames: ['Fender Rhodes Electric Piano', 'American Tube Combo (Fender-style)', 'Spring Reverb'] },
+  { name: "Zappa lead guitar (Zoot Allures era)", description: "Frank Zappa's singing lead tone — racked, heavily-modified Big Muffs into pushed tube amps with analog delay (mid-70s).", chainFxNames: ['Big Muff Fuzz', 'Tube Amp Overdrive', 'Analog Delay'] },
+  { name: "Don't Come Around Here No More — Tom Petty", description: "Psychedelic Dave Stewart production: an electric-sitar hook against gritty RAT distortion (1985).", chainFxNames: ['Electric Sitar', 'Distortion Pedal (RAT-style)'] },
+  { name: "Trout Mask Replica — Captain Beefheart", description: "The Magic Band's bone-dry, interlocking twin guitars and bass — rented Fender Twin Reverb and a Bassman, almost no studio sweetening (1969).", chainFxNames: ['American Tube Combo (Fender-style)', 'Bass Amplifier'] },
+  { name: "Voodoo Child (Slight Return) — Jimi Hendrix", description: "Wah-drenched Strat through a germanium fuzz into cranked British stacks (1968).", chainFxNames: ['Wah', 'Germanium Fuzz', 'British Stack (Marshall Plexi-style)'] },
+  { name: "Shine On You Crazy Diamond — Pink Floyd", description: "Gilmour's keening sustain: a Big Muff and Binson-style multi-head echo into clean, loud Hiwatt-class stacks (1975).", chainFxNames: ['Big Muff Fuzz', 'Oil-Can / Drum Echo', 'British Stack (Marshall Plexi-style)'] },
 ];
 
 export const SEED_IDENTIFY: Array<{ key: string; question: string; branches: Array<{ answer: string; next: string }>; leafFxNames: string[]; explanation: string }> = [
