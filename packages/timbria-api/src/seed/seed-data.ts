@@ -74,6 +74,15 @@ export const SEED_FX: Array<{ name: string; category: FxCategory; fingerprint: s
   { name: 'Vibraphone', category: 'source-instrument', fingerprint: 'Shimmering metallic mallet keyboard with motor vibrato.', tells: 'Bell-like sustain with a pulsing tremolo from spinning fans.', era: '1921–', typical_use: 'Jazz, lounge' },
   { name: 'Saxophone', category: 'source-instrument', fingerprint: 'Reedy, vocal, expressive brass woodwind.', tells: 'Breathy attack, growl, and wide vibrato.', era: '—', typical_use: 'Jazz, soul, rock' },
   { name: 'Trumpet', category: 'source-instrument', fingerprint: 'Bright, brassy, piercing or muted-mellow brass.', tells: 'Buzzy attack; Harmon-mute "wah" in cool jazz.', era: '—', typical_use: 'Jazz, soul, big band' },
+  // --- Genre deepening: psych / prog / funk / fusion textures ---
+  { name: 'Ring Modulator', category: 'modulation', fingerprint: 'Clangorous, metallic, inharmonic bell-tones.', tells: 'Atonal "robot"/Dalek timbres; sum-and-difference frequencies.', era: '1960s–', typical_use: 'Prog, Zappa, sound design' },
+  { name: 'Envelope Filter / Auto-Wah', category: 'modulation', fingerprint: 'Touch-sensitive wah that opens with pick attack.', tells: 'Quacky, vowel-y funk that follows your dynamics.', era: '1972–', typical_use: 'Funk bass/clav/guitar' },
+  { name: 'Pitch Harmonizer', category: 'pitch', fingerprint: 'Adds shifted/harmonized copies of the input.', tells: 'Detuned thickening or parallel-interval harmonies.', era: '1975–', typical_use: 'Fusion lead, 80s vocals/guitar' },
+  { name: 'Vocoder', category: 'pitch', fingerprint: 'Voice imposed on a synth carrier — "robot singing".', tells: 'Talking-synth formants; consonants smeared.', era: '1970s–', typical_use: 'Funk, Kraftwerk, electro' },
+  { name: 'Electric Sitar', category: 'source-instrument', fingerprint: 'Guitar with a buzzing "jawari" bridge mimicking a sitar.', tells: 'Sympathetic-string drone buzz on sustained notes.', era: '1967–', typical_use: 'Psychedelia, soul' },
+  { name: 'Theremin', category: 'source-instrument', fingerprint: 'Touchless electronic wail controlled by hand proximity.', tells: 'Continuous gliding pitch with no attack; eerie.', era: '1928–', typical_use: 'Psychedelia, horror, novelty' },
+  { name: 'Bass Amplifier', category: 'amp', fingerprint: 'High-headroom amp/cab voiced for electric bass.', tells: 'Round lows or grindy tube drive when pushed.', era: '1960s–', typical_use: 'Rock, funk, soul bass' },
+  { name: 'EBow', category: 'utility', fingerprint: 'Handheld magnetic sustainer for guitar strings.', tells: 'Infinite, bowed, attack-less sustain.', era: '1976–', typical_use: 'Ambient, prog, art-rock leads' },
 ];
 
 export const SEED_GEAR: Array<{ name: string; fxName: string; manufacturer: string; kind: string }> = [
@@ -146,6 +155,24 @@ export const SEED_GEAR: Array<{ name: string; fxName: string; manufacturer: stri
   { name: 'Hiwatt Custom 100 DR103', fxName: 'British Stack (Marshall Plexi-style)', manufacturer: 'Hiwatt', kind: 'amp' },
   { name: 'Fender Bassman', fxName: 'American Tube Combo (Fender-style)', manufacturer: 'Fender', kind: 'amp' },
   { name: 'Heil Talk Box', fxName: 'Talk Box', manufacturer: 'Heil Sound', kind: 'hardware' },
+  // Genre deepening — psych/prog/funk/fusion units
+  { name: 'Maestro Ring Modulator', fxName: 'Ring Modulator', manufacturer: 'Maestro', kind: 'hardware' },
+  { name: 'Mu-Tron III', fxName: 'Envelope Filter / Auto-Wah', manufacturer: 'Musitronics', kind: 'hardware' },
+  { name: 'Eventide H910 Harmonizer', fxName: 'Pitch Harmonizer', manufacturer: 'Eventide', kind: 'hardware' },
+  { name: 'Roland VP-330 Vocoder Plus', fxName: 'Vocoder', manufacturer: 'Roland', kind: 'synth' },
+  { name: 'Electro-Harmonix Electric Mistress', fxName: 'Flanger', manufacturer: 'Electro-Harmonix', kind: 'hardware' },
+  { name: 'Sola Sound Tone Bender MkII', fxName: 'Germanium Fuzz', manufacturer: 'Sola Sound', kind: 'hardware' },
+  { name: 'Coral Electric Sitar', fxName: 'Electric Sitar', manufacturer: 'Coral', kind: 'instrument' },
+  { name: 'Moog Etherwave Theremin', fxName: 'Theremin', manufacturer: 'Moog', kind: 'instrument' },
+  { name: 'Sequential Prophet-5', fxName: 'Analog Poly Synth', manufacturer: 'Sequential Circuits', kind: 'synth' },
+  { name: 'Oberheim OB-Xa', fxName: 'Analog Poly Synth', manufacturer: 'Oberheim', kind: 'synth' },
+  { name: 'ARP Odyssey', fxName: 'Analog Monosynth (Moog-style)', manufacturer: 'ARP', kind: 'synth' },
+  { name: 'EMS Synthi AKS', fxName: 'Semi-Modular Synth', manufacturer: 'EMS', kind: 'synth' },
+  { name: 'ARP/Eminent Solina String Ensemble', fxName: 'String Machine', manufacturer: 'ARP', kind: 'synth' },
+  { name: 'Ampeg SVT', fxName: 'Bass Amplifier', manufacturer: 'Ampeg', kind: 'amp' },
+  { name: 'Acoustic 360', fxName: 'Bass Amplifier', manufacturer: 'Acoustic', kind: 'amp' },
+  { name: 'Sennheiser MD 421', fxName: 'Dynamic Mic (SM57-style)', manufacturer: 'Sennheiser', kind: 'mic' },
+  { name: 'Coles 4038', fxName: 'Ribbon Mic (RCA-style)', manufacturer: 'Coles', kind: 'mic' },
 ];
 
 export const SEED_SOUNDS: Array<{ name: string; description: string; chainFxNames: string[] }> = [
@@ -171,6 +198,14 @@ export const SEED_SOUNDS: Array<{ name: string; description: string; chainFxName
   { name: 'Post-punk clean chime', description: 'Glassy, chorused, ultra-clean solid-state guitar.', chainFxNames: ['Solid-State Combo Amp', 'Chorus'] },
   { name: 'Talk-box solo', description: 'A guitar/synth made to "talk" with mouth-shaped vowels.', chainFxNames: ['Talk Box', 'British Stack (Marshall Plexi-style)'] },
   { name: 'Garage-rock fuzz', description: 'Raw, jangly, fuzzed-out British-combo rhythm.', chainFxNames: ['Germanium Fuzz', 'British Combo (Vox AC30-style)'] },
+  // Genre deepening — psych / prog / funk / fusion signatures
+  { name: 'Funk envelope bass', description: 'Quacky, dynamic, auto-wah-swept electric bass.', chainFxNames: ['Envelope Filter / Auto-Wah', 'Bass Amplifier'] },
+  { name: 'Psychedelic sitar drone', description: 'Buzzing, droning, raga-tinged psychedelic guitar.', chainFxNames: ['Electric Sitar', 'Spring Reverb'] },
+  { name: 'Theremin séance', description: 'Eerie, gliding, attack-less electronic wail.', chainFxNames: ['Theremin', 'Hall Reverb'] },
+  { name: 'Prog ring-mod stab', description: 'Clangorous, metallic, atonal keyboard/guitar texture.', chainFxNames: ['Ring Modulator', 'Phaser'] },
+  { name: 'Fusion harmonized lead', description: 'Singing fusion guitar thickened with shifted harmonies.', chainFxNames: ['Pitch Harmonizer', 'Tube Amp Overdrive'] },
+  { name: 'Vocoder robot vocal', description: 'A talking synthesizer — voice riding a synth carrier.', chainFxNames: ['Vocoder', 'Analog Poly Synth'] },
+  { name: 'EBow art-rock sustain', description: 'Infinite bowed-guitar sustain over a wash.', chainFxNames: ['EBow', 'Analog Delay'] },
 ];
 
 export const SEED_IDENTIFY: Array<{ key: string; question: string; branches: Array<{ answer: string; next: string }>; leafFxNames: string[]; explanation: string }> = [
