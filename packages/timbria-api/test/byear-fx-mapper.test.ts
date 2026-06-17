@@ -20,4 +20,13 @@ describe('fx-mapper', () => {
     );
     expect(ids.sort((a, b) => a - b)).toEqual([1, 2, 7]);
   });
+
+  it('deduplicates ids shared across labels', () => {
+    const resolver = () => [5];
+    const ids = mapEffectsToFxTypeIds(
+      [{ label: 'Reverb', confidence: 0.9 }, { label: 'Delay/echo', confidence: 0.8 }],
+      resolver,
+    );
+    expect(ids).toEqual([5]);
+  });
 });

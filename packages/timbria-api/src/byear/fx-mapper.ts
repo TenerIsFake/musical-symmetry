@@ -1,7 +1,8 @@
 import type { FxCategory } from '../types.js';
 import type { EarLabel } from './types.js';
+import type { EffectLabel } from './vocab.js';
 
-export const EFFECT_LABEL_TO_CATEGORY: Record<string, FxCategory[]> = {
+export const EFFECT_LABEL_TO_CATEGORY: Record<EffectLabel, FxCategory[]> = {
   'Reverb': ['reverb'], 'Spring reverb': ['reverb'],
   'Delay/echo': ['delay'], 'Slapback': ['delay'],
   'Chorus': ['modulation'], 'Flanger': ['modulation'], 'Phaser': ['modulation'],
@@ -10,7 +11,7 @@ export const EFFECT_LABEL_TO_CATEGORY: Record<string, FxCategory[]> = {
   'Tape saturation': ['distortion'], 'Bitcrusher': ['distortion'],
   'Compression': ['dynamics'], 'Noise gate': ['dynamics'], 'Sidechain pump': ['dynamics'],
   'Wah': ['modulation'], 'Auto-wah': ['modulation'],
-  'Octave/pitch-shift': ['modulation'], 'Harmonizer': ['modulation'],
+  'Octave/pitch-shift': ['pitch'], 'Harmonizer': ['pitch'],
 };
 
 export function mapEffectsToFxTypeIds(
@@ -19,7 +20,7 @@ export function mapEffectsToFxTypeIds(
 ): number[] {
   const ids = new Set<number>();
   for (const e of effects) {
-    for (const cat of EFFECT_LABEL_TO_CATEGORY[e.label] ?? []) {
+    for (const cat of EFFECT_LABEL_TO_CATEGORY[e.label as EffectLabel] ?? []) {
       for (const id of resolveByCategory(cat)) ids.add(id);
     }
   }
