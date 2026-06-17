@@ -4,9 +4,10 @@ import { CatalogSection } from './sections/CatalogSection';
 import { IdentifySection } from './sections/IdentifySection';
 import { ArtistsSection } from './sections/ArtistsSection';
 import { ReviewSection } from './sections/ReviewSection';
+import { IdentifyByEar } from './IdentifyByEar.js';
 const routes: Record<string, () => JSX.Element> = {
   '#atlas': AtlasSection, '#catalog': CatalogSection, '#identify': IdentifySection,
-  '#artists': ArtistsSection, '#review': ReviewSection,
+  '#byear': IdentifyByEar, '#artists': ArtistsSection, '#review': ReviewSection,
 };
 export function App() {
   const [hash, setHash] = useState(location.hash || '#atlas');
@@ -18,6 +19,7 @@ export function App() {
         <a href="#atlas">Atlas</a>
         <a href="#catalog">Catalog</a>
         <a href="#identify">Identify</a>
+        <a href="#byear">Identify by Ear</a>
         <a href="#artists">Artists</a>
         <a href="#review">Review</a>
       </nav>
