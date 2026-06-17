@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface Label { label: string; confidence: number; }
 interface Result { domain: string; instruments: Label[]; effects: Label[]; mood: Label[]; fxTypeIds: number[]; }
@@ -18,8 +18,10 @@ export function IdentifyByEar() {
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const canRecord = typeof window !== 'undefined' && typeof (window as any).MediaRecorder !== 'undefined';
+  const canRecord = typeof window !== 'undefined' && 'MediaRecorder' in window;
   const [recording, setRecording] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   async function identify() {
     if (!file) { setError('Choose or record a clip first.'); return; }
@@ -36,27 +38,38 @@ export function IdentifyByEar() {
   async function record() {
     if (!canRecord) return;
     setError('');
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const rec = new MediaRecorder(stream);
-    const chunks: Blob[] = [];
-    rec.ondataavailable = (e) => chunks.push(e.data);
-    rec.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
-      const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
-      setFile(new File([blob], 'recording.webm', { type: blob.type }));
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const rec = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => chunks.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+        setFile(new File([blob], 'recording.webm', { type: blob.type }));
+        setRecording(false);
+      };
+      rec.start();
+      setRecording(true);
+      timeoutRef.current = setTimeout(() => rec.stop(), 5000);
+    } catch (e: any) {
+      setError(e.message);
       setRecording(false);
-    };
-    rec.start();
-    setRecording(true);
-    setTimeout(() => rec.stop(), 5000);
+    }
   }
+
+  useEffect(() => () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+  }, []);
 
   return (
     <div className="identify-by-ear">
       <h3>Identify by Ear</h3>
-      <label>Upload a clip
-        <input type="file" accept="audio/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      </label>
+      <label htmlFor="byear-clip">Upload a clip</label>
+      <input id="byear-clip" type="file" accept="audio/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       <button onClick={record} disabled={!canRecord || recording}>{recording ? 'Recording…' : 'Record 5s'}</button>
       <button onClick={identify} disabled={busy}>{busy ? 'Listening…' : 'Identify'}</button>
       {error && <p role="alert">{error}</p>}

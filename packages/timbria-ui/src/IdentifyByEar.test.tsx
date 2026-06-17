@@ -33,4 +33,17 @@ describe('IdentifyByEar', () => {
     const btn = screen.getByRole('button', { name: /record/i }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
   });
+
+  it('shows an error when mic permission is denied', async () => {
+    (window as any).MediaRecorder = class { constructor() {} start() {} stop() {} };
+    (navigator as any).mediaDevices = { getUserMedia: vi.fn().mockRejectedValue(new Error('Permission denied')) };
+    try {
+      render(<IdentifyByEar />);
+      fireEvent.click(screen.getByRole('button', { name: /record/i }));
+      await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Permission denied/));
+    } finally {
+      delete (window as any).MediaRecorder;
+      delete (navigator as any).mediaDevices;
+    }
+  });
 });
