@@ -86,8 +86,30 @@ class Model:
             except Exception:
                 self.interp = None
 
+    def _match_outputs(self, out_details):
+        heads = ["instrument", "effects", "mood"]
+        by_head = {}
+        for name in heads:
+            match = next((d for d in out_details if name in d["name"]), None)
+            if match is None:   # fall back to positional HEADS order
+                match = out_details[heads.index(name)]
+            by_head[name] = match
+        return by_head
+
     def infer(self, pcm: bytes, domain: str):
         if self.interp is None:
             return _stub_heads(pcm)
-        _ = pcm_to_logmel(pcm)
-        return _stub_heads(pcm)  # placeholder until a trained model's IO signature is wired (sub-project B)
+        logmel = _fix_frames(pcm_to_logmel(pcm), 64)            # (128, 64)
+        x = logmel[None, ..., None].astype(np.float32)          # (1,128,64,1)
+        in_detail = self.interp.get_input_details()[0]
+        self.interp.set_tensor(in_detail["index"], _quant_input(x, in_detail))
+        self.interp.invoke()
+        out_by_head = self._match_outputs(self.interp.get_output_details())
+        def head(name):
+            d = out_by_head[name]
+            return _dequant(self.interp.get_tensor(d["index"])[0], d)
+        return {
+            "instruments": _decode(head("instrument"), INSTRUMENTS),
+            "effects": _decode(head("effects"), EFFECTS),
+            "mood": _decode(head("mood"), MOOD),
+        }
