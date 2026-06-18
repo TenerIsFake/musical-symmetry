@@ -17,7 +17,8 @@ def build_synth_clip(dry, sr, instrument, out_dir, idx, rng):
     base = os.path.join(out_dir, f"clip_{idx:06d}")
     _write_pcm16k_wav(base + ".wav", array_to_pcm16k(wet, sr))
     np.save(base + ".effects.npy", mh)
-    json.dump(list(instrument), open(base + ".instrument.json", "w"))
+    with open(base + ".instrument.json", "w") as f:
+        json.dump(list(instrument), f)
     return base + ".wav"
 
 def build_synth_corpus(dry_items, out_dir, seed=0):
