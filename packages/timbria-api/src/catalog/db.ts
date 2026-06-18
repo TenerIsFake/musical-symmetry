@@ -1,5 +1,5 @@
 import { getDb, registerMigration } from '../db.js';
-import type { FxType, GearItem, Sound } from '../types.js';
+import type { FxType, GearItem, Sound, FxCategory } from '../types.js';
 
 export function runCatalogMigration(): void {
   const db = getDb();
@@ -36,6 +36,9 @@ export function getFxType(id: number): FxType | undefined {
 }
 export function listFxTypes(): FxType[] {
   return getDb().prepare('SELECT * FROM fx_type ORDER BY category, name').all() as FxType[];
+}
+export function getFxTypeIdsByCategory(category: FxCategory): number[] {
+  return getDb().prepare('SELECT id FROM fx_type WHERE category = ?').all(category).map((r: any) => r.id);
 }
 export function insertGear(g: Omit<GearItem, 'id'>): number {
   const r = getDb().prepare(`INSERT INTO gear_item (name,fx_type_id,manufacturer,kind)
