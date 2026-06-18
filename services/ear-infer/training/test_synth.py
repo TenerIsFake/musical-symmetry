@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from synth import synth_clip, EFFECT_TO_PLUGIN, multihot
 from labels import EFFECTS
 
@@ -25,3 +26,8 @@ def test_dry_clip_has_zero_multihot():
     dry = dry_tone()
     wet, mh = synth_clip(dry, SR, [], seed=2)
     assert mh.sum() == 0.0
+
+def test_synth_clip_rejects_ungeneratable_effect():
+    dry = dry_tone()
+    with pytest.raises(ValueError):
+        synth_clip(dry, SR, ["Spring reverb"], seed=3)  # in EFFECTS but no plugin
