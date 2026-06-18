@@ -21,3 +21,19 @@ def test_infer_is_deterministic():
     a = c.post("/infer", json={"pcm_base64": pcm, "domain": "isolated"}).json()
     b2 = c.post("/infer", json={"pcm_base64": pcm, "domain": "isolated"}).json()
     assert a == b2
+
+def test_invalid_base64_returns_400():
+    from fastapi.testclient import TestClient
+    from app import app
+    c = TestClient(app)
+    r = c.post("/infer", json={"pcm_base64": "not!!valid==", "domain": "isolated"})
+    assert r.status_code == 400
+
+def test_odd_length_pcm_returns_400():
+    import base64
+    from fastapi.testclient import TestClient
+    from app import app
+    c = TestClient(app)
+    odd = base64.b64encode(b"\x01\x02\x03").decode()  # 3 bytes -> odd
+    r = c.post("/infer", json={"pcm_base64": odd, "domain": "isolated"})
+    assert r.status_code == 400

@@ -1,5 +1,5 @@
-import base64
-from fastapi import FastAPI
+import base64, binascii
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from infer import Model
 
@@ -12,7 +12,12 @@ class InferReq(BaseModel):
 
 @app.post("/infer")
 def infer(req: InferReq):
-    pcm = base64.b64decode(req.pcm_base64)
+    try:
+        pcm = base64.b64decode(req.pcm_base64, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(status_code=400, detail="invalid base64")
+    if len(pcm) % 2 != 0:
+        raise HTTPException(status_code=400, detail="pcm must be 16-bit (even byte length)")
     return _model.infer(pcm, req.domain)
 
 @app.get("/health")
