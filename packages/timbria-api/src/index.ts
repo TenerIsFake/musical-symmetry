@@ -4,7 +4,7 @@ import { runAllMigrations } from './db.js';
 import { catalogRouter } from './catalog/routes.js';
 import { identifyRouter } from './identify/routes.js';
 import { makeByEarRouter } from './byear/routes.js';
-import { StubEarInfer } from './byear/ear-infer.js';
+import { buildEarInfer } from './byear/build-ear-infer.js';
 import { getFxTypeIdsByCategory } from './catalog/db.js';
 import { makeAccessMiddleware, cfAccessVerifier } from './auth/access.js';
 import { makeTierResolver, revenueCatEntitlements } from './auth/tier.js';
@@ -40,7 +40,7 @@ export function createApp(): Express {
   app.get('/healthcheck', (_req, res) => res.json({ status: 'ok' }));
   if (process.env.NODE_ENV !== 'test') app.use(makeAccessMiddleware(cfAccessVerifier()));
   app.use('/api', catalogRouter);
-  app.use('/api/identify', makeByEarRouter(new StubEarInfer(), getFxTypeIdsByCategory));
+  app.use('/api/identify', makeByEarRouter(buildEarInfer(), getFxTypeIdsByCategory));
   app.use('/api/identify', identifyRouter);
   app.use('/api/artists', artistsRouter);
   app.use('/api/review', reviewRouter(owner));
