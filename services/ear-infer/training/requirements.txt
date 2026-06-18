@@ -1,0 +1,5 @@
+numpy
+pedalboard
+soundfile
+tensorflow      # training stages (CPU or GPU); heavy — see README
+scikit-learn    # eval metrics
