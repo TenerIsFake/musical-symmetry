@@ -51,6 +51,9 @@ def _quant_input(value, detail):
     return np.clip(q, info.min, info.max).astype(detail["dtype"])
 
 
+# TODO(Phase 3): TFLite renames outputs to "StatefulPartitionedCall:N", so this
+# name-match raises on real models. Route by distinct head width (19/22/8) like
+# services/ear-infer/infer.py::Model._match_outputs before the ship gate runs.
 def _match_outputs(out_details, heads):
     by_head = {}
     for name in heads:

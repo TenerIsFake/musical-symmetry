@@ -15,7 +15,9 @@ def main(out):
     conv.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
     conv.inference_input_type = tf.int8
     conv.inference_output_type = tf.int8
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    _d = os.path.dirname(out)
+    if _d:
+        os.makedirs(_d, exist_ok=True)
     open(out, "wb").write(conv.convert())
     print("wrote", out)
 
