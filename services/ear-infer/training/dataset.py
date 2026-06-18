@@ -110,26 +110,36 @@ def _labels_for(source, instrument=None, effects=None, mood=None):
 
 
 def iter_clips(spec):
-    """Yield ``(pcm_bytes, source, meta)`` tuples for every training clip.
+    """Yield ``(pcm_bytes, source, meta)`` for every training clip.
 
-    STUB — wire to your on-disk corpus. ``spec`` is expected to carry at least:
-
-      spec["synth_dir"]      directory of synthesized clips (effects+instrument)
-      spec["mood_dir"]       directory of real mood-tagged clips
-      spec["clip_seconds"]   fixed clip length (default 1.0s)
-
-    Each yielded ``meta`` dict carries the known labels for that source, e.g.::
-
-        ("...pcm...", "synth",     {"instrument": "Electric guitar",
-                                    "effects": ["Reverb", "Delay/echo"]})
-        ("...pcm...", "real_mood", {"mood": ["dreamy", "warm"]})
-
-    Replace the body with real audio loading (soundfile -> int16 PCM @ 16 kHz).
+    Reads the on-disk 16 kHz corpus produced by prep/build_synth.py + prep/ingest.py:
+      <synth_dir>/<variant>/clip_*.wav  (+ .effects.npy, .instrument.json) -> "synth"
+      <mood_dir>/*.wav                  (+ .mood.json)                      -> "real_mood"
+    Each WAV is windowed into fixed clip_seconds chunks; every chunk inherits the
+    file's labels.
     """
-    raise NotImplementedError(
-        "iter_clips is a corpus-binding stub; implement audio loading for your "
-        "on-disk layout (see README.md 'generate the synthetic corpus')."
-    )
+    import glob, json, os
+    from prep.audio import to_pcm16k, window_clips
+
+    variant = spec.get("variant", "isolated")
+    clip_seconds = float(spec.get("clip_seconds", 1.0))
+
+    synth_root = os.path.join(spec["synth_dir"], variant)
+    for wav in sorted(glob.glob(os.path.join(synth_root, "*.wav"))):
+        base = wav[:-4]
+        eff = np.load(base + ".effects.npy") if os.path.exists(base + ".effects.npy") \
+            else np.zeros(len(EFFECTS), dtype=np.float32)
+        inst = json.load(open(base + ".instrument.json")) \
+            if os.path.exists(base + ".instrument.json") else []
+        for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
+            yield pcm, "synth", {"instrument": inst, "effects": eff}
+
+    for wav in sorted(glob.glob(os.path.join(spec["mood_dir"], "*.wav"))):
+        base = wav[:-4]
+        mood = json.load(open(base + ".mood.json")) \
+            if os.path.exists(base + ".mood.json") else []
+        for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
+            yield pcm, "real_mood", {"mood": mood}
 
 
 def make_dataset(spec, n_mels=128, frames=64, batch_size=32, shuffle=1024):
