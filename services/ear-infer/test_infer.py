@@ -34,19 +34,35 @@ def test_infer_end_to_end_real_model(monkeypatch):
     import pytest
     if not os.path.exists(FIX):
         pytest.skip("fixture not built")
-    try:
-        import tflite_runtime  # noqa
-    except Exception:
-        pytest.skip("tflite_runtime not installed in this venv")
-    monkeypatch.setenv("EAR_INFER_MODEL", FIX)
-    m = infer.Model()
-    assert m.interp is not None
+
+    # Try to obtain a TFLite interpreter from whichever backend is importable.
+    # Order: tflite_runtime (lightweight), pycoral (Edge TPU), tensorflow.lite (full TF).
+    interp = None
+    for _loader in (
+        lambda: __import__("tflite_runtime.interpreter", fromlist=["Interpreter"]).Interpreter(model_path=FIX),
+        lambda: __import__("pycoral.utils.edgetpu", fromlist=["make_interpreter"]).make_interpreter(FIX),
+        lambda: __import__("tensorflow", fromlist=["lite"]).lite.Interpreter(model_path=FIX),
+    ):
+        try:
+            interp = _loader()
+            break
+        except Exception:
+            continue
+    if interp is None:
+        pytest.skip("no TFLite backend (tflite_runtime / pycoral / tensorflow) available in this venv")
+
+    interp.allocate_tensors()
+    # Inject interpreter directly so we bypass EAR_INFER_MODEL path lookup
+    m = infer.Model.__new__(infer.Model)
+    m.interp = interp
+
     pcm = (np.random.rand(16000) * 2 - 1).astype(np.float32)
     pcm = (pcm * 32767).astype("<i2").tobytes()
     out = m.infer(pcm, "isolated")
     assert set(out) == {"instruments", "effects", "mood"}
     assert all("label" in d and "confidence" in d for d in out["effects"])
-    # labels come from the real vocab
+    # labels come from the real vocab — these assertions also catch head mis-routing
+    # (mis-routing would crash with IndexError or return labels from the wrong vocab)
     assert all(d["label"] in infer.EFFECTS for d in out["effects"])
     assert all(d["label"] in infer.INSTRUMENTS for d in out["instruments"])
     assert all(d["label"] in infer.MOOD for d in out["mood"])

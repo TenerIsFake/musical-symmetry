@@ -87,13 +87,25 @@ class Model:
                 self.interp = None
 
     def _match_outputs(self, out_details):
-        heads = ["instrument", "effects", "mood"]
+        # TFLite strips Keras output-layer names to "StatefulPartitionedCall:N", so
+        # substring-matching on head names fails and positional order is not guaranteed.
+        # The three head widths are DISTINCT (instrument=19, effects=22, mood=8), making
+        # width-matching robust and unambiguous.
+        head_widths = {
+            "instrument": len(INSTRUMENTS),   # 19
+            "effects":    len(EFFECTS),        # 22
+            "mood":       len(MOOD),           # 8
+        }
         by_head = {}
-        for name in heads:
-            match = next((d for d in out_details if name in d["name"]), None)
-            if match is None:   # fall back to positional HEADS order
-                match = out_details[heads.index(name)]
-            by_head[name] = match
+        for head_name, width in head_widths.items():
+            matches = [d for d in out_details if d["shape"][-1] == width]
+            if len(matches) != 1:
+                raise ValueError(
+                    f"_match_outputs: expected exactly 1 output tensor with width {width} "
+                    f"for head '{head_name}', found {len(matches)}. "
+                    f"Output tensors: {[(d['name'], d['shape']) for d in out_details]}"
+                )
+            by_head[head_name] = matches[0]
         return by_head
 
     def infer(self, pcm: bytes, domain: str):
