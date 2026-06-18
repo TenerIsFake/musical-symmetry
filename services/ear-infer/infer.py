@@ -38,6 +38,38 @@ def _stub_heads(pcm: bytes):
         return out
     return {"instruments": pick(INSTRUMENTS,1,0), "effects": pick(EFFECTS,2,5), "mood": pick(MOOD,2,11)}
 
+def _fix_frames(logmel, frames):
+    n_mels, t = logmel.shape
+    if t == frames:
+        return logmel
+    if t > frames:
+        return logmel[:, :frames]
+    pad = np.zeros((n_mels, frames - t), dtype=logmel.dtype)
+    return np.concatenate([logmel, pad], axis=1)
+
+def _quant_input(value, detail):
+    if detail["dtype"] == np.float32:
+        return value.astype(np.float32)
+    scale, zero = detail["quantization"]
+    q = np.round(value / scale + zero)
+    info = np.iinfo(detail["dtype"])
+    return np.clip(q, info.min, info.max).astype(detail["dtype"])
+
+def _dequant(value, detail):
+    scale, zero = detail["quantization"]
+    if scale == 0:
+        return value.astype(np.float32)
+    return (value.astype(np.float32) - zero) * scale
+
+def _decode(prob, labels, decision=0.5, top_k=0):
+    order = np.argsort(prob)[::-1]
+    picks = [i for i in order if prob[i] >= decision]
+    if not picks:
+        picks = [int(order[0])]
+    if top_k:
+        picks = picks[:top_k]
+    return [{"label": labels[i], "confidence": round(float(prob[i]), 2)} for i in picks]
+
 class Model:
     def __init__(self):
         self.interp = None
