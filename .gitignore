@@ -16,3 +16,4 @@ packages/ui/android/local.properties
 *.keystore
 *.jks
 packages/timbria-api/package-lock.json
+services/ear-infer/venv/

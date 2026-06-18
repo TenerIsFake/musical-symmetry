@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]
+numpy
+# Edge TPU (Windows host): pip install pycoral
+# CPU inference (no Coral): pip install tflite-runtime
