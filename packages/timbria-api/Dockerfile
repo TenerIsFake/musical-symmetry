@@ -1,5 +1,6 @@
 FROM node:20-alpine
-RUN apk add --no-cache python3 make g++ su-exec
+# ffmpeg: required by byear/audio-normalize.ts to decode uploaded clips to 16kHz mono PCM
+RUN apk add --no-cache python3 make g++ su-exec ffmpeg
 WORKDIR /app
 
 COPY package.json ./

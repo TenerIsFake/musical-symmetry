@@ -53,6 +53,11 @@ services:
       - CF_ACCESS_AUD=${CF_ACCESS_AUD_TIMBRIA:-}
       - REVENUECAT_API_KEY=${REVENUECAT_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # Remote Coral Edge-TPU ear-infer service on the Windows host (10.0.0.155:9009).
+      # Unset -> StubEarInfer; set -> ResilientEarInfer(Http, Stub fallback). See
+      # services/ear-infer/ + build-ear-infer.ts. Windows LAN IP (not the WSL gateway,
+      # which changes across WSL restarts).
+      - EAR_INFER_URL=${EAR_INFER_URL:-http://10.0.0.155:9009}
     volumes:
       - timbria-data:/data
     restart: unless-stopped
