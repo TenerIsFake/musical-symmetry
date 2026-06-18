@@ -51,13 +51,24 @@ def _quant_input(value, detail):
     return np.clip(q, info.min, info.max).astype(detail["dtype"])
 
 
+def _match_outputs(out_details, heads):
+    by_head = {}
+    for name in heads:
+        match = next((d for d in out_details if name in d["name"]), None)
+        if match is None:
+            raise ValueError(f"no TFLite output tensor matches head '{name}'; "
+                             f"available: {[d['name'] for d in out_details]}")
+        by_head[name] = match
+    return by_head
+
+
 def run_interpreter(tflite_path, dataset):
     interp = tf.lite.Interpreter(model_path=tflite_path)
     interp.allocate_tensors()
     in_detail = interp.get_input_details()[0]
     out_details = interp.get_output_details()
-    # map output tensors to heads by insertion order of HEADS
-    out_by_head = dict(zip(HEADS.keys(), out_details))
+    # map output tensors to heads by name (TFLite may reorder outputs during conversion)
+    out_by_head = _match_outputs(out_details, HEADS)
 
     preds = {h: [] for h in HEADS}
     trues = {h: [] for h in HEADS}
