@@ -129,15 +129,21 @@ def iter_clips(spec):
         base = wav[:-4]
         eff = np.load(base + ".effects.npy") if os.path.exists(base + ".effects.npy") \
             else np.zeros(len(EFFECTS), dtype=np.float32)
-        inst = json.load(open(base + ".instrument.json")) \
-            if os.path.exists(base + ".instrument.json") else []
+        if os.path.exists(base + ".instrument.json"):
+            with open(base + ".instrument.json") as f:
+                inst = json.load(f)
+        else:
+            inst = []
         for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
             yield pcm, "synth", {"instrument": inst, "effects": eff}
 
     for wav in sorted(glob.glob(os.path.join(spec["mood_dir"], "*.wav"))):
         base = wav[:-4]
-        mood = json.load(open(base + ".mood.json")) \
-            if os.path.exists(base + ".mood.json") else []
+        if os.path.exists(base + ".mood.json"):
+            with open(base + ".mood.json") as f:
+                mood = json.load(f)
+        else:
+            mood = []
         for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
             yield pcm, "real_mood", {"mood": mood}
 
