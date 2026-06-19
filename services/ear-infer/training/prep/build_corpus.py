@@ -87,7 +87,8 @@ def main(argv=None):
         try:
             effective_max = nsynth_max if nsynth_max and nsynth_max > 0 else None
             n = ingest_dry_to_synth(audio_dir, synth_out, "nsynth",
-                                    seed=seed, max_files=effective_max)
+                                    seed=seed, max_files=effective_max,
+                                    prefix=f"nsynth_{split}_")
             log.info("nsynth/%s: %d clips written", split, n)
             nsynth_total += n
         except Exception as exc:
@@ -101,7 +102,8 @@ def main(argv=None):
         masters, "idmt_audio_effects",
         "IDMT-SMT-AUDIO-EFFECTS", "IDMT-SMT-AUDIO-EFFECTS", "extracted")
     try:
-        n = ingest_idmt_audio_effects(idmt_effects_extracted, synth_out, seed=seed)
+        n = ingest_idmt_audio_effects(idmt_effects_extracted, synth_out, seed=seed,
+                                      prefix="idmtfx_")
         log.info("idmt_audio_effects: %d clips written", n)
         summary["idmt_audio_effects"] = n
     except Exception as exc:

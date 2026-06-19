@@ -1,8 +1,10 @@
 """Map each external dataset's native labels onto our fixed vocab, and write the
 16 kHz corpus. Label maps are deliberately explicit so the vocab stays auditable."""
-import glob, json, os
+import glob, json, logging, os
 import numpy as np
 import soundfile as sf
+
+log = logging.getLogger(__name__)
 
 from labels import INSTRUMENTS, EFFECTS, MOOD
 from prep.audio import array_to_pcm16k, to_pcm16k
@@ -59,10 +61,12 @@ def medleydb_instrument(name):
 
 # ---- corpus writers (file IO; run on the Lambda box in Phase 2) ----
 
-def ingest_dry_to_synth(dry_root, variant_out_dir, dataset, seed=0, max_files=None):
+def ingest_dry_to_synth(dry_root, variant_out_dir, dataset, seed=0, max_files=None, prefix=""):
     """Walk a dataset's dry audio and feed (array, sr, instrument) to build_synth_corpus.
     `dataset` selects the per-file instrument labeler.
-    `max_files` limits to the first N files (sorted for determinism); None = all."""
+    `max_files` limits to the first N files (sorted for determinism); None = all.
+    `prefix` is prepended to each output filename to avoid collisions when multiple
+    callers write into the same out_dir."""
     def items():
         wavs = sorted(glob.glob(os.path.join(dry_root, "**", "*.wav"), recursive=True))
         if max_files is not None:
@@ -77,7 +81,7 @@ def ingest_dry_to_synth(dry_root, variant_out_dir, dataset, seed=0, max_files=No
             else:
                 inst = ["Other"]
             yield x, sr, inst
-    return build_synth_corpus(items(), variant_out_dir, seed=seed)
+    return build_synth_corpus(items(), variant_out_dir, seed=seed, prefix=prefix)
 
 IDMT_INSTRUMENT = {
     "idmt_guitar": "Electric guitar",
@@ -91,19 +95,26 @@ IDMT_INSTRUMENT = {
 
 def ingest_idmt_instruments(masters_root, variant_out_dir, seed=0):
     """Walk each IDMT folder under masters_root, apply random synth chains,
-    and write clips via build_synth_corpus.  Returns total clips written."""
-    def items():
-        for folder_key, instrument_label in IDMT_INSTRUMENT.items():
-            folder = os.path.join(masters_root, folder_key)
-            if not os.path.isdir(folder):
-                continue
+    and write clips via build_synth_corpus.  Returns total clips written.
+    Each dataset key gets a unique filename prefix to avoid collisions."""
+    total = 0
+    for folder_key, instrument_label in IDMT_INSTRUMENT.items():
+        folder = os.path.join(masters_root, folder_key)
+        if not os.path.isdir(folder):
+            continue
+
+        def items(folder=folder, instrument_label=instrument_label):
             for wav in sorted(glob.glob(os.path.join(folder, "**", "*.wav"), recursive=True)):
                 try:
                     x, sr = sf.read(wav, dtype="float32", always_2d=False)
                 except Exception:
+                    log.warning("ingest_idmt_instruments: skipped unreadable file %s", wav)
                     continue
                 yield x, sr, [instrument_label]
-    return build_synth_corpus(items(), variant_out_dir, seed=seed)
+
+        total += build_synth_corpus(items(), variant_out_dir, seed=seed,
+                                    prefix=f"{folder_key}_")
+    return total
 
 
 def musdb_active_instruments(track_dir, rms_thresh=0.01):
@@ -121,6 +132,7 @@ def musdb_active_instruments(track_dir, rms_thresh=0.01):
         try:
             x, _ = sf.read(path, dtype="float32", always_2d=False)
         except Exception:
+            log.warning("musdb_active_instruments: skipped unreadable stem %s", path)
             continue
         if x.ndim > 1:
             x = x.mean(axis=1)
@@ -154,6 +166,7 @@ def ingest_musdb_to_mix(musdb_root, mix_out_dir, seed=0):
             try:
                 x, sr = sf.read(mixture_path, dtype="float32", always_2d=False)
             except Exception:
+                log.warning("ingest_musdb_to_mix: skipped unreadable mixture %s", mixture_path)
                 continue
             pcm = array_to_pcm16k(x, sr)
             # Decode PCM bytes back to float32 for soundfile write
@@ -204,16 +217,17 @@ def idmt_effects_instrument(top_folder):
     return ["Other"]
 
 
-def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0):
+def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0, prefix=""):
     """Walk <extracted_root>/<subset>/Samples/<effect>/*.wav. For each wav:
 
     eff = idmt_effect_label(<effect folder>); if eff is None -> skip (e.g. EQ).
     inst = idmt_effects_instrument(<subset folder>).
-    Write clip_{i:06d}.wav (16 kHz int16 via prep.audio.to_pcm16k then write PCM_16),
-    clip_{i:06d}.effects.npy (multi-hot of eff over EFFECTS; all-zero for NoFX),
-    clip_{i:06d}.instrument.json (inst). Skip unreadable files. Return count written.
+    Write <prefix>clip_{i:06d}.wav (16 kHz int16 via prep.audio.to_pcm16k then write PCM_16),
+    <prefix>clip_{i:06d}.effects.npy (multi-hot of eff over EFFECTS; all-zero for NoFX),
+    <prefix>clip_{i:06d}.instrument.json (inst). Skip unreadable files. Return count written.
     These are source='synth' clips (instrument+effects both supervised).
-    """
+    `prefix` is prepended to each output filename to avoid collisions when multiple
+    callers write into the same out_dir."""
     from synth import multihot  # local import to keep module-level deps minimal
 
     os.makedirs(out_dir, exist_ok=True)
@@ -243,10 +257,11 @@ def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0):
                 try:
                     pcm = to_pcm16k(wav_path)
                 except Exception:
+                    log.warning("ingest_idmt_audio_effects: skipped unreadable file %s", wav_path)
                     continue
 
                 samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-                base = os.path.join(out_dir, f"clip_{n:06d}")
+                base = os.path.join(out_dir, f"{prefix}clip_{n:06d}")
                 sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
                 np.save(base + ".effects.npy", multihot(eff))
                 with open(base + ".instrument.json", "w") as f:

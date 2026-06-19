@@ -83,27 +83,33 @@ def test_ingest_dry_to_synth_max_files(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_build_corpus_smoke(tmp_path):
-    """Tiny synthetic masters tree → corpus gets ≥1 clip in each subdir; summary returned."""
+    """Tiny synthetic masters tree → corpus gets ≥1 clip in each subdir; summary returned.
+
+    Collision check: IDMT guitar (2 wavs) + NSynth-valid (2 wavs) + IDMT audio-effects (2 wavs)
+    all write into synth/isolated.  Without per-stage prefixes they would collide and overwrite,
+    leaving fewer files than the sum of summary counts.  With prefixes every filename is unique.
+    """
     from prep import build_corpus
 
     masters = tmp_path / "masters"
     corpus = tmp_path / "corpus"
 
-    # --- IDMT guitar stub (for ingest_idmt_instruments) ---
+    # --- IDMT guitar stub (for ingest_idmt_instruments) — 2 wavs ---
     _write_tiny_wav(str(masters / "idmt_guitar" / "a.wav"))
+    _write_tiny_wav(str(masters / "idmt_guitar" / "b.wav"))
 
-    # --- NSynth stub (nsynth-valid/audio, which is small so no max concern) ---
-    _write_tiny_wav(
-        str(masters / "nsynth" / "nsynth-valid" / "audio" /
-            "guitar_acoustic_001-060-025.wav")
-    )
+    # --- NSynth stub (nsynth-valid/audio) — 2 wavs ---
+    nsynth_audio = masters / "nsynth" / "nsynth-valid" / "audio"
+    _write_tiny_wav(str(nsynth_audio / "guitar_acoustic_001-060-025.wav"))
+    _write_tiny_wav(str(nsynth_audio / "guitar_acoustic_001-060-050.wav"))
 
-    # --- IDMT audio-effects stub ---
+    # --- IDMT audio-effects stub — 2 wavs ---
     # Path: <extracted_root>/<subset>/Samples/<effect>/<wav>
     # extracted_root = masters/idmt_audio_effects/IDMT-SMT-AUDIO-EFFECTS/IDMT-SMT-AUDIO-EFFECTS/extracted
     extracted = (masters / "idmt_audio_effects" /
                  "IDMT-SMT-AUDIO-EFFECTS" / "IDMT-SMT-AUDIO-EFFECTS" / "extracted")
     _write_tiny_wav(str(extracted / "Gitarre monophon" / "Samples" / "Chorus" / "c.wav"))
+    _write_tiny_wav(str(extracted / "Gitarre monophon" / "Samples" / "Chorus" / "d.wav"))
 
     # --- MUSDB18-HQ stub ---
     track_dir = masters / "musdb18hq" / "train" / "T"
@@ -123,7 +129,7 @@ def test_build_corpus_smoke(tmp_path):
         1\t10\t20\t00/1.mp3\t180\tmood/theme---dark
     """))
 
-    # Run build_corpus with small nsynth_max to avoid processing all (only 1 file anyway)
+    # Run build_corpus with small nsynth_max to avoid processing all (only 2 files anyway)
     summary = build_corpus.main([
         "--masters", str(masters),
         "--corpus", str(corpus),
@@ -154,3 +160,25 @@ def test_build_corpus_smoke(tmp_path):
     # Summary dict must have numeric counts (not error-raised)
     for key, val in summary.items():
         assert isinstance(val, (int, float)), f"summary[{key!r}] is not numeric: {val!r}"
+
+    # --- Collision / overwrite assertion ---
+    # On-disk wav count in synth/isolated must equal the sum of all synth-isolated writers'
+    # summary counts.  Without per-stage prefixes, clip_000000 / clip_000001 from each stage
+    # would overwrite each other, leaving fewer files than the sum.
+    expected_synth_count = (
+        summary.get("idmt_instruments", 0) +
+        summary.get("nsynth", 0) +
+        summary.get("idmt_audio_effects", 0)
+    )
+    ondisk_count = len(synth_wavs)
+    assert ondisk_count == expected_synth_count, (
+        f"synth/isolated on-disk count ({ondisk_count}) != summary sum "
+        f"({expected_synth_count}); likely a filename collision/overwrite"
+    )
+
+    # All filenames must be globally unique (no overwrite)
+    wav_names = [w.name for w in synth_wavs]
+    assert len(wav_names) == len(set(wav_names)), (
+        f"Duplicate filenames detected in synth/isolated: "
+        f"{[n for n in wav_names if wav_names.count(n) > 1]}"
+    )
