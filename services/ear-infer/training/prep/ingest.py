@@ -265,7 +265,7 @@ def parse_jamendo_moodtheme_tsv(tsv_path):
     result = {}
     with open(tsv_path, encoding="utf-8") as fh:
         for line in fh:
-            line = line.rstrip("\n")
+            line = line.rstrip("\r\n")
             if not line:
                 continue
             parts = line.split("\t")

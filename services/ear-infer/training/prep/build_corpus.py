@@ -39,7 +39,7 @@ def main(argv=None):
     parser.add_argument("--corpus", required=True,
                         help="Output corpus root (will be created if absent).")
     parser.add_argument("--nsynth-max", type=int, default=40000,
-                        help="Max NSynth files per split (default 40000; None=all).")
+                        help="max NSynth clips per split (<=0 = all; default 40000).")
     parser.add_argument("--seed", type=int, default=0,
                         help="Global RNG seed passed to all ingest calls.")
     parser.add_argument("--jamendo-tsv", default=None,
@@ -85,8 +85,9 @@ def main(argv=None):
             log.info("nsynth/%s: audio dir not found, skipping", split)
             continue
         try:
+            effective_max = nsynth_max if nsynth_max and nsynth_max > 0 else None
             n = ingest_dry_to_synth(audio_dir, synth_out, "nsynth",
-                                    seed=seed, max_files=nsynth_max)
+                                    seed=seed, max_files=effective_max)
             log.info("nsynth/%s: %d clips written", split, n)
             nsynth_total += n
         except Exception as exc:
