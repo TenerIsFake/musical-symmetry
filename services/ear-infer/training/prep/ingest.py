@@ -161,6 +161,95 @@ def ingest_musdb_to_mix(musdb_root, mix_out_dir, seed=0):
     return n
 
 
+# ---------------------------------------------------------------------------
+# INGEST-B: IDMT-SMT-Audio-Effects (real single-effect-labeled guitar/bass)
+# ---------------------------------------------------------------------------
+
+# IDMT effect-folder name -> our EFFECTS vocab label.
+# NoFX = clean (no entry here; handled explicitly in idmt_effect_label).
+# EQ has no vocab equivalent -> clips dropped (not in this map).
+_IDMT_EFFECT = {
+    "Chorus": "Chorus", "Distortion": "Distortion", "Flanger": "Flanger",
+    "Phaser": "Phaser", "Tremolo": "Tremolo", "Vibrato": "Vibrato",
+    "Overdrive": "Overdrive", "Reverb": "Reverb",
+    "FeedbackDelay": "Delay/echo", "SlapbackDelay": "Slapback",
+}
+
+
+def idmt_effect_label(folder):
+    """Folder name -> effect label list, or None to SKIP the clip.
+
+    NoFX -> [] (clean, valid). Mapped -> [vocab name]. EQ/unknown -> None (skip).
+    """
+    if folder == "NoFX":
+        return []
+    if folder in _IDMT_EFFECT:
+        return [_IDMT_EFFECT[folder]]
+    return None
+
+
+def idmt_effects_instrument(top_folder):
+    """Top subset folder -> instrument label list ('Gitarre*'->guitar, 'Bass*'->bass)."""
+    t = top_folder.lower()
+    if t.startswith("gitarre"):
+        return ["Electric guitar"]
+    if t.startswith("bass"):
+        return ["Bass guitar"]
+    return ["Other"]
+
+
+def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0):
+    """Walk <extracted_root>/<subset>/Samples/<effect>/*.wav. For each wav:
+
+    eff = idmt_effect_label(<effect folder>); if eff is None -> skip (e.g. EQ).
+    inst = idmt_effects_instrument(<subset folder>).
+    Write clip_{i:06d}.wav (16 kHz int16 via prep.audio.to_pcm16k then write PCM_16),
+    clip_{i:06d}.effects.npy (multi-hot of eff over EFFECTS; all-zero for NoFX),
+    clip_{i:06d}.instrument.json (inst). Skip unreadable files. Return count written.
+    These are source='synth' clips (instrument+effects both supervised).
+    """
+    from synth import multihot  # local import to keep module-level deps minimal
+
+    os.makedirs(out_dir, exist_ok=True)
+    n = 0
+
+    for subset in sorted(os.listdir(extracted_root)):
+        subset_path = os.path.join(extracted_root, subset)
+        samples_path = os.path.join(subset_path, "Samples")
+        if not os.path.isdir(samples_path):
+            continue
+
+        inst = idmt_effects_instrument(subset)
+
+        for effect_folder in sorted(os.listdir(samples_path)):
+            eff = idmt_effect_label(effect_folder)
+            if eff is None:
+                continue  # skip EQ and unknown folders
+
+            effect_path = os.path.join(samples_path, effect_folder)
+            if not os.path.isdir(effect_path):
+                continue
+
+            for wav_name in sorted(os.listdir(effect_path)):
+                if not wav_name.lower().endswith(".wav"):
+                    continue
+                wav_path = os.path.join(effect_path, wav_name)
+                try:
+                    pcm = to_pcm16k(wav_path)
+                except Exception:
+                    continue
+
+                samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+                base = os.path.join(out_dir, f"clip_{n:06d}")
+                sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
+                np.save(base + ".effects.npy", multihot(eff))
+                with open(base + ".instrument.json", "w") as f:
+                    json.dump(inst, f)
+                n += 1
+
+    return n
+
+
 def ingest_jamendo_to_mood(jamendo_root, mood_out_dir, tags_by_id):
     """tags_by_id: {track_id: [raw mood/theme tags]} parsed from the Jamendo TSV."""
     os.makedirs(mood_out_dir, exist_ok=True)
