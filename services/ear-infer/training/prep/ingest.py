@@ -332,7 +332,7 @@ def parse_jamendo_moodtheme_tsv(tsv_path):
             if len(parts) < 5:
                 continue
             path_field = parts[3]
-            track_id = os.path.splitext(os.path.basename(path_field))[0]
+            track_id = os.path.basename(path_field).split(".")[0]
             raw_tags = parts[5:]  # columns 6 onward (0-indexed: 5+)
             mood_tags = [t for t in raw_tags if t.startswith("mood/theme---")]
             result[track_id] = mood_tags
@@ -355,7 +355,7 @@ def ingest_jamendo_to_mood(jamendo_root, mood_out_dir, tags_by_id, max_workers=1
     # Filter to mood-tagged tracks BEFORE dispatching (pure dict/string ops, no I/O)
     work_items = []
     for audio_path in all_audio:
-        tid = os.path.splitext(os.path.basename(audio_path))[0]
+        tid = os.path.basename(audio_path).split(".")[0]
         mood = jamendo_tags_to_mood(tags_by_id.get(tid, []))
         if not mood:
             continue

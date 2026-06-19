@@ -53,6 +53,47 @@ def test_parse_jamendo_tsv(tmp_path):
     assert result["5678"] == []
 
 
+def test_jamendo_low_mp3_id_matches(tmp_path):
+    """Audio file 1001308.low.mp3 → id '1001308'; TSV path 48/948.mp3 → id '948'.
+    Both use first-dot split so they match correctly in tags_by_id lookup."""
+    from prep.ingest import parse_jamendo_moodtheme_tsv, ingest_jamendo_to_mood
+
+    # Create TSV with path 48/948.mp3 (single extension)
+    tsv = tmp_path / "autotagging_moodtheme.tsv"
+    tsv.write_text(textwrap.dedent("""\
+        TRACK_ID\tARTIST_ID\tALBUM_ID\tPATH\tDURATION\tTAG1
+        948\t10\t20\t48/948.mp3\t180\tmood/theme---dark
+        1001308\t11\t21\t51/1001308.low.mp3\t200\tmood/theme---happy
+    """))
+
+    # Parse TSV — should get keys '948' and '1001308'
+    tags_by_id = parse_jamendo_moodtheme_tsv(str(tsv))
+    assert "948" in tags_by_id, "TSV id '948' not found (path 48/948.mp3)"
+    assert "1001308" in tags_by_id, "TSV id '1001308' not found (path 51/1001308.low.mp3)"
+
+    # Create actual audio files with matching IDs
+    jamendo_root = tmp_path / "jamendo"
+    jamendo_root.mkdir()
+
+    # Write WAV files but name them with .low.mp3 suffix to simulate the bug scenario
+    # (soundfile can't write mp3, but to_pcm16k reads via libsndfile which handles any audio)
+    wav_948 = jamendo_root / "948.low.wav"
+    wav_1001308 = jamendo_root / "1001308.low.wav"
+    _write_tiny_wav(str(wav_948))
+    _write_tiny_wav(str(wav_1001308))
+
+    # Ingest should find both WAV files and write mood clips
+    out_dir = tmp_path / "mood_out"
+    count = ingest_jamendo_to_mood(str(jamendo_root), str(out_dir), tags_by_id, max_workers=1)
+
+    # Both files match their mood tags → both should be written
+    assert count == 2, f"Expected 2 mood clips, got {count}"
+
+    # Verify files exist with correct names (ids extracted from .low.wav → bare numeric id)
+    assert os.path.exists(str(out_dir / "948.wav")), "948.wav not written"
+    assert os.path.exists(str(out_dir / "1001308.wav")), "1001308.wav not written"
+
+
 # ---------------------------------------------------------------------------
 # Part 1 — ingest_dry_to_synth max_files
 # ---------------------------------------------------------------------------
