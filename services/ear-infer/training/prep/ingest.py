@@ -59,11 +59,15 @@ def medleydb_instrument(name):
 
 # ---- corpus writers (file IO; run on the Lambda box in Phase 2) ----
 
-def ingest_dry_to_synth(dry_root, variant_out_dir, dataset, seed=0):
+def ingest_dry_to_synth(dry_root, variant_out_dir, dataset, seed=0, max_files=None):
     """Walk a dataset's dry audio and feed (array, sr, instrument) to build_synth_corpus.
-    `dataset` selects the per-file instrument labeler."""
+    `dataset` selects the per-file instrument labeler.
+    `max_files` limits to the first N files (sorted for determinism); None = all."""
     def items():
-        for wav in sorted(glob.glob(os.path.join(dry_root, "**", "*.wav"), recursive=True)):
+        wavs = sorted(glob.glob(os.path.join(dry_root, "**", "*.wav"), recursive=True))
+        if max_files is not None:
+            wavs = wavs[:max_files]
+        for wav in wavs:
             x, sr = sf.read(wav, dtype="float32", always_2d=False)
             if dataset == "nsynth":
                 fam = os.path.basename(wav).split("_")[0]      # e.g. "guitar_acoustic_001-..."
@@ -248,6 +252,34 @@ def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0):
                 n += 1
 
     return n
+
+
+def parse_jamendo_moodtheme_tsv(tsv_path):
+    """Parse MTG-Jamendo autotagging_moodtheme.tsv.
+
+    Columns (tab-separated): TRACK_ID ARTIST_ID ALBUM_ID PATH DURATION TAG1 TAG2 ...
+    Returns {track_id: [raw mood/theme tags]} where track_id is the basename of PATH
+    without extension (e.g. PATH "00/1234.mp3" → "1234").
+    Keeps only tags starting with "mood/theme---". Skips the header row.
+    """
+    result = {}
+    with open(tsv_path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            if not line:
+                continue
+            parts = line.split("\t")
+            # Skip header (first column == "TRACK_ID")
+            if parts[0] == "TRACK_ID":
+                continue
+            if len(parts) < 5:
+                continue
+            path_field = parts[3]
+            track_id = os.path.splitext(os.path.basename(path_field))[0]
+            raw_tags = parts[5:]  # columns 6 onward (0-indexed: 5+)
+            mood_tags = [t for t in raw_tags if t.startswith("mood/theme---")]
+            result[track_id] = mood_tags
+    return result
 
 
 def ingest_jamendo_to_mood(jamendo_root, mood_out_dir, tags_by_id):
