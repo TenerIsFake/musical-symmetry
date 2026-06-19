@@ -35,3 +35,38 @@ def test_iter_clips_variant_selects_subdir(tmp_path):
                 "mood_dir": str(tmp_path / "mood"), "clip_seconds": 1.0}
     # mix subdir does not exist -> only mood clips yielded, no crash
     assert [s for _, s, _ in iter_clips(spec_mix)] == ["real_mood"]
+
+def test_iter_clips_reads_inst_as_real_instrument(tmp_path):
+    spec = _make_corpus(tmp_path)
+    # add inst corpus with one 1s clip + instrument.json sidecar
+    idir = tmp_path / "inst"
+    idir.mkdir(parents=True)
+    sf.write(idir / "track.wav", np.zeros(16000, np.float32), 16000)
+    (idir / "track.instrument.json").write_text(json.dumps(["Vocals", "Bass guitar"]))
+    # update spec to include inst_dir
+    spec["inst_dir"] = str(idir)
+
+    items = list(iter_clips(spec))
+    sources = [s for _, s, _ in items]
+    # expect synth (2 windows) + mood (1) + real_instrument (1)
+    assert sources.count("synth") == 2
+    assert sources.count("real_mood") == 1
+    assert sources.count("real_instrument") == 1
+
+    # verify the real_instrument item
+    for pcm, source, meta in items:
+        if source == "real_instrument":
+            assert meta["instrument"] == ["Vocals", "Bass guitar"]
+            assert len(pcm) == 16000 * 2  # exactly 1s int16
+
+def test_iter_clips_inst_dir_absent_ok(tmp_path):
+    spec = _make_corpus(tmp_path)
+    # inst_dir points to a non-existent directory
+    spec["inst_dir"] = str(tmp_path / "inst_does_not_exist")
+
+    items = list(iter_clips(spec))
+    sources = [s for _, s, _ in items]
+    # expect only synth (2) + mood (1), no crash, no real_instrument
+    assert sources.count("synth") == 2
+    assert sources.count("real_mood") == 1
+    assert sources.count("real_instrument") == 0

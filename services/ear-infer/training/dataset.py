@@ -149,6 +149,19 @@ def iter_clips(spec):
         for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
             yield pcm, "real_mood", {"mood": mood}
 
+    # real_instrument clips from inst/ directory
+    inst_dir = spec.get("inst_dir") or os.path.join(spec.get("data_root", ""), "inst")
+    if inst_dir and os.path.exists(inst_dir):
+        for wav in sorted(glob.glob(os.path.join(inst_dir, "*.wav"))):
+            base = wav[:-4]
+            if os.path.exists(base + ".instrument.json"):
+                with open(base + ".instrument.json") as f:
+                    inst = json.load(f)
+            else:
+                inst = []
+            for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
+                yield pcm, "real_instrument", {"instrument": inst}
+
 
 def make_dataset(spec, n_mels=128, frames=64, batch_size=32, shuffle=1024):
     """Build a ``tf.data.Dataset`` of
