@@ -101,6 +101,8 @@ def _labels_for(source, instrument=None, effects=None, mood=None):
         masks = {"instrument": 1.0, "effects": 1.0, "mood": 0.0}
     elif source == "real_mood":
         masks = {"instrument": 0.0, "effects": 0.0, "mood": 1.0}
+    elif source == "real_instrument":
+        masks = {"instrument": 1.0, "effects": 0.0, "mood": 0.0}
     else:
         raise ValueError(f"unknown clip source: {source!r}")
 

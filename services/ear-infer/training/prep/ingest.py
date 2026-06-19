@@ -4,8 +4,8 @@ import glob, json, os
 import numpy as np
 import soundfile as sf
 
-from labels import INSTRUMENTS, MOOD
-from prep.audio import to_pcm16k
+from labels import INSTRUMENTS, EFFECTS, MOOD
+from prep.audio import array_to_pcm16k, to_pcm16k
 from prep.build_synth import build_synth_corpus
 
 _NSYNTH = {
@@ -74,6 +74,92 @@ def ingest_dry_to_synth(dry_root, variant_out_dir, dataset, seed=0):
                 inst = ["Other"]
             yield x, sr, inst
     return build_synth_corpus(items(), variant_out_dir, seed=seed)
+
+IDMT_INSTRUMENT = {
+    "idmt_guitar": "Electric guitar",
+    "idmt_bass":   "Bass guitar",
+    "idmt_drums":  "Acoustic kit",
+    "idmt_piano":  "Acoustic piano",
+}
+
+
+def ingest_idmt_instruments(masters_root, variant_out_dir, seed=0):
+    """Walk each IDMT folder under masters_root, apply random synth chains,
+    and write clips via build_synth_corpus.  Returns total clips written."""
+    def items():
+        for folder_key, instrument_label in IDMT_INSTRUMENT.items():
+            folder = os.path.join(masters_root, folder_key)
+            if not os.path.isdir(folder):
+                continue
+            for wav in sorted(glob.glob(os.path.join(folder, "**", "*.wav"), recursive=True)):
+                try:
+                    x, sr = sf.read(wav, dtype="float32", always_2d=False)
+                except Exception:
+                    continue
+                yield x, sr, [instrument_label]
+    return build_synth_corpus(items(), variant_out_dir, seed=seed)
+
+
+def musdb_active_instruments(track_dir, rms_thresh=0.01):
+    """Return in-vocab instrument labels for stems whose RMS exceeds rms_thresh.
+
+    Reads vocals, drums, bass, other stems from track_dir, mono-mixes each,
+    and includes the corresponding INSTRUMENTS label when RMS > rms_thresh.
+    """
+    stems = ("vocals", "drums", "bass", "other")
+    active = []
+    for stem in stems:
+        path = os.path.join(track_dir, f"{stem}.wav")
+        if not os.path.exists(path):
+            continue
+        try:
+            x, _ = sf.read(path, dtype="float32", always_2d=False)
+        except Exception:
+            continue
+        if x.ndim > 1:
+            x = x.mean(axis=1)
+        rms = float(np.sqrt(np.mean(x ** 2)))
+        if rms > rms_thresh:
+            active.append(stem)
+    return musdb_stems_to_instruments(active)
+
+
+def ingest_musdb_to_mix(musdb_root, mix_out_dir, seed=0):
+    """Write one 16 kHz PCM clip per MUSDB18 track (mixture.wav), with
+    active-instrument sidecar JSON and a zeroed effects.npy placeholder.
+
+    Effects are never used as labels (source='real_instrument' masks them).
+    Returns the number of tracks written.
+    """
+    os.makedirs(mix_out_dir, exist_ok=True)
+    n = 0
+    for split in ("train", "test"):
+        split_dir = os.path.join(musdb_root, split)
+        if not os.path.isdir(split_dir):
+            continue
+        for track_name in sorted(os.listdir(split_dir)):
+            track_dir = os.path.join(split_dir, track_name)
+            if not os.path.isdir(track_dir):
+                continue
+            mixture_path = os.path.join(track_dir, "mixture.wav")
+            if not os.path.exists(mixture_path):
+                continue
+            instruments = musdb_active_instruments(track_dir)
+            try:
+                x, sr = sf.read(mixture_path, dtype="float32", always_2d=False)
+            except Exception:
+                continue
+            pcm = array_to_pcm16k(x, sr)
+            # Decode PCM bytes back to float32 for soundfile write
+            samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+            base = os.path.join(mix_out_dir, f"clip_{n:06d}")
+            sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
+            with open(base + ".instrument.json", "w") as f:
+                json.dump(instruments, f)
+            np.save(base + ".effects.npy", np.zeros(len(EFFECTS), dtype=np.float32))
+            n += 1
+    return n
+
 
 def ingest_jamendo_to_mood(jamendo_root, mood_out_dir, tags_by_id):
     """tags_by_id: {track_id: [raw mood/theme tags]} parsed from the Jamendo TSV."""
