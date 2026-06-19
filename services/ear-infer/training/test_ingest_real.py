@@ -48,7 +48,15 @@ def test_real_instrument_source_unknown_raises():
 # ---------------------------------------------------------------------------
 
 def test_idmt_instrument_map_in_vocab():
-    """Every value in IDMT_INSTRUMENT must be a valid INSTRUMENTS label."""
+    """Every value in IDMT_INSTRUMENT must be a valid INSTRUMENTS label.
+    Also asserts that idmt_chords and idmt_chord_sequences map to Electric guitar."""
+    # Check the two new entries exist and map to Electric guitar
+    assert "idmt_chords" in IDMT_INSTRUMENT
+    assert IDMT_INSTRUMENT["idmt_chords"] == "Electric guitar"
+    assert "idmt_chord_sequences" in IDMT_INSTRUMENT
+    assert IDMT_INSTRUMENT["idmt_chord_sequences"] == "Electric guitar"
+
+    # All six values must be in INSTRUMENTS vocab
     for folder_key, instrument_label in IDMT_INSTRUMENT.items():
         assert instrument_label in INSTRUMENTS, (
             f"IDMT_INSTRUMENT[{folder_key!r}] = {instrument_label!r} not in INSTRUMENTS vocab"

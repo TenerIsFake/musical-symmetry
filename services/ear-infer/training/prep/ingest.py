@@ -84,6 +84,8 @@ IDMT_INSTRUMENT = {
     "idmt_bass":   "Bass guitar",
     "idmt_drums":  "Acoustic kit",
     "idmt_piano":  "Acoustic piano",
+    "idmt_chords": "Electric guitar",
+    "idmt_chord_sequences": "Electric guitar",
 }
 
 
