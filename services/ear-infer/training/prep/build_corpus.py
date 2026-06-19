@@ -45,12 +45,16 @@ def main(argv=None):
     parser.add_argument("--jamendo-tsv", default=None,
                         help="Path to autotagging_moodtheme.tsv "
                              "(default: <masters>/jamendo_mood/autotagging_moodtheme.tsv).")
+    parser.add_argument("--workers", type=int, default=16,
+                        help="Thread-pool size for parallel ingest reads (default 16; "
+                             "set to 1 for serial/debug mode).")
     args = parser.parse_args(argv)
 
     masters = args.masters
     corpus = args.corpus
     seed = args.seed
     nsynth_max = args.nsynth_max
+    workers = args.workers
     jamendo_tsv = args.jamendo_tsv or os.path.join(
         masters, "jamendo_mood", "autotagging_moodtheme.tsv")
 
@@ -68,7 +72,7 @@ def main(argv=None):
     # Stage 1a: IDMT instruments (synth/isolated)
     # ------------------------------------------------------------------
     try:
-        n = ingest_idmt_instruments(masters, synth_out, seed=seed)
+        n = ingest_idmt_instruments(masters, synth_out, seed=seed, max_workers=workers)
         log.info("idmt_instruments: %d clips written", n)
         summary["idmt_instruments"] = n
     except Exception as exc:
@@ -88,7 +92,7 @@ def main(argv=None):
             effective_max = nsynth_max if nsynth_max and nsynth_max > 0 else None
             n = ingest_dry_to_synth(audio_dir, synth_out, "nsynth",
                                     seed=seed, max_files=effective_max,
-                                    prefix=f"nsynth_{split}_")
+                                    prefix=f"nsynth_{split}_", max_workers=workers)
             log.info("nsynth/%s: %d clips written", split, n)
             nsynth_total += n
         except Exception as exc:
@@ -103,7 +107,7 @@ def main(argv=None):
         "IDMT-SMT-AUDIO-EFFECTS", "IDMT-SMT-AUDIO-EFFECTS", "extracted")
     try:
         n = ingest_idmt_audio_effects(idmt_effects_extracted, synth_out, seed=seed,
-                                      prefix="idmtfx_")
+                                      prefix="idmtfx_", max_workers=workers)
         log.info("idmt_audio_effects: %d clips written", n)
         summary["idmt_audio_effects"] = n
     except Exception as exc:
@@ -114,7 +118,8 @@ def main(argv=None):
     # Stage 2: MUSDB18-HQ (inst)
     # ------------------------------------------------------------------
     try:
-        n = ingest_musdb_to_mix(os.path.join(masters, "musdb18hq"), inst_out, seed=seed)
+        n = ingest_musdb_to_mix(os.path.join(masters, "musdb18hq"), inst_out, seed=seed,
+                                max_workers=workers)
         log.info("musdb18hq: %d clips written", n)
         summary["musdb18hq"] = n
     except Exception as exc:
@@ -127,7 +132,8 @@ def main(argv=None):
     try:
         tags_by_id = parse_jamendo_moodtheme_tsv(jamendo_tsv)
         n = ingest_jamendo_to_mood(
-            os.path.join(masters, "jamendo_mood"), mood_out, tags_by_id)
+            os.path.join(masters, "jamendo_mood"), mood_out, tags_by_id,
+            max_workers=workers)
         log.info("jamendo_mood: %d clips written", n)
         summary["jamendo_mood"] = n
     except Exception as exc:

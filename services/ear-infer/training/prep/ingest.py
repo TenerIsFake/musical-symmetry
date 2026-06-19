@@ -8,7 +8,8 @@ log = logging.getLogger(__name__)
 
 from labels import INSTRUMENTS, EFFECTS, MOOD
 from prep.audio import array_to_pcm16k, to_pcm16k
-from prep.build_synth import build_synth_corpus
+from prep.build_synth import build_synth_corpus, build_synth_clip_from_path
+from prep.parallel import parallel_count
 
 _NSYNTH = {
     "guitar": "Electric guitar", "bass": "Bass guitar", "keyboard": "Electric piano",
@@ -61,27 +62,40 @@ def medleydb_instrument(name):
 
 # ---- corpus writers (file IO; run on the Lambda box in Phase 2) ----
 
-def ingest_dry_to_synth(dry_root, variant_out_dir, dataset, seed=0, max_files=None, prefix=""):
-    """Walk a dataset's dry audio and feed (array, sr, instrument) to build_synth_corpus.
+def ingest_dry_to_synth(dry_root, variant_out_dir, dataset, seed=0, max_files=None,
+                         prefix="", max_workers=16):
+    """Walk a dataset's dry audio and write synthesised clips.
+
     `dataset` selects the per-file instrument labeler.
     `max_files` limits to the first N files (sorted for determinism); None = all.
     `prefix` is prepended to each output filename to avoid collisions when multiple
-    callers write into the same out_dir."""
-    def items():
-        wavs = sorted(glob.glob(os.path.join(dry_root, "**", "*.wav"), recursive=True))
-        if max_files is not None:
-            wavs = wavs[:max_files]
-        for wav in wavs:
-            x, sr = sf.read(wav, dtype="float32", always_2d=False)
-            if dataset == "nsynth":
-                fam = os.path.basename(wav).split("_")[0]      # e.g. "guitar_acoustic_001-..."
-                inst = nsynth_instrument(fam)
-            elif dataset == "medleydb":
-                inst = medleydb_instrument(os.path.basename(os.path.dirname(wav)))
-            else:
-                inst = ["Other"]
-            yield x, sr, inst
-    return build_synth_corpus(items(), variant_out_dir, seed=seed, prefix=prefix)
+    callers write into the same out_dir.
+    `max_workers` controls the thread-pool size (<=1 = serial).
+    """
+    os.makedirs(variant_out_dir, exist_ok=True)
+
+    wavs = sorted(glob.glob(os.path.join(dry_root, "**", "*.wav"), recursive=True))
+    if max_files is not None:
+        wavs = wavs[:max_files]
+
+    # Pre-compute instrument labels (pure string ops, no I/O; safe on main thread)
+    work_items = []
+    for idx, wav in enumerate(wavs):
+        if dataset == "nsynth":
+            fam = os.path.basename(wav).split("_")[0]
+            inst = nsynth_instrument(fam)
+        elif dataset == "medleydb":
+            inst = medleydb_instrument(os.path.basename(os.path.dirname(wav)))
+        else:
+            inst = ["Other"]
+        work_items.append((wav, inst, idx))
+
+    def worker(item):
+        wav_path, instrument, idx = item
+        return build_synth_clip_from_path(wav_path, instrument, variant_out_dir,
+                                          idx, seed, prefix=prefix)
+
+    return parallel_count(work_items, worker, max_workers=max_workers)
 
 IDMT_INSTRUMENT = {
     "idmt_guitar": "Electric guitar",
@@ -93,27 +107,32 @@ IDMT_INSTRUMENT = {
 }
 
 
-def ingest_idmt_instruments(masters_root, variant_out_dir, seed=0):
+def ingest_idmt_instruments(masters_root, variant_out_dir, seed=0, max_workers=16):
     """Walk each IDMT folder under masters_root, apply random synth chains,
-    and write clips via build_synth_corpus.  Returns total clips written.
-    Each dataset key gets a unique filename prefix to avoid collisions."""
+    and write clips.  Returns total clips written.
+    Each dataset key gets a unique filename prefix to avoid collisions.
+    `max_workers` controls the thread-pool size (<=1 = serial).
+    """
+    os.makedirs(variant_out_dir, exist_ok=True)
     total = 0
     for folder_key, instrument_label in IDMT_INSTRUMENT.items():
         folder = os.path.join(masters_root, folder_key)
         if not os.path.isdir(folder):
             continue
 
-        def items(folder=folder, instrument_label=instrument_label):
-            for wav in sorted(glob.glob(os.path.join(folder, "**", "*.wav"), recursive=True)):
-                try:
-                    x, sr = sf.read(wav, dtype="float32", always_2d=False)
-                except Exception:
-                    log.warning("ingest_idmt_instruments: skipped unreadable file %s", wav)
-                    continue
-                yield x, sr, [instrument_label]
+        wavs = sorted(glob.glob(os.path.join(folder, "**", "*.wav"), recursive=True))
 
-        total += build_synth_corpus(items(), variant_out_dir, seed=seed,
-                                    prefix=f"{folder_key}_")
+        # Pre-assign stable indices from the sorted list; prefix disambiguates per-key
+        work_items = [(wav, idx) for idx, wav in enumerate(wavs)]
+        prefix = f"{folder_key}_"
+
+        def worker(item, instrument_label=instrument_label, out_dir=variant_out_dir,
+                   prefix=prefix, seed=seed):
+            wav_path, idx = item
+            return build_synth_clip_from_path(wav_path, [instrument_label], out_dir,
+                                              idx, seed, prefix=prefix)
+
+        total += parallel_count(work_items, worker, max_workers=max_workers)
     return total
 
 
@@ -142,15 +161,19 @@ def musdb_active_instruments(track_dir, rms_thresh=0.01):
     return musdb_stems_to_instruments(active)
 
 
-def ingest_musdb_to_mix(musdb_root, mix_out_dir, seed=0):
+def ingest_musdb_to_mix(musdb_root, mix_out_dir, seed=0, max_workers=16):
     """Write one 16 kHz PCM clip per MUSDB18 track (mixture.wav), with
     active-instrument sidecar JSON and a zeroed effects.npy placeholder.
 
     Effects are never used as labels (source='real_instrument' masks them).
     Returns the number of tracks written.
+    `max_workers` controls the thread-pool size (<=1 = serial).
     """
     os.makedirs(mix_out_dir, exist_ok=True)
-    n = 0
+
+    # Collect valid track dirs with pre-assigned stable indices (sorted for determinism)
+    work_items = []
+    idx = 0
     for split in ("train", "test"):
         split_dir = os.path.join(musdb_root, split)
         if not os.path.isdir(split_dir):
@@ -162,22 +185,29 @@ def ingest_musdb_to_mix(musdb_root, mix_out_dir, seed=0):
             mixture_path = os.path.join(track_dir, "mixture.wav")
             if not os.path.exists(mixture_path):
                 continue
-            instruments = musdb_active_instruments(track_dir)
-            try:
-                x, sr = sf.read(mixture_path, dtype="float32", always_2d=False)
-            except Exception:
-                log.warning("ingest_musdb_to_mix: skipped unreadable mixture %s", mixture_path)
-                continue
-            pcm = array_to_pcm16k(x, sr)
-            # Decode PCM bytes back to float32 for soundfile write
-            samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-            base = os.path.join(mix_out_dir, f"clip_{n:06d}")
-            sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
-            with open(base + ".instrument.json", "w") as f:
-                json.dump(instruments, f)
-            np.save(base + ".effects.npy", np.zeros(len(EFFECTS), dtype=np.float32))
-            n += 1
-    return n
+            work_items.append((track_dir, mixture_path, idx))
+            idx += 1
+
+    def worker(item):
+        track_dir, mixture_path, item_idx = item
+        # musdb_active_instruments does I/O (reads stems) — done inside worker
+        instruments = musdb_active_instruments(track_dir)
+        try:
+            x, sr = sf.read(mixture_path, dtype="float32", always_2d=False)
+        except Exception:
+            log.warning("ingest_musdb_to_mix: skipped unreadable mixture %s", mixture_path)
+            return False
+        pcm = array_to_pcm16k(x, sr)
+        # Decode PCM bytes back to float32 for soundfile write
+        samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        base = os.path.join(mix_out_dir, f"clip_{item_idx:06d}")
+        sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
+        with open(base + ".instrument.json", "w") as f:
+            json.dump(instruments, f)
+        np.save(base + ".effects.npy", np.zeros(len(EFFECTS), dtype=np.float32))
+        return True
+
+    return parallel_count(work_items, worker, max_workers=max_workers)
 
 
 # ---------------------------------------------------------------------------
@@ -217,7 +247,7 @@ def idmt_effects_instrument(top_folder):
     return ["Other"]
 
 
-def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0, prefix=""):
+def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0, prefix="", max_workers=16):
     """Walk <extracted_root>/<subset>/Samples/<effect>/*.wav. For each wav:
 
     eff = idmt_effect_label(<effect folder>); if eff is None -> skip (e.g. EQ).
@@ -227,11 +257,17 @@ def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0, prefix=""):
     <prefix>clip_{i:06d}.instrument.json (inst). Skip unreadable files. Return count written.
     These are source='synth' clips (instrument+effects both supervised).
     `prefix` is prepended to each output filename to avoid collisions when multiple
-    callers write into the same out_dir."""
+    callers write into the same out_dir.
+    `max_workers` controls the thread-pool size (<=1 = serial).
+    """
     from synth import multihot  # local import to keep module-level deps minimal
 
     os.makedirs(out_dir, exist_ok=True)
-    n = 0
+
+    # Collect all valid (non-EQ, non-unknown) work items with pre-assigned stable indices.
+    # EQ/unknown skipping happens here (cheap, no I/O), so indices are deterministic.
+    work_items = []   # list of (wav_path, eff_list, inst_list, idx)
+    idx = 0
 
     for subset in sorted(os.listdir(extracted_root)):
         subset_path = os.path.join(extracted_root, subset)
@@ -254,21 +290,25 @@ def ingest_idmt_audio_effects(extracted_root, out_dir, seed=0, prefix=""):
                 if not wav_name.lower().endswith(".wav"):
                     continue
                 wav_path = os.path.join(effect_path, wav_name)
-                try:
-                    pcm = to_pcm16k(wav_path)
-                except Exception:
-                    log.warning("ingest_idmt_audio_effects: skipped unreadable file %s", wav_path)
-                    continue
+                work_items.append((wav_path, eff, inst, idx))
+                idx += 1
 
-                samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-                base = os.path.join(out_dir, f"{prefix}clip_{n:06d}")
-                sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
-                np.save(base + ".effects.npy", multihot(eff))
-                with open(base + ".instrument.json", "w") as f:
-                    json.dump(inst, f)
-                n += 1
+    def worker(item):
+        wav_path, eff, inst, item_idx = item
+        try:
+            pcm = to_pcm16k(wav_path)
+        except Exception:
+            log.warning("ingest_idmt_audio_effects: skipped unreadable file %s", wav_path)
+            return False
+        samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        base = os.path.join(out_dir, f"{prefix}clip_{item_idx:06d}")
+        sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
+        np.save(base + ".effects.npy", multihot(eff))
+        with open(base + ".instrument.json", "w") as f:
+            json.dump(inst, f)
+        return True
 
-    return n
+    return parallel_count(work_items, worker, max_workers=max_workers)
 
 
 def parse_jamendo_moodtheme_tsv(tsv_path):
@@ -299,21 +339,40 @@ def parse_jamendo_moodtheme_tsv(tsv_path):
     return result
 
 
-def ingest_jamendo_to_mood(jamendo_root, mood_out_dir, tags_by_id):
-    """tags_by_id: {track_id: [raw mood/theme tags]} parsed from the Jamendo TSV."""
+def ingest_jamendo_to_mood(jamendo_root, mood_out_dir, tags_by_id, max_workers=16):
+    """tags_by_id: {track_id: [raw mood/theme tags]} parsed from the Jamendo TSV.
+    `max_workers` controls the thread-pool size (<=1 = serial).
+    Tracks with no mapped mood are filtered out BEFORE dispatching (cheap tag lookup,
+    no file reads), so they never enter the pool.
+    """
     os.makedirs(mood_out_dir, exist_ok=True)
-    n = 0
-    for wav in sorted(glob.glob(os.path.join(jamendo_root, "**", "*.mp3"), recursive=True)) + \
-               sorted(glob.glob(os.path.join(jamendo_root, "**", "*.wav"), recursive=True)):
-        tid = os.path.splitext(os.path.basename(wav))[0]
+
+    all_audio = (
+        sorted(glob.glob(os.path.join(jamendo_root, "**", "*.mp3"), recursive=True)) +
+        sorted(glob.glob(os.path.join(jamendo_root, "**", "*.wav"), recursive=True))
+    )
+
+    # Filter to mood-tagged tracks BEFORE dispatching (pure dict/string ops, no I/O)
+    work_items = []
+    for audio_path in all_audio:
+        tid = os.path.splitext(os.path.basename(audio_path))[0]
         mood = jamendo_tags_to_mood(tags_by_id.get(tid, []))
         if not mood:
             continue
-        pcm = to_pcm16k(wav)
+        work_items.append((audio_path, tid, mood))
+
+    def worker(item):
+        audio_path, tid, mood = item
+        try:
+            pcm = to_pcm16k(audio_path)
+        except Exception:
+            log.warning("ingest_jamendo_to_mood: skipped unreadable file %s", audio_path)
+            return False
         x = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
         base = os.path.join(mood_out_dir, tid)
         sf.write(base + ".wav", x, 16000, subtype="PCM_16")
         with open(base + ".mood.json", "w") as f:
             json.dump(mood, f)
-        n += 1
-    return n
+        return True
+
+    return parallel_count(work_items, worker, max_workers=max_workers)
