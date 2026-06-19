@@ -18,3 +18,7 @@ packages/ui/android/local.properties
 packages/timbria-api/package-lock.json
 services/ear-infer/venv/
 services/ear-infer/training/venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
