@@ -13,35 +13,14 @@ import argparse
 import json
 
 import numpy as np
-from sklearn.metrics import f1_score
 
+from metrics import macro_f1_over_supported
 from model import HEADS
 
 
 # ---------------------------------------------------------------------------
 # Pure helpers (no tflite needed — unit-testable)
 # ---------------------------------------------------------------------------
-
-def macro_f1_over_supported(trues: np.ndarray, preds: np.ndarray) -> float:
-    """Macro-F1 averaged only over classes that have at least one true positive.
-
-    Args:
-        trues: int array shape (n_clips, n_classes)
-        preds: int array shape (n_clips, n_classes)
-
-    Returns:
-        float in [0, 1]; returns 0.0 if no class has support.
-    """
-    n_classes = trues.shape[1]
-    class_f1s = []
-    for c in range(n_classes):
-        if trues[:, c].sum() == 0:
-            continue  # zero-support class — skip
-        f = f1_score(trues[:, c], preds[:, c], zero_division=0)
-        class_f1s.append(f)
-    if not class_f1s:
-        return 0.0
-    return float(np.mean(class_f1s))
 
 
 def best_threshold(
@@ -91,7 +70,7 @@ def parse_args(argv=None):
         type=float,
         metavar=("START", "STOP"),
         default=None,
-        help="threshold sweep range [START, STOP) with step 0.05 (default 0.05 0.50)",
+        help="threshold sweep range [START, STOP] with step 0.05 (default 0.05 0.50)",
     )
     p.add_argument("--n-mels", type=int, default=128)
     p.add_argument("--frames", type=int, default=64)

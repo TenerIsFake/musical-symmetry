@@ -16,7 +16,8 @@ pytest.importorskip("tensorflow")
 # ---------------------------------------------------------------------------
 # Helpers imported from production modules
 # ---------------------------------------------------------------------------
-from tune_thresholds import best_threshold, macro_f1_over_supported
+from metrics import macro_f1_over_supported
+from tune_thresholds import best_threshold
 
 
 # ---------------------------------------------------------------------------
@@ -102,32 +103,31 @@ def test_macro_supported_ignores_zero_support():
 # ---------------------------------------------------------------------------
 
 def test_eval_loads_thresholds_json():
-    """eval.parse_args should load a --thresholds JSON and fall back to 0.5 when absent."""
-    from eval import parse_args
+    """eval._load_thresholds should load a JSON and default missing heads to 0.5."""
+    from eval import _load_thresholds
+    from model import HEADS
 
-    # --- With a valid thresholds JSON ---
-    expected = {"instrument": 0.35, "effects": 0.40, "mood": 0.25}
+    # --- With a valid thresholds JSON (partial) ---
+    partial = {"instrument": 0.35, "effects": 0.40}
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".json", delete=False
     ) as f:
-        json.dump(expected, f)
+        json.dump(partial, f)
         thresh_path = f.name
 
     try:
-        args = parse_args([
-            "--tflite", "dummy.tflite",
-            "--tfrecords", "dummy/*.tfrecord",
-            "--thresholds", thresh_path,
-        ])
-        assert args.thresholds is not None
-        loaded = json.loads(open(thresh_path).read())
-        assert loaded == expected
+        # Test loading from file
+        loaded = _load_thresholds(thresh_path)
+        assert loaded["instrument"] == 0.35
+        assert loaded["effects"] == 0.40
+        # Missing heads default to 0.5
+        assert loaded["mood"] == 0.5
+        # All HEADS keys present
+        assert set(loaded.keys()) == set(HEADS)
     finally:
         os.unlink(thresh_path)
 
-    # --- Without --thresholds: attribute exists but is None, all heads default to 0.5 ---
-    args_no_thresh = parse_args([
-        "--tflite", "dummy.tflite",
-        "--tfrecords", "dummy/*.tfrecord",
-    ])
-    assert args_no_thresh.thresholds is None
+    # --- With None path: all heads default to 0.5 ---
+    defaults = _load_thresholds(None)
+    assert all(v == 0.5 for v in defaults.values())
+    assert set(defaults.keys()) == set(HEADS)

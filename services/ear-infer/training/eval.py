@@ -24,6 +24,7 @@ import tensorflow as tf
 from sklearn.metrics import f1_score, precision_recall_fscore_support
 
 from dataset import make_dataset, make_dataset_from_tfrecords
+from metrics import macro_f1_over_supported
 from model import HEADS
 
 THRESHOLDS = {"effects": 0.60, "instrument": 0.60, "mood": 0.40}
@@ -144,20 +145,6 @@ def run_interpreter(tflite_path, dataset):
     return probs, trues, masked
 
 
-def _macro_f1_over_supported(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """Macro-F1 averaged only over classes with at least one true positive."""
-    n_classes = y_true.shape[1]
-    class_f1s = []
-    for c in range(n_classes):
-        if y_true[:, c].sum() == 0:
-            continue
-        f = f1_score(y_true[:, c], y_pred[:, c], zero_division=0)
-        class_f1s.append(f)
-    if not class_f1s:
-        return 0.0
-    return float(np.mean(class_f1s))
-
-
 def score(probs, trues, masked, thresholds=None):
     """Binarise raw probs with per-head thresholds and compute metrics.
 
@@ -193,7 +180,7 @@ def score(probs, trues, masked, thresholds=None):
         # micro-F1 over all masked clips/classes
         micro = f1_score(y_true, y_pred, average="micro", zero_division=0)
         # macro-F1 over supported classes only (gate metric)
-        f_supported = _macro_f1_over_supported(y_true, y_pred)
+        f_supported = macro_f1_over_supported(y_true, y_pred)
         n_supported = int(sum(1 for c in range(y_true.shape[1]) if y_true[:, c].sum() > 0))
 
         results[head] = {
