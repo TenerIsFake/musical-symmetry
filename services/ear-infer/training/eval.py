@@ -1,27 +1,33 @@
 """Evaluate a quantized .tflite over a held-out set and apply the ship gate.
 
-Runs the TFLite interpreter, collects per-head predictions vs ground truth,
+Runs the TFLite interpreter, collects per-head raw probabilities vs ground truth,
 and computes per-class precision / recall / F1 with sklearn. Prints a per-head
 table plus an overall PASS / FAIL against the ship thresholds:
 
-    effects   macro-F1 >= 0.60
-    instrument macro-F1 >= 0.60
-    mood       macro-F1 >= 0.40   (lower beta bar: mood is subjective)
+    effects    macro-F1-over-supported >= 0.60
+    instrument macro-F1-over-supported >= 0.60
+    mood       macro-F1-over-supported >= 0.40   (lower bar: mood is subjective)
 
-Only the heads a given clip actually labels (mask == 1) contribute to that
-clip's score for that head — same masking discipline as training.
+Gate metric (V2-T3): macro-F1 over *supported* classes only (classes with >0
+true positives in the eval set). This avoids penalising corpus gaps where an
+instrument / effect simply doesn't appear — the model isn't tested on skills it
+was never given data for.
+
+Also reports micro-F1 (over all masked clips/classes) and macro-F1-over-all for
+reference.
 """
 import argparse
+import json
 
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import f1_score, precision_recall_fscore_support
 
 from dataset import make_dataset, make_dataset_from_tfrecords
 from model import HEADS
 
 THRESHOLDS = {"effects": 0.60, "instrument": 0.60, "mood": 0.40}
-DECISION = 0.5  # sigmoid -> binary label threshold
+DECISION = 0.5  # default sigmoid → binary threshold when no sidecar is provided
 
 
 def parse_args(argv=None):
@@ -33,11 +39,24 @@ def parse_args(argv=None):
     p.add_argument("--tfrecords", default=None,
                    help="Glob pattern for pre-computed TFRecord shards. "
                         "When set, uses the TFRecord pipeline instead of make_dataset.")
+    p.add_argument("--thresholds", default=None,
+                   help="Path to a per-head thresholds JSON sidecar produced by "
+                        "tune_thresholds.py. If omitted, all heads use DECISION=0.5.")
     args = p.parse_args(argv)
     # Validate: one of --data or --tfrecords is required
     if args.tfrecords is None and args.data is None:
         p.error("one of --data or --tfrecords is required")
     return args
+
+
+def _load_thresholds(path_or_none):
+    """Load per-head threshold dict from JSON, or return all-0.5 defaults."""
+    if path_or_none is None:
+        return {h: DECISION for h in HEADS}
+    with open(path_or_none) as fh:
+        data = json.load(fh)
+    # Fill any missing heads with DECISION
+    return {h: float(data.get(h, DECISION)) for h in HEADS}
 
 
 def _dequant(value, detail):
@@ -90,6 +109,16 @@ def _match_outputs(out_details, heads):
 
 
 def run_interpreter(tflite_path, dataset):
+    """Run the TFLite interpreter and return RAW sigmoid probabilities.
+
+    Returns:
+        probs  -- dict {head: list of 1-D float32 arrays (raw dequantized sigmoid)}
+        trues  -- dict {head: list of 1-D int32 arrays (ground-truth labels)}
+        masked -- dict {head: list of float (1.0 = head applies to this clip)}
+
+    Note: V2-T3 change — previously returned binarised preds; now returns raw
+    probs so callers can apply their own per-head thresholds.
+    """
     interp = tf.lite.Interpreter(model_path=tflite_path)
     interp.allocate_tensors()
     in_detail = interp.get_input_details()[0]
@@ -97,7 +126,7 @@ def run_interpreter(tflite_path, dataset):
     # map output tensors to heads by name (TFLite may reorder outputs during conversion)
     out_by_head = _match_outputs(out_details, HEADS)
 
-    preds = {h: [] for h in HEADS}
+    probs = {h: [] for h in HEADS}
     trues = {h: [] for h in HEADS}
     masked = {h: [] for h in HEADS}
 
@@ -109,43 +138,104 @@ def run_interpreter(tflite_path, dataset):
             od = out_by_head[head]
             raw = interp.get_tensor(od["index"])[0]
             prob = _dequant(raw, od)
-            preds[head].append((prob >= DECISION).astype(np.int32))
+            probs[head].append(prob.astype(np.float32))
             trues[head].append(labels[head].numpy().astype(np.int32))
             masked[head].append(float(masks[head].numpy().reshape(-1)[0]))
-    return preds, trues, masked
+    return probs, trues, masked
 
 
-def score(preds, trues, masked):
+def _macro_f1_over_supported(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """Macro-F1 averaged only over classes with at least one true positive."""
+    n_classes = y_true.shape[1]
+    class_f1s = []
+    for c in range(n_classes):
+        if y_true[:, c].sum() == 0:
+            continue
+        f = f1_score(y_true[:, c], y_pred[:, c], zero_division=0)
+        class_f1s.append(f)
+    if not class_f1s:
+        return 0.0
+    return float(np.mean(class_f1s))
+
+
+def score(probs, trues, masked, thresholds=None):
+    """Binarise raw probs with per-head thresholds and compute metrics.
+
+    Args:
+        probs:      dict {head: list of float32 prob vectors}
+        trues:      dict {head: list of int32 label vectors}
+        masked:     dict {head: list of float mask values}
+        thresholds: dict {head: float threshold} or None (defaults all to 0.5)
+
+    Returns:
+        dict {head: None | {precision, recall, macro_f1_all, macro_f1_supported,
+                             micro_f1, n_supported_classes, thresh_used}}
+    """
+    if thresholds is None:
+        thresholds = {h: DECISION for h in HEADS}
+
     results = {}
     for head in HEADS:
         keep = np.array(masked[head]) > 0.5
         if not keep.any():
             results[head] = None
             continue
-        y_pred = np.array(preds[head])[keep]
+
+        thresh = thresholds.get(head, DECISION)
+        y_prob = np.array(probs[head])[keep]
+        y_pred = (y_prob >= thresh).astype(np.int32)
         y_true = np.array(trues[head])[keep]
-        p, r, f, _ = precision_recall_fscore_support(
+
+        # macro precision/recall/F1 over all classes (legacy reference)
+        p, r, f_all, _ = precision_recall_fscore_support(
             y_true, y_pred, average="macro", zero_division=0
         )
-        results[head] = {"precision": p, "recall": r, "macro_f1": f}
+        # micro-F1 over all masked clips/classes
+        micro = f1_score(y_true, y_pred, average="micro", zero_division=0)
+        # macro-F1 over supported classes only (gate metric)
+        f_supported = _macro_f1_over_supported(y_true, y_pred)
+        n_supported = int(sum(1 for c in range(y_true.shape[1]) if y_true[:, c].sum() > 0))
+
+        results[head] = {
+            "precision": p,
+            "recall": r,
+            "macro_f1_all": f_all,
+            "macro_f1_supported": f_supported,
+            "micro_f1": micro,
+            "n_supported_classes": n_supported,
+            "thresh_used": thresh,
+        }
     return results
 
 
 def report(results):
-    print(f"{'head':12} {'precision':>10} {'recall':>10} {'macro-F1':>10} {'thresh':>8} {'gate':>6}")
+    """Print per-head metrics table and return True if all heads pass the gate."""
+    header = (
+        f"{'head':12} {'sup_cls':>7} {'micro_f1':>9} "
+        f"{'mac_supp':>9} {'mac_all':>8} {'thresh':>7} {'gate':>6}"
+    )
+    print(header)
+    print("-" * len(header))
+
     overall_pass = True
     for head in HEADS:
         res = results[head]
         thr = THRESHOLDS[head]
         if res is None:
-            print(f"{head:12} {'(no masked examples)':>40}")
+            print(f"{head:12} {'(no masked examples)':>50}")
             overall_pass = False
             continue
-        gate = res["macro_f1"] >= thr
+        gate = res["macro_f1_supported"] >= thr
         overall_pass = overall_pass and gate
-        print(f"{head:12} {res['precision']:>10.3f} {res['recall']:>10.3f} "
-              f"{res['macro_f1']:>10.3f} {thr:>8.2f} {'PASS' if gate else 'FAIL':>6}")
-    print("-" * 60)
+        print(
+            f"{head:12} {res['n_supported_classes']:>7d} "
+            f"{res['micro_f1']:>9.3f} "
+            f"{res['macro_f1_supported']:>9.3f} "
+            f"{res['macro_f1_all']:>8.3f} "
+            f"{res['thresh_used']:>7.3f} "
+            f"{'PASS' if gate else 'FAIL':>6}"
+        )
+    print("-" * len(header))
     print("OVERALL:", "PASS" if overall_pass else "FAIL")
     return overall_pass
 
@@ -163,8 +253,9 @@ def main(args):
         ds = make_dataset({"data_root": args.data, "synth_dir": f"{args.data}/synth",
                            "mood_dir": f"{args.data}/mood", "clip_seconds": 1.0},
                           n_mels=args.n_mels, frames=args.frames, batch_size=1, shuffle=0)
-    preds, trues, masked = run_interpreter(args.tflite, ds)
-    results = score(preds, trues, masked)
+    thresholds = _load_thresholds(args.thresholds)
+    probs, trues, masked = run_interpreter(args.tflite, ds)
+    results = score(probs, trues, masked, thresholds=thresholds)
     ok = report(results)
     return 0 if ok else 1
 
