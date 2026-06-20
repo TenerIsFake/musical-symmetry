@@ -93,7 +93,14 @@ def train(args):
         avg = running / max(steps, 1)
         print(f"[{args.model}] epoch {epoch + 1}/{args.epochs}  loss={avg:.4f}")
 
-    model.save(args.out)  # Keras SavedModel
+    # Keras 3 (TF 2.16+) moved SavedModel export off model.save() — which now
+    # requires a .keras/.h5 extension — to model.export(dir). quantize.py reads
+    # this dir via tf.lite.TFLiteConverter.from_saved_model. Fall back to
+    # model.save for Keras 2 environments.
+    try:
+        model.export(args.out)  # Keras 3 SavedModel
+    except AttributeError:
+        model.save(args.out)    # Keras 2 SavedModel
     print(f"saved SavedModel -> {args.out}")
     return model
 
