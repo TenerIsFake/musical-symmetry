@@ -19,7 +19,10 @@ import argparse
 import tensorflow as tf
 
 from dataset import make_dataset, make_dataset_from_tfrecords
-from model import build_model, masked_bce, HEADS
+from model import (
+    build_model, masked_bce, masked_bce_weighted, masked_focal,
+    compute_pos_weights, HEADS,
+)
 
 
 def parse_args(argv=None):
@@ -37,6 +40,13 @@ def parse_args(argv=None):
     p.add_argument("--tfrecords", default=None,
                    help="Glob pattern for pre-computed TFRecord shards. "
                         "When set, uses the TFRecord pipeline instead of make_dataset.")
+    p.add_argument("--loss", choices=["bce", "posweight", "focal"], default="bce",
+                   help="loss function: bce (default), posweight (BCE with pos-weight "
+                        "auto-computed from data), focal (focal loss)")
+    p.add_argument("--focal-gamma", type=float, default=2.0,
+                   help="focal loss gamma (default 2.0); only used when --loss focal")
+    p.add_argument("--focal-alpha", type=float, default=0.25,
+                   help="focal loss alpha (default 0.25); only used when --loss focal")
     args = p.parse_args(argv)
     # Validate: one of --data or --tfrecords is required
     if args.tfrecords is None and args.data is None:
@@ -55,19 +65,56 @@ def make_spec(args):
     }
 
 
-@tf.function
-def _train_step(model, optimizer, feats, labels, masks):
-    """One gradient step. Total loss = sum of masked BCE over the three heads."""
-    with tf.GradientTape() as tape:
-        preds = model(feats, training=True)
-        # model outputs are ordered by HEADS insertion order
-        pred_by_head = dict(zip(HEADS.keys(), preds))
-        loss = tf.constant(0.0)
-        for head in HEADS:
-            loss = loss + masked_bce(labels[head], pred_by_head[head], masks[head])
-    grads = tape.gradient(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    return loss
+def _make_train_step(model, optimizer, head_loss_fn):
+    """Return a @tf.function-compiled train step bound to this model/optimizer/loss.
+
+    Binding per-call (rather than as a module-level @tf.function) keeps the
+    compiled graph static for a given training run while allowing different loss
+    strategies across runs without retracing the previous run's graph.
+    """
+    @tf.function
+    def _step(feats, labels, masks):
+        """One gradient step. Total loss = sum of per-head loss over the three heads."""
+        with tf.GradientTape() as tape:
+            preds = model(feats, training=True)
+            # model outputs are ordered by HEADS insertion order
+            pred_by_head = dict(zip(HEADS.keys(), preds))
+            loss = tf.constant(0.0)
+            for head in HEADS:
+                loss = loss + head_loss_fn(head, labels[head], pred_by_head[head], masks[head])
+        grads = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(grads, model.trainable_variables))
+        return loss
+
+    return _step
+
+
+def _make_head_loss_fn(args, pos_weights):
+    """Build a per-head loss callable capturing args and pos_weights.
+
+    The branch on args.loss is resolved here (once, before the training loop)
+    so the resulting closure is a single Python function with no runtime
+    branching — keeping the @tf.function graph static.
+    """
+    if args.loss == "posweight":
+        # Convert numpy arrays to constant tensors at trace time
+        pw_tensors = {h: tf.constant(pos_weights[h]) for h in pos_weights}
+
+        def head_loss_fn(head, y_true, y_pred, mask):
+            return masked_bce_weighted(y_true, y_pred, mask, pw_tensors[head])
+
+    elif args.loss == "focal":
+        gamma = args.focal_gamma
+        alpha = args.focal_alpha
+
+        def head_loss_fn(head, y_true, y_pred, mask):
+            return masked_focal(y_true, y_pred, mask, gamma=gamma, alpha=alpha)
+
+    else:  # "bce" — default; preserves existing behaviour
+        def head_loss_fn(head, y_true, y_pred, mask):
+            return masked_bce(y_true, y_pred, mask)
+
+    return head_loss_fn
 
 
 def train(args):
@@ -81,13 +128,26 @@ def train(args):
     else:
         ds = make_dataset(make_spec(args), n_mels=args.n_mels, frames=args.frames,
                           batch_size=args.batch_size)
+
+    # Resolve loss strategy ONCE before the training loop so _train_step's
+    # @tf.function graph is static (no retracing per step).
+    if args.loss == "posweight":
+        pos_weights = compute_pos_weights(ds)
+        for head, pw in pos_weights.items():
+            print(f"[pos_weight] {head}: max={pw.max():.2f} mean={pw.mean():.2f}")
+    else:
+        pos_weights = None
+
+    head_loss_fn = _make_head_loss_fn(args, pos_weights)
+
     model = build_model(n_mels=args.n_mels, frames=args.frames)
     optimizer = tf.keras.optimizers.Adam(args.lr)
+    train_step = _make_train_step(model, optimizer, head_loss_fn)
 
     for epoch in range(args.epochs):
         running, steps = 0.0, 0
         for feats, labels, masks in ds:
-            loss = _train_step(model, optimizer, feats, labels, masks)
+            loss = train_step(feats, labels, masks)
             running += float(loss)
             steps += 1
         avg = running / max(steps, 1)
