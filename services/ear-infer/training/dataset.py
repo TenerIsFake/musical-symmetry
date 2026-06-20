@@ -127,12 +127,16 @@ def iter_clips(spec):
       <mood_dir>/*.wav                  (+ .mood.json)                      -> "real_mood"
     Each WAV is windowed into fixed clip_seconds chunks; every chunk inherits the
     file's labels.
+
+    If ``spec["max_windows_per_clip"]`` is set to a positive integer, only the first
+    N windows of each file are yielded. Default (key absent or None) = all windows.
     """
     import glob, json, os
     from prep.audio import to_pcm16k, window_clips
 
     variant = spec.get("variant", "isolated")
     clip_seconds = float(spec.get("clip_seconds", 1.0))
+    max_windows = spec.get("max_windows_per_clip")
 
     synth_root = os.path.join(spec["synth_dir"], variant)
     for wav in sorted(glob.glob(os.path.join(synth_root, "*.wav"))):
@@ -144,7 +148,9 @@ def iter_clips(spec):
                 inst = json.load(f)
         else:
             inst = []
-        for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
+        windows = window_clips(to_pcm16k(wav), clip_seconds=clip_seconds)
+        windows = windows[:max_windows] if max_windows else windows
+        for pcm in windows:
             yield pcm, "synth", {"instrument": inst, "effects": eff}
 
     for wav in sorted(glob.glob(os.path.join(spec["mood_dir"], "*.wav"))):
@@ -154,7 +160,9 @@ def iter_clips(spec):
                 mood = json.load(f)
         else:
             mood = []
-        for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
+        windows = window_clips(to_pcm16k(wav), clip_seconds=clip_seconds)
+        windows = windows[:max_windows] if max_windows else windows
+        for pcm in windows:
             yield pcm, "real_mood", {"mood": mood}
 
     # real_instrument clips from inst/ directory
@@ -167,7 +175,9 @@ def iter_clips(spec):
                     inst = json.load(f)
             else:
                 inst = []
-            for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
+            windows = window_clips(to_pcm16k(wav), clip_seconds=clip_seconds)
+            windows = windows[:max_windows] if max_windows else windows
+            for pcm in windows:
                 yield pcm, "real_instrument", {"instrument": inst}
 
 

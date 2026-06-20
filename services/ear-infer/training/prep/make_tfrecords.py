@@ -60,6 +60,8 @@ def parse_args(argv=None):
                    help="Corpus variant (isolated or mix); default: isolated.")
     p.add_argument("--shards",  type=int, default=32,
                    help="Number of TFRecord shard files; default: 32.")
+    p.add_argument("--max-windows-per-clip", type=int, default=2,
+                   help="Windows kept per source clip; <=0 means all; default: 2.")
     return p.parse_args(argv)
 
 
@@ -76,6 +78,10 @@ def main(argv=None):
         "inst_dir":   os.path.join(args.corpus, "inst"),
         "clip_seconds": 1.0,
     }
+
+    # Add max_windows_per_clip if specified and > 0
+    if args.max_windows_per_clip and args.max_windows_per_clip > 0:
+        spec["max_windows_per_clip"] = args.max_windows_per_clip
 
     shard_paths = [
         os.path.join(args.out, f"part-{i:05d}.tfrecord")

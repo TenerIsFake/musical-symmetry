@@ -70,3 +70,40 @@ def test_iter_clips_inst_dir_absent_ok(tmp_path):
     assert sources.count("synth") == 2
     assert sources.count("real_mood") == 1
     assert sources.count("real_instrument") == 0
+
+def test_iter_clips_max_windows_per_clip_synth(tmp_path):
+    """When max_windows_per_clip=1, cap synth windows to 1 per file."""
+    spec = _make_corpus(tmp_path)
+    spec["max_windows_per_clip"] = 1
+    items = list(iter_clips(spec))
+    sources = [s for _, s, _ in items]
+    # expect synth (1 window, capped from 2) + mood (1)
+    assert sources.count("synth") == 1
+    assert sources.count("real_mood") == 1
+
+def test_iter_clips_max_windows_per_clip_mood(tmp_path):
+    """When max_windows_per_clip=1, cap mood windows to 1 per file."""
+    spec = _make_corpus(tmp_path)
+    # Create a 2-second mood clip -> 2 windows by default
+    import json, soundfile as sf
+    mdir = tmp_path / "mood"
+    sf.write(mdir / "track_multi.wav", np.zeros(32000, np.float32), 16000)
+    (mdir / "track_multi.mood.json").write_text(json.dumps(["dreamy"]))
+
+    spec["max_windows_per_clip"] = 1
+    items = list(iter_clips(spec))
+    sources = [s for _, s, _ in items]
+    # original: synth (2) + mood (1 from track_a + 2 from track_multi) = 5
+    # with cap=1: synth (1) + mood (1 from track_a, capped to 1 from track_multi) = 3
+    assert sources.count("synth") == 1
+    assert sources.count("real_mood") == 2  # 1 from track_a, 1 from track_multi
+
+def test_iter_clips_max_windows_unset_unchanged(tmp_path):
+    """Without max_windows_per_clip, behavior is unchanged."""
+    spec = _make_corpus(tmp_path)
+    # No max_windows_per_clip key
+    items = list(iter_clips(spec))
+    sources = [s for _, s, _ in items]
+    # expect synth (2 windows from 2s clip) + mood (1)
+    assert sources.count("synth") == 2
+    assert sources.count("real_mood") == 1

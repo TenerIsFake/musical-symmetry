@@ -241,3 +241,48 @@ def test_tfrecord_dataset_matches_make_dataset(tmp_path):
                 tfr_msk[head], wav_msk[head],
                 err_msg=f"mask[{head}] mismatch"
             )
+
+
+# ---------------------------------------------------------------------------
+# Test 4: --max-windows-per-clip CLI arg flows through to TFRecord count
+# ---------------------------------------------------------------------------
+
+def test_make_tfrecords_max_windows_per_clip(tmp_path):
+    """Verify --max-windows-per-clip limits windows written to TFRecords.
+
+    The test corpus has:
+      - one 2s synth clip -> 2 windows by default
+      - one 1s mood clip -> 1 window by default
+    Total: 3 examples by default.
+
+    With --max-windows-per-clip 1, each file is capped to 1 window:
+      - synth file: 1 window (capped from 2)
+      - mood file: 1 window (unchanged)
+    Total: 2 examples.
+    """
+    from prep.make_tfrecords import main as make_tfrecords_main
+    from dataset import iter_clips
+
+    spec = _make_corpus(tmp_path)
+    out_dir = tmp_path / "tfrecords"
+    out_dir.mkdir()
+
+    # Run with --max-windows-per-clip 1
+    total = make_tfrecords_main([
+        "--corpus", str(tmp_path),
+        "--out",    str(out_dir),
+        "--variant", "isolated",
+        "--shards", "2",
+        "--max-windows-per-clip", "1",
+    ])
+
+    # Verify the returned count matches 2 (not 3)
+    assert total == 2, f"expected 2 examples with cap=1, got {total}"
+
+    # Also verify by reading back the shards
+    shard_files = sorted(_glob.glob(str(out_dir / "part-*.tfrecord")))
+    shard_total = 0
+    for shard in shard_files:
+        for _ in tf.data.TFRecordDataset([shard]):
+            shard_total += 1
+    assert shard_total == 2, f"shard count {shard_total} != expected 2"
