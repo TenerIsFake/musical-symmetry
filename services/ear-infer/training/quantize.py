@@ -13,33 +13,48 @@ import argparse
 import numpy as np
 import tensorflow as tf
 
-from dataset import make_dataset, logmel_from_pcm  # noqa: F401  (logmel re-exported for rep-data scripts)
+from dataset import make_dataset, make_dataset_from_tfrecords, logmel_from_pcm  # noqa: F401  (logmel re-exported for rep-data scripts)
 
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Quantize a SavedModel to int8 TFLite.")
     p.add_argument("--saved-model", required=True, help="dir of the Keras SavedModel")
     p.add_argument("--out", required=True, help="output .tflite path")
-    p.add_argument("--rep-data", required=True,
+    p.add_argument("--rep-data", required=False, default=None,
                    help="spec/path for representative-dataset clips (calibration)")
+    p.add_argument("--tfrecords", default=None,
+                   help="glob of TFRecord shards for the representative dataset (instead of --rep-data)")
     p.add_argument("--n-mels", type=int, default=128)
     p.add_argument("--frames", type=int, default=64)
     p.add_argument("--rep-samples", type=int, default=200,
                    help="number of calibration samples to draw")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    # Validate: one of --rep-data or --tfrecords is required
+    if args.tfrecords is None and args.rep_data is None:
+        p.error("one of --rep-data or --tfrecords is required")
+    return args
 
 
 def representative_dataset(args):
     """Yield single-example float32 log-mel tensors for calibration.
 
     Pulls real features through the same pipeline used for training so the
-    int8 range matches production. Falls back to drawing from make_dataset and
-    un-batching one example at a time.
+    int8 range matches production. Draws from either TFRecords (if --tfrecords
+    is set) or make_dataset (--rep-data), yielding un-batched features one at a time.
     """
-    spec = {"data_root": args.rep_data, "synth_dir": f"{args.rep_data}/synth",
-            "mood_dir": f"{args.rep_data}/mood", "clip_seconds": 1.0}
-    ds = make_dataset(spec, n_mels=args.n_mels, frames=args.frames, batch_size=1,
-                      shuffle=0)
+    if args.tfrecords:
+        ds = make_dataset_from_tfrecords(
+            args.tfrecords,
+            n_mels=args.n_mels,
+            frames=args.frames,
+            batch_size=1,
+            shuffle=0
+        )
+    else:
+        spec = {"data_root": args.rep_data, "synth_dir": f"{args.rep_data}/synth",
+                "mood_dir": f"{args.rep_data}/mood", "clip_seconds": 1.0}
+        ds = make_dataset(spec, n_mels=args.n_mels, frames=args.frames, batch_size=1,
+                          shuffle=0)
     count = 0
     for feats, _labels, _masks in ds:
         # feats shape (1, n_mels, frames, 1), already float32 log-mel range
