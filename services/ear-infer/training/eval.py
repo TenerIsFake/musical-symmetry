@@ -58,17 +58,34 @@ def _quant_input(value, detail):
     return np.clip(q, info.min, info.max).astype(detail["dtype"])
 
 
-# TODO(Phase 3): TFLite renames outputs to "StatefulPartitionedCall:N", so this
-# name-match raises on real models. Route by distinct head width (19/22/8) like
-# services/ear-infer/infer.py::Model._match_outputs before the ship gate runs.
 def _match_outputs(out_details, heads):
+    """Route each head to the output tensor whose last shape dim matches head width.
+
+    TFLite renames output layer names to "StatefulPartitionedCall:N", so substring
+    matching on head names fails. Instead, match by the last shape dimension, which
+    corresponds to the number of classes per head. The three head widths are DISTINCT
+    (instrument=19, effects=22, mood=8), making this unambiguous and robust.
+
+    Args:
+        out_details: list of dicts with keys 'name', 'shape', 'index', etc.
+        heads: dict {head_name: width} e.g. {"instrument": 19, "effects": 22, "mood": 8}
+
+    Returns:
+        dict {head_name: out_detail} mapping each head to its output tensor.
+
+    Raises:
+        ValueError: if any head's width doesn't match exactly one output tensor.
+    """
     by_head = {}
-    for name in heads:
-        match = next((d for d in out_details if name in d["name"]), None)
-        if match is None:
-            raise ValueError(f"no TFLite output tensor matches head '{name}'; "
-                             f"available: {[d['name'] for d in out_details]}")
-        by_head[name] = match
+    for head_name, width in heads.items():
+        matches = [d for d in out_details if d["shape"][-1] == width]
+        if len(matches) != 1:
+            raise ValueError(
+                f"_match_outputs: expected exactly 1 output tensor with width {width} "
+                f"for head '{head_name}', found {len(matches)}. "
+                f"Output tensors: {[(d['name'], d['shape']) for d in out_details]}"
+            )
+        by_head[head_name] = matches[0]
     return by_head
 
 
