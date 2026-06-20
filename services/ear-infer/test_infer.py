@@ -27,8 +27,87 @@ def test_decode_threshold_and_fallback():
     only = infer._decode(np.array([0.2, 0.3, 0.1], np.float32), labels, decision=0.5)
     assert [d["label"] for d in only] == ["b"]
 
-import os
+import os, json, tempfile
 FIX = os.path.join(os.path.dirname(__file__), "tests", "fixtures", "tiny_ear_int8.tflite")
+
+def _make_interp(model_path):
+    """Return a TFLite interpreter or None if no backend available."""
+    for _loader in (
+        lambda: __import__("tflite_runtime.interpreter", fromlist=["Interpreter"]).Interpreter(model_path=model_path),
+        lambda: __import__("pycoral.utils.edgetpu", fromlist=["make_interpreter"]).make_interpreter(model_path),
+        lambda: __import__("tensorflow", fromlist=["lite"]).lite.Interpreter(model_path=model_path),
+    ):
+        try:
+            interp = _loader()
+            interp.allocate_tensors()
+            return interp
+        except Exception:
+            continue
+    return None
+
+def test_thresholds_default_when_absent(monkeypatch, tmp_path):
+    """Model with no sidecar file should default all thresholds to 0.5."""
+    import pytest
+    if not os.path.exists(FIX):
+        pytest.skip("fixture not built")
+    interp = _make_interp(FIX)
+    if interp is None:
+        pytest.skip("no TFLite backend available in this venv")
+
+    # Clear any leftover env var and point model at fixture
+    monkeypatch.delenv("EAR_INFER_THRESHOLDS", raising=False)
+    monkeypatch.delenv("EAR_INFER_MODEL", raising=False)
+
+    m = infer.Model.__new__(infer.Model)
+    m.interp = interp
+    # Manually invoke the sidecar-loading logic with no model path set
+    m.thresholds = infer._load_thresholds(None)
+    assert m.thresholds == {"instrument": 0.5, "effects": 0.5, "mood": 0.5}
+
+
+def test_thresholds_loaded_from_sidecar(monkeypatch, tmp_path):
+    """Model reads thresholds from EAR_INFER_THRESHOLDS when set."""
+    import pytest
+    sidecar = tmp_path / "thresholds.json"
+    sidecar.write_text(json.dumps({"instrument": 0.2, "effects": 0.15, "mood": 0.3}))
+    monkeypatch.setenv("EAR_INFER_THRESHOLDS", str(sidecar))
+    t = infer._load_thresholds(None)
+    assert t == {"instrument": 0.2, "effects": 0.15, "mood": 0.3}
+
+
+def test_infer_uses_per_head_threshold(monkeypatch, tmp_path):
+    """Low effects threshold should produce more (or equal) effects labels than 0.5."""
+    import pytest
+    if not os.path.exists(FIX):
+        pytest.skip("fixture not built")
+    interp_low = _make_interp(FIX)
+    interp_high = _make_interp(FIX)
+    if interp_low is None or interp_high is None:
+        pytest.skip("no TFLite backend available in this venv")
+
+    pcm = ((__import__("numpy").random.default_rng(42).random(16000) * 2 - 1) * 32767).astype("<i2").tobytes()
+
+    # High threshold (default 0.5)
+    monkeypatch.delenv("EAR_INFER_THRESHOLDS", raising=False)
+    m_high = infer.Model.__new__(infer.Model)
+    m_high.interp = interp_high
+    m_high.thresholds = infer._load_thresholds(None)
+    out_high = m_high.infer(pcm, "isolated")
+
+    # Low effects threshold (0.05)
+    sidecar = tmp_path / "t.json"
+    sidecar.write_text(json.dumps({"instrument": 0.5, "effects": 0.05, "mood": 0.5}))
+    monkeypatch.setenv("EAR_INFER_THRESHOLDS", str(sidecar))
+    m_low = infer.Model.__new__(infer.Model)
+    m_low.interp = interp_low
+    m_low.thresholds = infer._load_thresholds(None)
+    out_low = m_low.infer(pcm, "isolated")
+
+    assert len(out_low["effects"]) >= len(out_high["effects"]), (
+        f"Expected more effects at threshold 0.05 than 0.5, "
+        f"got {len(out_low['effects'])} vs {len(out_high['effects'])}"
+    )
+
 
 def test_infer_end_to_end_real_model(monkeypatch):
     import pytest
@@ -55,6 +134,7 @@ def test_infer_end_to_end_real_model(monkeypatch):
     # Inject interpreter directly so we bypass EAR_INFER_MODEL path lookup
     m = infer.Model.__new__(infer.Model)
     m.interp = interp
+    m.thresholds = infer._load_thresholds(None)
 
     pcm = (np.random.rand(16000) * 2 - 1).astype(np.float32)
     pcm = (pcm * 32767).astype("<i2").tobytes()

@@ -1,4 +1,4 @@
-import hashlib, os
+import hashlib, json, os
 import numpy as np
 
 INSTRUMENTS = ["Electric guitar","Acoustic guitar","Bass guitar","Upright bass","Acoustic piano",
@@ -61,6 +61,41 @@ def _dequant(value, detail):
         return value.astype(np.float32)
     return (value.astype(np.float32) - zero) * scale
 
+_THRESHOLD_DEFAULTS = {"instrument": 0.5, "effects": 0.5, "mood": 0.5}
+
+def _load_thresholds(model_path):
+    """Load per-head decision thresholds from a sidecar JSON file.
+
+    Search order:
+    1. EAR_INFER_THRESHOLDS env var (explicit path)
+    2. <model_path_without_extension>.thresholds.json  (next to the model)
+    3. <model_path>.thresholds.json                     (next to the model, alt naming)
+
+    Returns a dict with keys instrument/effects/mood, defaulting missing keys to 0.5.
+    Never raises — on any error returns all-0.5 defaults.
+    """
+    candidates = []
+    env_path = os.environ.get("EAR_INFER_THRESHOLDS")
+    if env_path:
+        candidates.append(env_path)
+    if model_path:
+        stem, _ = os.path.splitext(model_path)
+        candidates.append(stem + ".thresholds.json")
+        candidates.append(model_path + ".thresholds.json")
+    for path in candidates:
+        try:
+            with open(path, "r") as fh:
+                data = json.load(fh)
+            result = dict(_THRESHOLD_DEFAULTS)
+            for key in _THRESHOLD_DEFAULTS:
+                if key in data:
+                    result[key] = float(data[key])
+            return result
+        except Exception:
+            continue
+    return dict(_THRESHOLD_DEFAULTS)
+
+
 def _decode(prob, labels, decision=0.5, top_k=0):
     order = np.argsort(prob)[::-1]
     picks = [i for i in order if prob[i] >= decision]
@@ -85,6 +120,7 @@ class Model:
                 self.interp.allocate_tensors()
             except Exception:
                 self.interp = None
+        self.thresholds = _load_thresholds(path)
 
     def _match_outputs(self, out_details):
         # TFLite strips Keras output-layer names to "StatefulPartitionedCall:N", so
@@ -121,7 +157,7 @@ class Model:
             d = out_by_head[name]
             return _dequant(self.interp.get_tensor(d["index"])[0], d)
         return {
-            "instruments": _decode(head("instrument"), INSTRUMENTS),
-            "effects": _decode(head("effects"), EFFECTS),
-            "mood": _decode(head("mood"), MOOD),
+            "instruments": _decode(head("instrument"), INSTRUMENTS, decision=self.thresholds["instrument"]),
+            "effects":     _decode(head("effects"),    EFFECTS,     decision=self.thresholds["effects"]),
+            "mood":        _decode(head("mood"),        MOOD,        decision=self.thresholds["mood"]),
         }
