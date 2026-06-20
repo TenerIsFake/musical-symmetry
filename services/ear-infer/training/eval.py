@@ -27,13 +27,17 @@ DECISION = 0.5  # sigmoid -> binary label threshold
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Evaluate a .tflite and apply ship gate.")
     p.add_argument("--tflite", required=True, help="path to the .tflite model")
-    p.add_argument("--data", required=True, help="held-out corpus spec/path")
+    p.add_argument("--data", required=False, default=None, help="held-out corpus spec/path")
     p.add_argument("--n-mels", type=int, default=128)
     p.add_argument("--frames", type=int, default=64)
     p.add_argument("--tfrecords", default=None,
                    help="Glob pattern for pre-computed TFRecord shards. "
                         "When set, uses the TFRecord pipeline instead of make_dataset.")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    # Validate: one of --data or --tfrecords is required
+    if args.tfrecords is None and args.data is None:
+        p.error("one of --data or --tfrecords is required")
+    return args
 
 
 def _dequant(value, detail):

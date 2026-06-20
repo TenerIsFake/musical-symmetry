@@ -26,7 +26,8 @@ def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Train the multi-head ear model.")
     p.add_argument("--model", choices=["isolated", "mix"], required=True,
                    help="which corpus variant to train")
-    p.add_argument("--data", required=True, help="path/spec for the corpus root")
+    p.add_argument("--data", required=False, default=None,
+                   help="path/spec for the corpus root")
     p.add_argument("--out", required=True, help="output dir for the Keras SavedModel")
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--n-mels", type=int, default=128)
@@ -36,7 +37,11 @@ def parse_args(argv=None):
     p.add_argument("--tfrecords", default=None,
                    help="Glob pattern for pre-computed TFRecord shards. "
                         "When set, uses the TFRecord pipeline instead of make_dataset.")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    # Validate: one of --data or --tfrecords is required
+    if args.tfrecords is None and args.data is None:
+        p.error("one of --data or --tfrecords is required")
+    return args
 
 
 def make_spec(args):

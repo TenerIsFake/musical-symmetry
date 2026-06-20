@@ -207,7 +207,7 @@ def serialize_example(logmel, labels, masks):
     return example.SerializeToString()
 
 
-def _parse_example(serialized, n_mels=128, frames=64):
+def _parse_example(serialized, n_mels=_TFR_N_MELS, frames=_TFR_FRAMES):
     """Parse a serialized ``tf.train.Example`` into the same element structure
     that ``make_dataset``'s generator yields (before batching).
 
@@ -244,7 +244,7 @@ def _parse_example(serialized, n_mels=128, frames=64):
     return feat, labels, masks
 
 
-def make_dataset_from_tfrecords(tfrecord_glob, n_mels=128, frames=64,
+def make_dataset_from_tfrecords(tfrecord_glob, n_mels=_TFR_N_MELS, frames=_TFR_FRAMES,
                                 batch_size=32, shuffle=1024):
     """Build a ``tf.data.Dataset`` from pre-computed TFRecord shards.
 
@@ -270,7 +270,7 @@ def make_dataset_from_tfrecords(tfrecord_glob, n_mels=128, frames=64,
     return ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
 
-def make_dataset(spec, n_mels=128, frames=64, batch_size=32, shuffle=1024):
+def make_dataset(spec, n_mels=_TFR_N_MELS, frames=_TFR_FRAMES, batch_size=32, shuffle=1024):
     """Build a ``tf.data.Dataset`` of
     ``(logmel[..., None], {head: labels}, {head: mask})`` tuples.
 

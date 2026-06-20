@@ -33,13 +33,20 @@ def _make_corpus(root, variant="isolated"):
     sdir.mkdir(parents=True)
     mdir.mkdir(parents=True)
 
-    # synth: 2s clip @ 16 kHz -> 2 windows
-    sf.write(sdir / "clip_000001.wav", np.zeros(32000, np.float32), 16000)
+    # Generate non-silent audio with distinct content per file using seeds
+    # so every clip produces a unique feature fingerprint.
+    rng = np.random.default_rng(42)
+
+    # synth: 2s clip @ 16 kHz -> 2 windows (non-silent random audio)
+    synth_audio = (rng.random(32000, dtype=np.float32) * 2 - 1)
+    sf.write(sdir / "clip_000001.wav", synth_audio, 16000)
     np.save(sdir / "clip_000001.effects.npy", np.zeros(22, np.float32))
     (sdir / "clip_000001.instrument.json").write_text(json.dumps(["Electric guitar"]))
 
-    # mood: 1s clip
-    sf.write(mdir / "track_a.wav", np.zeros(16000, np.float32), 16000)
+    # mood: 1s clip (different seed to ensure distinct audio)
+    rng_mood = np.random.default_rng(123)
+    mood_audio = (rng_mood.random(16000, dtype=np.float32) * 2 - 1)
+    sf.write(mdir / "track_a.wav", mood_audio, 16000)
     (mdir / "track_a.mood.json").write_text(json.dumps(["dreamy", "warm"]))
 
     return {
@@ -209,6 +216,13 @@ def test_tfrecord_dataset_matches_make_dataset(tmp_path):
 
     assert set(wav_by_fp.keys()) == set(tfr_by_fp.keys()), (
         "feature fingerprint sets do not match — TFRecord and wav pipelines yield different clips"
+    )
+
+    # Assert that we have distinct fingerprints (one per clip, not deduped)
+    # This ensures the fixture generates non-identical audio per file.
+    expected_clip_count = 3  # 2 synth windows + 1 mood window
+    assert len(wav_by_fp) == expected_clip_count, (
+        f"expected {expected_clip_count} distinct fingerprints, got {len(wav_by_fp)}"
     )
 
     for fp in wav_by_fp:

@@ -39,11 +39,13 @@ from dataset import (
     logmel_from_pcm,
     serialize_example,
     iter_clips,
+    _TFR_N_MELS,
+    _TFR_FRAMES,
 )
 
 # Model contract: n_mels and frames are baked into every TFRecord Example.
-N_MELS = 128
-FRAMES = 64
+N_MELS = _TFR_N_MELS
+FRAMES = _TFR_FRAMES
 
 
 def parse_args(argv=None):
