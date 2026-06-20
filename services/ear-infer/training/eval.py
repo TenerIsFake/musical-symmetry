@@ -17,7 +17,7 @@ import numpy as np
 import tensorflow as tf
 from sklearn.metrics import precision_recall_fscore_support
 
-from dataset import make_dataset
+from dataset import make_dataset, make_dataset_from_tfrecords
 from model import HEADS
 
 THRESHOLDS = {"effects": 0.60, "instrument": 0.60, "mood": 0.40}
@@ -30,6 +30,9 @@ def parse_args(argv=None):
     p.add_argument("--data", required=True, help="held-out corpus spec/path")
     p.add_argument("--n-mels", type=int, default=128)
     p.add_argument("--frames", type=int, default=64)
+    p.add_argument("--tfrecords", default=None,
+                   help="Glob pattern for pre-computed TFRecord shards. "
+                        "When set, uses the TFRecord pipeline instead of make_dataset.")
     return p.parse_args(argv)
 
 
@@ -127,9 +130,18 @@ def report(results):
 
 
 def main(args):
-    ds = make_dataset({"data_root": args.data, "synth_dir": f"{args.data}/synth",
-                       "mood_dir": f"{args.data}/mood", "clip_seconds": 1.0},
-                      n_mels=args.n_mels, frames=args.frames, batch_size=1, shuffle=0)
+    if args.tfrecords:
+        ds = make_dataset_from_tfrecords(
+            args.tfrecords,
+            n_mels=args.n_mels,
+            frames=args.frames,
+            batch_size=1,
+            shuffle=0,
+        )
+    else:
+        ds = make_dataset({"data_root": args.data, "synth_dir": f"{args.data}/synth",
+                           "mood_dir": f"{args.data}/mood", "clip_seconds": 1.0},
+                          n_mels=args.n_mels, frames=args.frames, batch_size=1, shuffle=0)
     preds, trues, masked = run_interpreter(args.tflite, ds)
     results = score(preds, trues, masked)
     ok = report(results)

@@ -21,10 +21,18 @@ stub: ``iter_clips(spec)``. Wire it to your on-disk corpus layout. Everything
 that determines model correctness — the feature transform and the mask logic —
 is concrete below.
 """
+import glob
 import numpy as np
 import tensorflow as tf
 
 from labels import INSTRUMENTS, EFFECTS, MOOD
+
+# ---------------------------------------------------------------------------
+# TFRecord schema constants
+# N_MELS / FRAMES are baked into serialized Examples; model contract must match.
+# ---------------------------------------------------------------------------
+_TFR_N_MELS = 128
+_TFR_FRAMES = 64
 
 SR = 16000  # matches services/ear-infer/infer.py
 
@@ -161,6 +169,105 @@ def iter_clips(spec):
                 inst = []
             for pcm in window_clips(to_pcm16k(wav), clip_seconds=clip_seconds):
                 yield pcm, "real_instrument", {"instrument": inst}
+
+
+# ---------------------------------------------------------------------------
+# TFRecord (de)serialization — SHARED schema; writer and reader both use these.
+# ---------------------------------------------------------------------------
+
+def serialize_example(logmel, labels, masks):
+    """Serialize one clip to a ``tf.train.Example`` proto (bytes).
+
+    Args:
+        logmel: ``(n_mels, frames)`` float32 ndarray.
+        labels: dict keyed ``instrument``/``effects``/``mood`` → float32 ndarrays.
+        masks:  dict keyed ``instrument``/``effects``/``mood`` → float32 ndarray
+                of shape ``(1,)``.
+
+    Returns:
+        Serialized ``bytes`` suitable for writing to a ``TFRecordWriter``.
+    """
+
+    def _float_feature(arr):
+        return tf.train.Feature(float_list=tf.train.FloatList(value=arr.flatten().tolist()))
+
+    feature = {
+        # log-mel: row-major (C order) flatten of (n_mels, frames)
+        "logmel":          _float_feature(logmel),
+        # per-head multi-hot label vectors
+        "instrument":      _float_feature(labels["instrument"]),
+        "effects":         _float_feature(labels["effects"]),
+        "mood":            _float_feature(labels["mood"]),
+        # per-head supervision masks (len-1 float each)
+        "mask_instrument": _float_feature(masks["instrument"]),
+        "mask_effects":    _float_feature(masks["effects"]),
+        "mask_mood":       _float_feature(masks["mood"]),
+    }
+    example = tf.train.Example(features=tf.train.Features(feature=feature))
+    return example.SerializeToString()
+
+
+def _parse_example(serialized, n_mels=128, frames=64):
+    """Parse a serialized ``tf.train.Example`` into the same element structure
+    that ``make_dataset``'s generator yields (before batching).
+
+    Returns:
+        ``(feat, labels, masks)`` where:
+          * ``feat``   — ``(n_mels, frames, 1)`` float32 tensor
+          * ``labels`` — ``{head: (width,) float32}``
+          * ``masks``  — ``{head: (1,) float32}``
+    """
+    desc = {
+        "logmel":          tf.io.FixedLenFeature([n_mels * frames],   tf.float32),
+        "instrument":      tf.io.FixedLenFeature([len(INSTRUMENTS)],  tf.float32),
+        "effects":         tf.io.FixedLenFeature([len(EFFECTS)],      tf.float32),
+        "mood":            tf.io.FixedLenFeature([len(MOOD)],          tf.float32),
+        "mask_instrument": tf.io.FixedLenFeature([1],                  tf.float32),
+        "mask_effects":    tf.io.FixedLenFeature([1],                  tf.float32),
+        "mask_mood":       tf.io.FixedLenFeature([1],                  tf.float32),
+    }
+    parsed = tf.io.parse_single_example(serialized, desc)
+
+    # restore (n_mels, frames) from row-major flat → add channel dim
+    feat = tf.reshape(parsed["logmel"], (n_mels, frames, 1))
+
+    labels = {
+        "instrument": parsed["instrument"],
+        "effects":    parsed["effects"],
+        "mood":       parsed["mood"],
+    }
+    masks = {
+        "instrument": parsed["mask_instrument"],
+        "effects":    parsed["mask_effects"],
+        "mood":       parsed["mask_mood"],
+    }
+    return feat, labels, masks
+
+
+def make_dataset_from_tfrecords(tfrecord_glob, n_mels=128, frames=64,
+                                batch_size=32, shuffle=1024):
+    """Build a ``tf.data.Dataset`` from pre-computed TFRecord shards.
+
+    Output element spec is identical to ``make_dataset``'s:
+    ``((n_mels, frames, 1) float32, {head: (width,)}, {head: (1,)})`` then
+    batched to ``batch_size``.
+
+    Args:
+        tfrecord_glob: glob pattern (str) matching the shard files.
+        n_mels:        must match the value used by ``make_tfrecords``.
+        frames:        must match the value used by ``make_tfrecords``.
+        batch_size:    examples per batch.
+        shuffle:       shuffle buffer size; 0 / None to disable.
+    """
+    files = sorted(glob.glob(tfrecord_glob))
+    ds = tf.data.TFRecordDataset(files, num_parallel_reads=tf.data.AUTOTUNE)
+    ds = ds.map(
+        lambda s: _parse_example(s, n_mels, frames),
+        num_parallel_calls=tf.data.AUTOTUNE,
+    )
+    if shuffle:
+        ds = ds.shuffle(shuffle)
+    return ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
 
 def make_dataset(spec, n_mels=128, frames=64, batch_size=32, shuffle=1024):

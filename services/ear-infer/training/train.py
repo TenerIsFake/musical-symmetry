@@ -18,7 +18,7 @@ import argparse
 
 import tensorflow as tf
 
-from dataset import make_dataset
+from dataset import make_dataset, make_dataset_from_tfrecords
 from model import build_model, masked_bce, HEADS
 
 
@@ -33,6 +33,9 @@ def parse_args(argv=None):
     p.add_argument("--frames", type=int, default=64)
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--tfrecords", default=None,
+                   help="Glob pattern for pre-computed TFRecord shards. "
+                        "When set, uses the TFRecord pipeline instead of make_dataset.")
     return p.parse_args(argv)
 
 
@@ -63,8 +66,16 @@ def _train_step(model, optimizer, feats, labels, masks):
 
 
 def train(args):
-    ds = make_dataset(make_spec(args), n_mels=args.n_mels, frames=args.frames,
-                      batch_size=args.batch_size)
+    if args.tfrecords:
+        ds = make_dataset_from_tfrecords(
+            args.tfrecords,
+            n_mels=args.n_mels,
+            frames=args.frames,
+            batch_size=args.batch_size,
+        )
+    else:
+        ds = make_dataset(make_spec(args), n_mels=args.n_mels, frames=args.frames,
+                          batch_size=args.batch_size)
     model = build_model(n_mels=args.n_mels, frames=args.frames)
     optimizer = tf.keras.optimizers.Adam(args.lr)
 
