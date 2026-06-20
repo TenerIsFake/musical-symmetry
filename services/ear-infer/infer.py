@@ -71,6 +71,13 @@ def _load_thresholds(model_path):
     2. <model_path_without_extension>.thresholds.json  (next to the model)
     3. <model_path>.thresholds.json                     (next to the model, alt naming)
 
+    Accepts both JSON schemas:
+    - Flat:   {"instrument": 0.35, "effects": 0.40, "mood": 0.5}
+    - Nested: {"thresholds": {"instrument":0.35, ...}, "_meta": {...}}
+
+    When the nested schema is detected (top-level "thresholds" key present),
+    reads thresholds from that sub-dict.
+
     Returns a dict with keys instrument/effects/mood, defaulting missing keys to 0.5.
     Never raises — on any error returns all-0.5 defaults.
     """
@@ -86,10 +93,12 @@ def _load_thresholds(model_path):
         try:
             with open(path, "r") as fh:
                 data = json.load(fh)
+            # Detect nested schema: {"thresholds": {...}, "_meta": {...}}
+            thresh_map = data["thresholds"] if "thresholds" in data else data
             result = dict(_THRESHOLD_DEFAULTS)
             for key in _THRESHOLD_DEFAULTS:
-                if key in data:
-                    result[key] = float(data[key])
+                if key in thresh_map:
+                    result[key] = float(thresh_map[key])
             return result
         except Exception:
             continue

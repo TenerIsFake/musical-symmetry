@@ -8,6 +8,11 @@ Usage:
 The script reuses eval.run_interpreter (which must return raw probs after the
 V2-T3 refactor). For each head it sweeps the given grid and picks the threshold
 that maximises macro_f1_over_supported. Defaults to 0.5 if no class has support.
+
+Important: always tune on a *validation* split that is distinct from the
+held-out test split used by eval.py. Tuning and gating on the same shards
+overfits thresholds to the test set and makes the gate meaningless. The output
+sidecar embeds a ``_meta.tuned_on`` field so eval.py can detect this mistake.
 """
 import argparse
 import json
@@ -103,11 +108,13 @@ def main(argv=None):
     probs_all, trues_all, masked_all = run_interpreter(args.tflite, ds)
 
     chosen = {}
+    achieved_f1 = {}
     for head in HEADS:
         keep = np.array(masked_all[head]) > 0.5
         if not keep.any():
             print(f"{head}: no masked clips — defaulting to 0.5")
             chosen[head] = 0.5
+            achieved_f1[head] = 0.0
             continue
 
         p = np.array(probs_all[head])[keep]   # (n_kept, n_classes)
@@ -115,10 +122,18 @@ def main(argv=None):
 
         thresh, f1 = best_threshold(p, t_arr, grid)
         chosen[head] = round(thresh, 4)
+        achieved_f1[head] = round(float(f1), 4)
         print(f"{head}: threshold={thresh:.2f}  macro_f1_supported={f1:.4f}")
 
+    sidecar = {
+        "thresholds": chosen,
+        "_meta": {
+            "tuned_on": args.tfrecords,
+            "macro_f1_supported": achieved_f1,
+        },
+    }
     with open(args.out, "w") as fh:
-        json.dump(chosen, fh, indent=2)
+        json.dump(sidecar, fh, indent=2)
     print(f"\nWrote thresholds to {args.out}")
 
 

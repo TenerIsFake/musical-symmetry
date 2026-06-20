@@ -15,6 +15,12 @@ was never given data for.
 
 Also reports micro-F1 (over all masked clips/classes) and macro-F1-over-all for
 reference.
+
+Important: always gate on a *held-out test* split that is distinct from the
+validation split used by tune_thresholds.py. Tuning and gating on the same
+shards overfits thresholds to the test set and makes the gate meaningless. If a
+thresholds sidecar's ``_meta.tuned_on`` field matches ``--tfrecords``, eval.py
+will print a loud warning to stderr.
 """
 import argparse
 import json
@@ -50,14 +56,46 @@ def parse_args(argv=None):
     return args
 
 
-def _load_thresholds(path_or_none):
-    """Load per-head threshold dict from JSON, or return all-0.5 defaults."""
+def _load_thresholds(path_or_none, tfrecords_glob=None):
+    """Load per-head threshold dict from JSON, or return all-0.5 defaults.
+
+    Accepts both schemas:
+    - Flat:   {"instrument": 0.35, "effects": 0.40, "mood": 0.5}
+    - Nested: {"thresholds": {"instrument":0.35, ...}, "_meta": {...}}
+
+    When the nested schema is detected (top-level "thresholds" key present),
+    reads thresholds from that sub-dict. Missing heads default to DECISION=0.5.
+    Never raises.
+
+    Args:
+        path_or_none: path to JSON sidecar, or None for all-0.5 defaults.
+        tfrecords_glob: the --tfrecords glob string being evaluated; if set and
+            the sidecar's _meta.tuned_on matches, a warning is printed to stderr.
+    """
     if path_or_none is None:
         return {h: DECISION for h in HEADS}
     with open(path_or_none) as fh:
         data = json.load(fh)
+    # Detect nested schema: {"thresholds": {...}, "_meta": {...}}
+    if "thresholds" in data:
+        thresh_map = data["thresholds"]
+        # Warn if thresholds were tuned on the same shards being evaluated
+        if tfrecords_glob is not None:
+            meta = data.get("_meta", {})
+            tuned_on = meta.get("tuned_on")
+            if tuned_on is not None and tuned_on == tfrecords_glob:
+                import sys
+                print(
+                    f"WARNING: thresholds were tuned on the same shards being evaluated "
+                    f"({tfrecords_glob}) — gate may be optimistic; tune on a validation "
+                    f"split distinct from the held-out test set.",
+                    file=sys.stderr,
+                )
+    else:
+        # Flat schema: the whole dict is the threshold map
+        thresh_map = data
     # Fill any missing heads with DECISION
-    return {h: float(data.get(h, DECISION)) for h in HEADS}
+    return {h: float(thresh_map.get(h, DECISION)) for h in HEADS}
 
 
 def _dequant(value, detail):
@@ -240,7 +278,7 @@ def main(args):
         ds = make_dataset({"data_root": args.data, "synth_dir": f"{args.data}/synth",
                            "mood_dir": f"{args.data}/mood", "clip_seconds": 1.0},
                           n_mels=args.n_mels, frames=args.frames, batch_size=1, shuffle=0)
-    thresholds = _load_thresholds(args.thresholds)
+    thresholds = _load_thresholds(args.thresholds, tfrecords_glob=args.tfrecords)
     probs, trues, masked = run_interpreter(args.tflite, ds)
     results = score(probs, trues, masked, thresholds=thresholds)
     ok = report(results)

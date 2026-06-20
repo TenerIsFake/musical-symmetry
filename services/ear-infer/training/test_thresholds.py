@@ -1,27 +1,29 @@
 """Tests for tune_thresholds.py pure-function helpers + eval.py threshold loading.
 
-All tests guard against tflite/GPU unavailability via pytest.importorskip("tensorflow").
-Pure-function tests (best_threshold, macro_f1_over_supported) do NOT need a real model;
-they only need numpy + the pure helpers factored out of tune_thresholds.py.
+Pure-function tests (best_threshold, macro_f1_over_supported) do NOT need
+TensorFlow and are never skipped by importorskip — they only use numpy and the
+helpers factored out of tune_thresholds.py / metrics.py.
+
+Tests that import eval.py (which imports tensorflow) are individually guarded
+with pytest.importorskip("tensorflow") inside the test body.
 """
 import json
 import os
+import sys
 import tempfile
 
 import numpy as np
 import pytest
 
-pytest.importorskip("tensorflow")
-
 # ---------------------------------------------------------------------------
-# Helpers imported from production modules
+# Helpers imported from production modules (pure-numpy, no TF)
 # ---------------------------------------------------------------------------
 from metrics import macro_f1_over_supported
 from tune_thresholds import best_threshold
 
 
 # ---------------------------------------------------------------------------
-# test_tune_picks_better_threshold
+# test_tune_picks_better_threshold  (pure numpy — never skipped)
 # ---------------------------------------------------------------------------
 
 def test_tune_picks_better_threshold():
@@ -64,7 +66,7 @@ def test_tune_picks_better_threshold():
 
 
 # ---------------------------------------------------------------------------
-# test_macro_supported_ignores_zero_support
+# test_macro_supported_ignores_zero_support  (pure numpy — never skipped)
 # ---------------------------------------------------------------------------
 
 def test_macro_supported_ignores_zero_support():
@@ -99,15 +101,20 @@ def test_macro_supported_ignores_zero_support():
 
 
 # ---------------------------------------------------------------------------
-# test_eval_loads_thresholds_json
+# test_eval_loads_thresholds_json  (needs tensorflow via eval import)
 # ---------------------------------------------------------------------------
 
 def test_eval_loads_thresholds_json():
-    """eval._load_thresholds should load a JSON and default missing heads to 0.5."""
+    """eval._load_thresholds should load a JSON and default missing heads to 0.5.
+
+    Tests both the flat schema (backward-compat) and the nested schema written
+    by tune_thresholds.py after the V2-T3 whole-branch review fix.
+    """
+    pytest.importorskip("tensorflow")
     from eval import _load_thresholds
     from model import HEADS
 
-    # --- With a valid thresholds JSON (partial) ---
+    # --- Flat schema (backward-compat): {"instrument":0.35, "effects":0.40} ---
     partial = {"instrument": 0.35, "effects": 0.40}
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".json", delete=False
@@ -116,7 +123,6 @@ def test_eval_loads_thresholds_json():
         thresh_path = f.name
 
     try:
-        # Test loading from file
         loaded = _load_thresholds(thresh_path)
         assert loaded["instrument"] == 0.35
         assert loaded["effects"] == 0.40
@@ -127,7 +133,196 @@ def test_eval_loads_thresholds_json():
     finally:
         os.unlink(thresh_path)
 
+    # --- Nested schema written by tune_thresholds.py after whole-branch fix ---
+    nested = {
+        "thresholds": {"instrument": 0.30, "effects": 0.35, "mood": 0.45},
+        "_meta": {"tuned_on": "val/*.tfrecord", "macro_f1_supported": {"instrument": 0.72}},
+    }
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as f:
+        json.dump(nested, f)
+        nested_path = f.name
+
+    try:
+        loaded_nested = _load_thresholds(nested_path)
+        assert loaded_nested["instrument"] == 0.30
+        assert loaded_nested["effects"] == 0.35
+        assert loaded_nested["mood"] == 0.45
+        assert set(loaded_nested.keys()) == set(HEADS)
+    finally:
+        os.unlink(nested_path)
+
     # --- With None path: all heads default to 0.5 ---
     defaults = _load_thresholds(None)
     assert all(v == 0.5 for v in defaults.values())
     assert set(defaults.keys()) == set(HEADS)
+
+
+# ---------------------------------------------------------------------------
+# Fix 2: Cross-module schema lock test
+# Producer (tune_thresholds) → consumer (eval + infer) round-trip
+# ---------------------------------------------------------------------------
+
+def test_sidecar_schema_roundtrip_both_loaders():
+    """Both eval._load_thresholds and infer._load_thresholds must read the exact
+    dict that tune_thresholds.main writes (nested schema).
+
+    This is the producer→consumer schema lock: a head-key rename in one module
+    breaks this test.
+
+    infer is imported via sys.path manipulation matching how test_infer.py works.
+    """
+    pytest.importorskip("tensorflow")
+    from eval import _load_thresholds as eval_load
+
+    # Add the ear-infer serving dir to sys.path so we can import infer
+    ear_infer_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if ear_infer_dir not in sys.path:
+        sys.path.insert(0, ear_infer_dir)
+    from infer import _load_thresholds as infer_load
+
+    # Build the EXACT dict tune_thresholds.main writes (nested schema)
+    chosen = {"instrument": 0.3, "effects": 0.25, "mood": 0.45}
+    achieved_f1 = {"instrument": 0.72, "effects": 0.68, "mood": 0.55}
+    sidecar = {
+        "thresholds": chosen,
+        "_meta": {
+            "tuned_on": "val/shard-*.tfrecord",
+            "macro_f1_supported": achieved_f1,
+        },
+    }
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as f:
+        json.dump(sidecar, f)
+        sidecar_path = f.name
+
+    try:
+        # eval loader
+        eval_result = eval_load(sidecar_path)
+        assert eval_result["instrument"] == 0.3, f"eval instrument: {eval_result}"
+        assert eval_result["effects"] == 0.25, f"eval effects: {eval_result}"
+        assert eval_result["mood"] == 0.45, f"eval mood: {eval_result}"
+
+        # infer loader (uses EAR_INFER_THRESHOLDS env var path)
+        import os as _os
+        old_env = _os.environ.get("EAR_INFER_THRESHOLDS")
+        _os.environ["EAR_INFER_THRESHOLDS"] = sidecar_path
+        try:
+            infer_result = infer_load(None)
+        finally:
+            if old_env is None:
+                _os.environ.pop("EAR_INFER_THRESHOLDS", None)
+            else:
+                _os.environ["EAR_INFER_THRESHOLDS"] = old_env
+
+        assert infer_result["instrument"] == 0.3, f"infer instrument: {infer_result}"
+        assert infer_result["effects"] == 0.25, f"infer effects: {infer_result}"
+        assert infer_result["mood"] == 0.45, f"infer mood: {infer_result}"
+
+        # Both loaders must agree
+        assert eval_result == infer_result, (
+            f"eval and infer disagree: eval={eval_result} infer={infer_result}"
+        )
+    finally:
+        os.unlink(sidecar_path)
+
+
+def test_sidecar_flat_schema_still_loads():
+    """Flat schema {"instrument":..} must still load in both eval and infer loaders.
+
+    Backward-compat guard: sidecars written before the nested-schema fix must
+    still work.
+    """
+    pytest.importorskip("tensorflow")
+    from eval import _load_thresholds as eval_load
+
+    ear_infer_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if ear_infer_dir not in sys.path:
+        sys.path.insert(0, ear_infer_dir)
+    from infer import _load_thresholds as infer_load
+
+    flat = {"instrument": 0.2, "effects": 0.15, "mood": 0.3}
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as f:
+        json.dump(flat, f)
+        flat_path = f.name
+
+    try:
+        eval_result = eval_load(flat_path)
+        assert eval_result == flat, f"eval flat: {eval_result}"
+
+        import os as _os
+        old_env = _os.environ.get("EAR_INFER_THRESHOLDS")
+        _os.environ["EAR_INFER_THRESHOLDS"] = flat_path
+        try:
+            infer_result = infer_load(None)
+        finally:
+            if old_env is None:
+                _os.environ.pop("EAR_INFER_THRESHOLDS", None)
+            else:
+                _os.environ["EAR_INFER_THRESHOLDS"] = old_env
+
+        assert infer_result == flat, f"infer flat: {infer_result}"
+    finally:
+        os.unlink(flat_path)
+
+
+def test_same_shard_warning_fires(capsys):
+    """eval._load_thresholds must warn to stderr when tuned_on == tfrecords_glob."""
+    pytest.importorskip("tensorflow")
+    from eval import _load_thresholds
+
+    glob = "test/shard-*.tfrecord"
+    sidecar = {
+        "thresholds": {"instrument": 0.3, "effects": 0.25, "mood": 0.45},
+        "_meta": {"tuned_on": glob, "macro_f1_supported": {}},
+    }
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as f:
+        json.dump(sidecar, f)
+        sidecar_path = f.name
+
+    try:
+        _load_thresholds(sidecar_path, tfrecords_glob=glob)
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err, (
+            f"Expected WARNING in stderr, got: {captured.err!r}"
+        )
+        assert glob in captured.err, (
+            f"Expected glob in warning message, got: {captured.err!r}"
+        )
+    finally:
+        os.unlink(sidecar_path)
+
+
+def test_different_shard_no_warning(capsys):
+    """eval._load_thresholds must NOT warn when tuned_on != tfrecords_glob."""
+    pytest.importorskip("tensorflow")
+    from eval import _load_thresholds
+
+    sidecar = {
+        "thresholds": {"instrument": 0.3, "effects": 0.25, "mood": 0.45},
+        "_meta": {"tuned_on": "val/shard-*.tfrecord", "macro_f1_supported": {}},
+    }
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False
+    ) as f:
+        json.dump(sidecar, f)
+        sidecar_path = f.name
+
+    try:
+        _load_thresholds(sidecar_path, tfrecords_glob="test/shard-*.tfrecord")
+        captured = capsys.readouterr()
+        assert "WARNING" not in captured.err, (
+            f"Unexpected WARNING in stderr: {captured.err!r}"
+        )
+    finally:
+        os.unlink(sidecar_path)

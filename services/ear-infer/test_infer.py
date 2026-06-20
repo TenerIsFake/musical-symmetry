@@ -45,24 +45,32 @@ def _make_interp(model_path):
             continue
     return None
 
-def test_thresholds_default_when_absent(monkeypatch, tmp_path):
-    """Model with no sidecar file should default all thresholds to 0.5."""
-    import pytest
-    if not os.path.exists(FIX):
-        pytest.skip("fixture not built")
-    interp = _make_interp(FIX)
-    if interp is None:
-        pytest.skip("no TFLite backend available in this venv")
-
-    # Clear any leftover env var and point model at fixture
+def test_thresholds_default_when_absent(monkeypatch):
+    """_load_thresholds(None) should return all-0.5 defaults — pure Python, never skips."""
     monkeypatch.delenv("EAR_INFER_THRESHOLDS", raising=False)
-    monkeypatch.delenv("EAR_INFER_MODEL", raising=False)
+    result = infer._load_thresholds(None)
+    assert result == {"instrument": 0.5, "effects": 0.5, "mood": 0.5}
 
-    m = infer.Model.__new__(infer.Model)
-    m.interp = interp
-    # Manually invoke the sidecar-loading logic with no model path set
-    m.thresholds = infer._load_thresholds(None)
-    assert m.thresholds == {"instrument": 0.5, "effects": 0.5, "mood": 0.5}
+
+def test_thresholds_nested_schema(monkeypatch, tmp_path):
+    """_load_thresholds must read nested schema {"thresholds":{...},"_meta":{...}}."""
+    sidecar = tmp_path / "thresholds.json"
+    sidecar.write_text(json.dumps({
+        "thresholds": {"instrument": 0.3, "effects": 0.25, "mood": 0.45},
+        "_meta": {"tuned_on": "val/*.tfrecord", "macro_f1_supported": {}},
+    }))
+    monkeypatch.setenv("EAR_INFER_THRESHOLDS", str(sidecar))
+    t = infer._load_thresholds(None)
+    assert t == {"instrument": 0.3, "effects": 0.25, "mood": 0.45}
+
+
+def test_thresholds_flat_schema_backward_compat(monkeypatch, tmp_path):
+    """_load_thresholds must still read old flat schema {"instrument":..}."""
+    sidecar = tmp_path / "thresholds.json"
+    sidecar.write_text(json.dumps({"instrument": 0.2, "effects": 0.15, "mood": 0.3}))
+    monkeypatch.setenv("EAR_INFER_THRESHOLDS", str(sidecar))
+    t = infer._load_thresholds(None)
+    assert t == {"instrument": 0.2, "effects": 0.15, "mood": 0.3}
 
 
 def test_thresholds_loaded_from_sidecar(monkeypatch, tmp_path):
