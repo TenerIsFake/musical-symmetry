@@ -22,6 +22,7 @@ that determines model correctness â€” the feature transform and the mask logic â
 is concrete below.
 """
 import glob
+import os
 import numpy as np
 import tensorflow as tf
 
@@ -331,6 +332,59 @@ def make_dataset_from_tfrecords(tfrecord_glob, n_mels=_TFR_N_MELS, frames=_TFR_F
         lambda s: _parse_example(s, n_mels, frames),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
+    if shuffle:
+        ds = ds.shuffle(shuffle)
+    return ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+
+def make_balanced_dataset_from_source_dirs(root, weights=None, n_mels=_TFR_N_MELS,
+                                           frames=_TFR_FRAMES, batch_size=32, shuffle=1024):
+    """Fast source-balanced dataset from a by-source TFRecord tree.
+
+    Expected layout::
+
+        <root>/synth/*.tfrecord
+        <root>/inst/*.tfrecord
+        <root>/mood/*.tfrecord
+
+    Each source's shards are read directly (NO filtering), ``.repeat()``'d,
+    and interleaved via ``sample_from_datasets`` at *weights* (default equal
+    1/3 each).  Sources with no shards are silently dropped and the weights
+    are renormalized over the present sources.
+
+    Returns an **infinite** batched+prefetched dataset.  Element spec is
+    identical to :func:`make_dataset_from_tfrecords`.
+
+    Args:
+        root:       Directory containing synth/, inst/, mood/ subdirectories.
+        weights:    Per-source sampling weights ``[w_synth, w_inst, w_mood]``
+                    (default equal).  Renormalized if a source is absent.
+        n_mels:     Must match the value used by ``make_tfrecords``.
+        frames:     Must match the value used by ``make_tfrecords``.
+        batch_size: Examples per batch.
+        shuffle:    Shuffle buffer size; 0/None to disable.
+    """
+    subs = [("synth", "synth"), ("inst", "inst"), ("mood", "mood")]
+    eqw = weights or [1 / 3, 1 / 3, 1 / 3]
+    dss, w = [], []
+    for (name, sub), wi in zip(subs, eqw):
+        files = sorted(glob.glob(os.path.join(root, sub, "*.tfrecord")))
+        if not files:
+            continue
+        d = (
+            tf.data.TFRecordDataset(files, num_parallel_reads=tf.data.AUTOTUNE)
+            .map(lambda s: _parse_example(s, n_mels, frames),
+                 num_parallel_calls=tf.data.AUTOTUNE)
+            .repeat()
+        )
+        dss.append(d)
+        w.append(wi)
+    if not dss:
+        raise ValueError(f"no source shards found under {root}")
+    # Renormalize weights over present sources
+    total_w = sum(w)
+    w = [x / total_w for x in w]
+    ds = tf.data.Dataset.sample_from_datasets(dss, weights=w, stop_on_empty_dataset=False)
     if shuffle:
         ds = ds.shuffle(shuffle)
     return ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)

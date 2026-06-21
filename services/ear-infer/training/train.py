@@ -16,11 +16,18 @@ this repo; see README.md for the offline runbook.
 """
 import argparse
 import itertools
+import logging
 import math
+import os
 
 import tensorflow as tf
 
-from dataset import make_dataset, make_dataset_from_tfrecords, make_balanced_dataset_from_tfrecords
+from dataset import (
+    make_dataset,
+    make_dataset_from_tfrecords,
+    make_balanced_dataset_from_tfrecords,
+    make_balanced_dataset_from_source_dirs,
+)
 from model import (
     build_model, masked_bce, masked_bce_weighted, masked_focal,
     compute_pos_weights, HEADS,
@@ -54,6 +61,11 @@ def parse_args(argv=None):
                         "or source (interleave 3 source sub-datasets at equal weight)")
     p.add_argument("--steps-per-epoch", type=int, default=0,
                    help="steps per epoch when --balance source (0 = auto-derive from data count)")
+    p.add_argument("--source-root", default=None,
+                   help="Root of a by-source TFRecord tree (<root>/synth/, <root>/inst/, "
+                        "<root>/mood/). When set with --balance source, uses the fast "
+                        "filter-free make_balanced_dataset_from_source_dirs instead of the "
+                        "slow filter-based fallback.")
     args = p.parse_args(argv)
     # Validate: one of --data or --tfrecords is required
     if args.tfrecords is None and args.data is None:
@@ -124,6 +136,9 @@ def _make_head_loss_fn(args, pos_weights):
     return head_loss_fn
 
 
+log = logging.getLogger(__name__)
+
+
 def train(args):
     # ------------------------------------------------------------------
     # Build the dataset(s).
@@ -132,8 +147,26 @@ def train(args):
     #   * ds        — the (possibly infinite) training dataset
     # ------------------------------------------------------------------
     use_balance = getattr(args, "balance", "none") == "source"
+    source_root = getattr(args, "source_root", None)
 
-    if args.tfrecords:
+    if source_root and use_balance:
+        # --- FAST PATH: filter-free balanced dataset from by-source TFRecord tree ---
+        ds = make_balanced_dataset_from_source_dirs(
+            source_root,
+            n_mels=args.n_mels,
+            frames=args.frames,
+            batch_size=args.batch_size,
+        )
+        # pos_weights + steps_per_epoch are computed on a finite dataset built
+        # from ALL source shards (never iterate the infinite ds for counting).
+        finite_glob = os.path.join(source_root, "*", "*.tfrecord")
+        finite_ds = make_dataset_from_tfrecords(
+            finite_glob,
+            n_mels=args.n_mels,
+            frames=args.frames,
+            batch_size=args.batch_size,
+        )
+    elif args.tfrecords:
         # Always build the finite dataset (needed for pos_weights and as the
         # training ds when balance==none).
         finite_ds = make_dataset_from_tfrecords(
@@ -143,6 +176,11 @@ def train(args):
             batch_size=args.batch_size,
         )
         if use_balance:
+            log.warning(
+                "--balance source without --source-root uses the slow filter-based "
+                "make_balanced_dataset_from_tfrecords. Prefer --source-root for "
+                "GPU-friendly throughput."
+            )
             ds = make_balanced_dataset_from_tfrecords(
                 args.tfrecords,
                 n_mels=args.n_mels,

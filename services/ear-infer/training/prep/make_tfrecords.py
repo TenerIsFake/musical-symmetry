@@ -62,6 +62,10 @@ def parse_args(argv=None):
                    help="Number of TFRecord shard files; default: 32.")
     p.add_argument("--max-windows-per-clip", type=int, default=2,
                    help="Windows kept per source clip; <=0 means all; default: 2.")
+    p.add_argument("--by-source", action="store_true", default=False,
+                   help="Route each example to a per-source subdir "
+                        "(<out>/synth/, <out>/inst/, <out>/mood/) instead of "
+                        "the default single-dir round-robin layout.")
     return p.parse_args(argv)
 
 
@@ -83,35 +87,92 @@ def main(argv=None):
     if args.max_windows_per_clip and args.max_windows_per_clip > 0:
         spec["max_windows_per_clip"] = args.max_windows_per_clip
 
-    shard_paths = [
-        os.path.join(args.out, f"part-{i:05d}.tfrecord")
-        for i in range(args.shards)
-    ]
-    writers = [tf.io.TFRecordWriter(p) for p in shard_paths]
-    shard_counts = [0] * args.shards
-
     total = 0
-    for pcm, source, meta in iter_clips(spec):
-        logmel = _fix_frames(logmel_from_pcm(pcm, n_mels=N_MELS), FRAMES)
-        labels, masks = _labels_for(
-            source,
-            instrument=meta.get("instrument"),
-            effects=meta.get("effects"),
-            mood=meta.get("mood"),
-        )
-        serialized = serialize_example(logmel, labels, masks)
-        shard_idx = total % args.shards
-        writers[shard_idx].write(serialized)
-        shard_counts[shard_idx] += 1
-        total += 1
 
-    for w in writers:
-        w.close()
+    if args.by_source:
+        # --by-source: route each example to a per-source subdir.
+        # source → subdir name mapping
+        SOURCE_TO_SUBDIR = {
+            "synth":           "synth",
+            "real_instrument": "inst",
+            "real_mood":       "mood",
+        }
+        # Create shard writers per source (on first encounter)
+        source_writers = {}   # subdir -> list of TFRecordWriter
+        source_counts  = {}   # subdir -> list of int (per-shard counts)
+        source_totals  = {}   # subdir -> int (total examples)
 
-    print(f"Wrote {total} examples across {args.shards} shards:")
-    for i, (path, count) in enumerate(zip(shard_paths, shard_counts)):
-        if count > 0:
-            print(f"  {os.path.basename(path)}: {count} examples")
+        for pcm, source, meta in iter_clips(spec):
+            subdir = SOURCE_TO_SUBDIR.get(source)
+            if subdir is None:
+                raise ValueError(f"unknown source {source!r}")
+
+            # Lazily create writers for this source
+            if subdir not in source_writers:
+                sub_out = os.path.join(args.out, subdir)
+                os.makedirs(sub_out, exist_ok=True)
+                paths = [
+                    os.path.join(sub_out, f"part-{i:05d}.tfrecord")
+                    for i in range(args.shards)
+                ]
+                source_writers[subdir] = [tf.io.TFRecordWriter(p) for p in paths]
+                source_counts[subdir]  = [0] * args.shards
+                source_totals[subdir]  = 0
+
+            logmel = _fix_frames(logmel_from_pcm(pcm, n_mels=N_MELS), FRAMES)
+            labels, masks = _labels_for(
+                source,
+                instrument=meta.get("instrument"),
+                effects=meta.get("effects"),
+                mood=meta.get("mood"),
+            )
+            serialized = serialize_example(logmel, labels, masks)
+            # Round-robin within this source's own shards
+            shard_idx = source_totals[subdir] % args.shards
+            source_writers[subdir][shard_idx].write(serialized)
+            source_counts[subdir][shard_idx] += 1
+            source_totals[subdir] += 1
+            total += 1
+
+        for subdir, writers in source_writers.items():
+            for w in writers:
+                w.close()
+
+        print(f"Wrote {total} examples (--by-source):")
+        for subdir in sorted(source_totals):
+            print(f"  {subdir}/: {source_totals[subdir]} examples "
+                  f"across {args.shards} shards")
+
+    else:
+        # Default: single-dir round-robin (unchanged behaviour)
+        shard_paths = [
+            os.path.join(args.out, f"part-{i:05d}.tfrecord")
+            for i in range(args.shards)
+        ]
+        writers = [tf.io.TFRecordWriter(p) for p in shard_paths]
+        shard_counts = [0] * args.shards
+
+        for pcm, source, meta in iter_clips(spec):
+            logmel = _fix_frames(logmel_from_pcm(pcm, n_mels=N_MELS), FRAMES)
+            labels, masks = _labels_for(
+                source,
+                instrument=meta.get("instrument"),
+                effects=meta.get("effects"),
+                mood=meta.get("mood"),
+            )
+            serialized = serialize_example(logmel, labels, masks)
+            shard_idx = total % args.shards
+            writers[shard_idx].write(serialized)
+            shard_counts[shard_idx] += 1
+            total += 1
+
+        for w in writers:
+            w.close()
+
+        print(f"Wrote {total} examples across {args.shards} shards:")
+        for i, (path, count) in enumerate(zip(shard_paths, shard_counts)):
+            if count > 0:
+                print(f"  {os.path.basename(path)}: {count} examples")
 
     return total
 
