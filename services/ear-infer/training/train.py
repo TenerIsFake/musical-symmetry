@@ -15,10 +15,12 @@ Training is GPU-bound and multi-hour on real corpora. Nothing is trained in
 this repo; see README.md for the offline runbook.
 """
 import argparse
+import itertools
+import math
 
 import tensorflow as tf
 
-from dataset import make_dataset, make_dataset_from_tfrecords
+from dataset import make_dataset, make_dataset_from_tfrecords, make_balanced_dataset_from_tfrecords
 from model import (
     build_model, masked_bce, masked_bce_weighted, masked_focal,
     compute_pos_weights, HEADS,
@@ -47,6 +49,11 @@ def parse_args(argv=None):
                    help="focal loss gamma (default 2.0); only used when --loss focal")
     p.add_argument("--focal-alpha", type=float, default=0.25,
                    help="focal loss alpha (default 0.25); only used when --loss focal")
+    p.add_argument("--balance", choices=["none", "source"], default="none",
+                   help="sampling balance strategy: none (default, unchanged behaviour) "
+                        "or source (interleave 3 source sub-datasets at equal weight)")
+    p.add_argument("--steps-per-epoch", type=int, default=0,
+                   help="steps per epoch when --balance source (0 = auto-derive from data count)")
     args = p.parse_args(argv)
     # Validate: one of --data or --tfrecords is required
     if args.tfrecords is None and args.data is None:
@@ -118,21 +125,55 @@ def _make_head_loss_fn(args, pos_weights):
 
 
 def train(args):
+    # ------------------------------------------------------------------
+    # Build the dataset(s).
+    # When --balance source is requested we need TWO datasets:
+    #   * finite_ds — for computing pos_weights (never iterate the infinite ds)
+    #   * ds        — the (possibly infinite) training dataset
+    # ------------------------------------------------------------------
+    use_balance = getattr(args, "balance", "none") == "source"
+
     if args.tfrecords:
-        ds = make_dataset_from_tfrecords(
+        # Always build the finite dataset (needed for pos_weights and as the
+        # training ds when balance==none).
+        finite_ds = make_dataset_from_tfrecords(
             args.tfrecords,
             n_mels=args.n_mels,
             frames=args.frames,
             batch_size=args.batch_size,
         )
+        if use_balance:
+            ds = make_balanced_dataset_from_tfrecords(
+                args.tfrecords,
+                n_mels=args.n_mels,
+                frames=args.frames,
+                batch_size=args.batch_size,
+            )
+        else:
+            ds = finite_ds
     else:
-        ds = make_dataset(make_spec(args), n_mels=args.n_mels, frames=args.frames,
-                          batch_size=args.batch_size)
+        finite_ds = make_dataset(make_spec(args), n_mels=args.n_mels, frames=args.frames,
+                                 batch_size=args.batch_size)
+        ds = finite_ds
+
+    # Determine steps_per_epoch when using the infinite balanced dataset.
+    steps_per_epoch = getattr(args, "steps_per_epoch", 0)
+    if use_balance:
+        if steps_per_epoch and steps_per_epoch > 0:
+            _steps = steps_per_epoch
+        else:
+            # Count examples from the finite dataset once to derive a sensible default.
+            n_examples = sum(batch[0].shape[0] for batch in finite_ds)
+            _steps = math.ceil(n_examples / args.batch_size)
+        print(f"[balance=source] steps_per_epoch={_steps}")
+    else:
+        _steps = None  # unused for finite datasets
 
     # Resolve loss strategy ONCE before the training loop so _train_step's
     # @tf.function graph is static (no retracing per step).
+    # CRITICAL: compute pos_weights on finite_ds, never on the infinite ds.
     if args.loss == "posweight":
-        pos_weights = compute_pos_weights(ds)
+        pos_weights = compute_pos_weights(finite_ds)
         for head, pw in pos_weights.items():
             print(f"[pos_weight] {head}: max={pw.max():.2f} mean={pw.mean():.2f}")
     else:
@@ -146,7 +187,13 @@ def train(args):
 
     for epoch in range(args.epochs):
         running, steps = 0.0, 0
-        for feats, labels, masks in ds:
+        if use_balance:
+            # Infinite dataset: break after _steps batches using islice.
+            batch_iter = itertools.islice(iter(ds), _steps)
+        else:
+            # Finite dataset: iterate naturally until exhausted (unchanged).
+            batch_iter = iter(ds)
+        for feats, labels, masks in batch_iter:
             loss = train_step(feats, labels, masks)
             running += float(loss)
             steps += 1

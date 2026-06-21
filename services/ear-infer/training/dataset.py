@@ -254,6 +254,62 @@ def _parse_example(serialized, n_mels=_TFR_N_MELS, frames=_TFR_FRAMES):
     return feat, labels, masks
 
 
+# ---------------------------------------------------------------------------
+# Source-filter predicates (operate on unbatched (feat, labels, masks) elements)
+# ---------------------------------------------------------------------------
+
+def is_synth(feat, labels, masks):
+    """True when the example comes from the 'synth' source (effects mask == 1)."""
+    return tf.reshape(masks["effects"], [-1])[0] > 0.5
+
+
+def is_mood(feat, labels, masks):
+    """True when the example comes from the 'real_mood' source (mood mask == 1)."""
+    return tf.reshape(masks["mood"], [-1])[0] > 0.5
+
+
+def is_real_instrument(feat, labels, masks):
+    """True when the example comes from the 'real_instrument' source.
+
+    Pattern: instrument=1, effects=0, mood=0.
+    """
+    mi = tf.reshape(masks["instrument"], [-1])[0] > 0.5
+    me = tf.reshape(masks["effects"],    [-1])[0] > 0.5
+    mm = tf.reshape(masks["mood"],       [-1])[0] > 0.5
+    return mi & ~me & ~mm
+
+
+def make_balanced_dataset_from_tfrecords(tfrecord_glob, weights=None, n_mels=_TFR_N_MELS,
+                                         frames=_TFR_FRAMES, batch_size=32, shuffle=1024):
+    """Parse shards, split into 3 source sub-datasets by mask pattern, and
+    interleave them with sample_from_datasets at the given weights (default
+    equal [1/3,1/3,1/3]).
+
+    Each sub-dataset is .repeat() so the rare sources don't exhaust
+    (stop_on_empty_dataset=False).  Returns a batched+prefetched dataset with
+    the SAME element spec as make_dataset_from_tfrecords.
+
+    IMPORTANT: the returned dataset is INFINITE — callers must bound iteration
+    with steps_per_epoch.
+    """
+    files = sorted(glob.glob(tfrecord_glob))
+    base = (
+        tf.data.TFRecordDataset(files, num_parallel_reads=tf.data.AUTOTUNE)
+        .map(lambda s: _parse_example(s, n_mels, frames),
+             num_parallel_calls=tf.data.AUTOTUNE)
+    )
+    synth_ds = base.filter(is_synth).repeat()
+    inst_ds  = base.filter(is_real_instrument).repeat()
+    mood_ds  = base.filter(is_mood).repeat()
+    w = weights or [1 / 3, 1 / 3, 1 / 3]
+    ds = tf.data.Dataset.sample_from_datasets(
+        [synth_ds, inst_ds, mood_ds], weights=w, stop_on_empty_dataset=False
+    )
+    if shuffle:
+        ds = ds.shuffle(shuffle)
+    return ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+
 def make_dataset_from_tfrecords(tfrecord_glob, n_mels=_TFR_N_MELS, frames=_TFR_FRAMES,
                                 batch_size=32, shuffle=1024):
     """Build a ``tf.data.Dataset`` from pre-computed TFRecord shards.
