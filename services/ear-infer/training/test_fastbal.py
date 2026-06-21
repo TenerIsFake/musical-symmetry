@@ -275,3 +275,17 @@ def test_source_dir_missing_renormalizes(tmp_path):
         assert 0.38 <= share <= 0.62, (
             f"source '{src}': share={share:.3f} outside [0.38, 0.62] — counts={counts}"
         )
+
+
+def test_parse_args_accepts_source_root_alone():
+    """Regression: train.py CLI must accept --source-root as the sole data source
+    (v4 bug: validation required --data/--tfrecords and rejected --source-root)."""
+    import pytest
+    pytest.importorskip("tensorflow")
+    import train
+    a = train.parse_args(["--balance", "source", "--source-root", "/x",
+                          "--model", "isolated", "--out", "/o", "--loss", "posweight"])
+    assert a.source_root == "/x" and a.balance == "source"
+    # and still rejects when NONE of data/tfrecords/source-root given
+    with pytest.raises(SystemExit):
+        train.parse_args(["--model", "isolated", "--out", "/o"])

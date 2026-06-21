@@ -67,9 +67,10 @@ def parse_args(argv=None):
                         "filter-free make_balanced_dataset_from_source_dirs instead of the "
                         "slow filter-based fallback.")
     args = p.parse_args(argv)
-    # Validate: one of --data or --tfrecords is required
-    if args.tfrecords is None and args.data is None:
-        p.error("one of --data or --tfrecords is required")
+    # Validate: one of --data / --tfrecords / --source-root is required.
+    # (--source-root supplies a by-source TFRecord tree for --balance source.)
+    if args.tfrecords is None and args.data is None and getattr(args, "source_root", None) is None:
+        p.error("one of --data, --tfrecords, or --source-root is required")
     return args
 
 
