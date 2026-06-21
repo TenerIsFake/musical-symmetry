@@ -302,7 +302,7 @@ def make_balanced_dataset_from_tfrecords(tfrecord_glob, weights=None, n_mels=_TF
     synth_ds = base.filter(is_synth).repeat()
     inst_ds  = base.filter(is_real_instrument).repeat()
     mood_ds  = base.filter(is_mood).repeat()
-    w = weights or [1 / 3, 1 / 3, 1 / 3]
+    w = [1 / 3, 1 / 3, 1 / 3] if weights is None else weights
     ds = tf.data.Dataset.sample_from_datasets(
         [synth_ds, inst_ds, mood_ds], weights=w, stop_on_empty_dataset=False
     )
@@ -365,7 +365,7 @@ def make_balanced_dataset_from_source_dirs(root, weights=None, n_mels=_TFR_N_MEL
         shuffle:    Shuffle buffer size; 0/None to disable.
     """
     subs = [("synth", "synth"), ("inst", "inst"), ("mood", "mood")]
-    eqw = weights or [1 / 3, 1 / 3, 1 / 3]
+    eqw = [1 / 3, 1 / 3, 1 / 3] if weights is None else weights
     dss, w = [], []
     for (name, sub), wi in zip(subs, eqw):
         files = sorted(glob.glob(os.path.join(root, sub, "*.tfrecord")))

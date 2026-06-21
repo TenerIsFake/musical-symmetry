@@ -35,7 +35,7 @@ def _classify_by_mask(masks):
     raise ValueError(f"unclassifiable mask: instr={mi} eff={me} mood={mm}")
 
 
-def _write_source_dir_tree(root, n_mels=128, frames=64,
+def _write_source_dir_tree(root, n_mels=None, frames=None,
                            n_synth=6, n_inst=1, n_mood=1):
     """Write a pre-partitioned by-source TFRecord tree under *root*.
 
@@ -47,7 +47,12 @@ def _write_source_dir_tree(root, n_mels=128, frames=64,
     Uses serialize_example / _labels_for from dataset.py.
     Returns the root path.
     """
-    from dataset import serialize_example, _labels_for
+    from dataset import serialize_example, _labels_for, _TFR_N_MELS, _TFR_FRAMES
+
+    if n_mels is None:
+        n_mels = _TFR_N_MELS
+    if frames is None:
+        frames = _TFR_FRAMES
 
     rng = np.random.default_rng(99)
 

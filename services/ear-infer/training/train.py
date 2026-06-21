@@ -175,6 +175,9 @@ def train(args):
             frames=args.frames,
             batch_size=args.batch_size,
         )
+        # Warn if source_root is set but balance is not "source"
+        if source_root and not use_balance:
+            log.warning("--source-root is set but --balance is not 'source'; source_root is ignored")
         if use_balance:
             log.warning(
                 "--balance source without --source-root uses the slow filter-based "
