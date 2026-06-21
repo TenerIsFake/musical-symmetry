@@ -24,6 +24,10 @@ from prep.ingest import (
     ingest_musdb_to_mix,
     ingest_jamendo_to_mood,
     parse_jamendo_moodtheme_tsv,
+    ingest_openmic,
+    ingest_irmas,
+    ingest_medleydb_sample,
+    parse_openmic_labels,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
@@ -125,6 +129,58 @@ def main(argv=None):
     except Exception as exc:
         log.error("musdb18hq FAILED: %s", exc)
         summary["musdb18hq"] = 0
+
+    # ------------------------------------------------------------------
+    # Stage 2b: OpenMIC-2018 (inst) — instrument breadth
+    # ------------------------------------------------------------------
+    openmic_dir = os.path.join(masters, "openmic-2018")
+    openmic_labels_csv = os.path.join(openmic_dir, "openmic-2018-aggregated-labels.csv")
+    if os.path.isdir(openmic_dir):
+        try:
+            labels = parse_openmic_labels(openmic_labels_csv)
+            n = ingest_openmic(openmic_dir, inst_out, labels)
+            log.info("openmic: %d clips written", n)
+            summary["openmic"] = n
+        except Exception as exc:
+            log.error("openmic FAILED: %s", exc)
+            summary["openmic"] = 0
+    else:
+        log.info("openmic: %s not found, skipping", openmic_dir)
+        summary["openmic"] = 0
+
+    # ------------------------------------------------------------------
+    # Stage 2c: IRMAS TrainingData (inst) — instrument breadth
+    # ------------------------------------------------------------------
+    irmas_dir = os.path.join(masters, "irmas", "IRMAS-TrainingData")
+    if not os.path.isdir(irmas_dir):
+        irmas_dir = os.path.join(masters, "irmas")
+    if os.path.isdir(irmas_dir):
+        try:
+            n = ingest_irmas(irmas_dir, inst_out)
+            log.info("irmas: %d clips written", n)
+            summary["irmas"] = n
+        except Exception as exc:
+            log.error("irmas FAILED: %s", exc)
+            summary["irmas"] = 0
+    else:
+        log.info("irmas: not found, skipping")
+        summary["irmas"] = 0
+
+    # ------------------------------------------------------------------
+    # Stage 2d: MedleyDB sample (inst) — instrument breadth
+    # ------------------------------------------------------------------
+    medleydb_sample_dir = os.path.join(masters, "medleydb_sample")
+    if os.path.isdir(medleydb_sample_dir):
+        try:
+            n = ingest_medleydb_sample(medleydb_sample_dir, inst_out)
+            log.info("medleydb_sample: %d clips written", n)
+            summary["medleydb_sample"] = n
+        except Exception as exc:
+            log.error("medleydb_sample FAILED: %s", exc)
+            summary["medleydb_sample"] = 0
+    else:
+        log.info("medleydb_sample: %s not found, skipping", medleydb_sample_dir)
+        summary["medleydb_sample"] = 0
 
     # ------------------------------------------------------------------
     # Stage 3: Jamendo mood/theme (mood)

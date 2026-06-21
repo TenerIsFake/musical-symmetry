@@ -1,6 +1,12 @@
 """Map each external dataset's native labels onto our fixed vocab, and write the
 16 kHz corpus. Label maps are deliberately explicit so the vocab stays auditable."""
-import glob, json, logging, os
+import csv
+import glob
+import json
+import logging
+import os
+import re
+
 import numpy as np
 import soundfile as sf
 
@@ -34,6 +40,68 @@ _JAMENDO_MOOD = {
     "melancholic": "warm", "uplifting": "bright", "aggressive": "aggressive",
     "dream": "dreamy", "ambient": "spacious", "retro": "lo-fi",
 }
+
+# ---------------------------------------------------------------------------
+# OpenMIC-2018 label map (20 classes -> our 19-class vocab)
+# ---------------------------------------------------------------------------
+_OPENMIC = {
+    "accordion": "Other", "banjo": "Banjo/mandolin", "bass": "Bass guitar",
+    "cello": "Strings", "clarinet": "Woodwinds", "cymbals": "Acoustic kit",
+    "drums": "Acoustic kit", "flute": "Woodwinds", "guitar": "Electric guitar",
+    "mallet_percussion": "Percussion", "mandolin": "Banjo/mandolin", "organ": "Organ",
+    "piano": "Acoustic piano", "saxophone": "Saxophone", "synthesizer": "Synth lead",
+    "trombone": "Brass", "trumpet": "Brass", "ukulele": "Acoustic guitar",
+    "violin": "Strings", "voice": "Vocals",
+}
+
+# IRMAS 3-letter codes -> our vocab
+_IRMAS = {
+    "cel": "Strings", "cla": "Woodwinds", "flu": "Woodwinds",
+    "gac": "Acoustic guitar", "gel": "Electric guitar", "org": "Organ",
+    "pia": "Acoustic piano", "sax": "Saxophone", "tru": "Brass",
+    "vio": "Strings", "voi": "Vocals",
+}
+
+
+def openmic_instruments(names):
+    """list of OpenMIC instrument names -> deduped in-vocab list (drop unknown)."""
+    out = []
+    for n in names:
+        m = _OPENMIC.get(n)
+        if m and m not in out:
+            out.append(m)
+    return [x for x in out if x in INSTRUMENTS]
+
+
+def irmas_instrument(code):
+    """3-letter IRMAS code -> [vocab label] or [] if unknown."""
+    m = _IRMAS.get(code.strip().lower())
+    return [m] if m and m in INSTRUMENTS else []
+
+
+def parse_openmic_labels(csv_path, relevance_thresh=0.5):
+    """Parse OpenMIC-2018 aggregated labels CSV.
+
+    Columns: sample_key, instrument, relevance, num_responses (header present).
+    Returns {sample_key: [raw openmic instrument names]} for rows with
+    float(relevance) >= relevance_thresh. Header row is skipped.
+    """
+    result = {}
+    with open(csv_path, encoding="utf-8", newline="") as fh:
+        reader = csv.reader(fh)
+        for row in reader:
+            if not row or row[0] == "sample_key":
+                continue
+            if len(row) < 3:
+                continue
+            sample_key, instrument, relevance = row[0], row[1], row[2]
+            try:
+                if float(relevance) >= relevance_thresh:
+                    result.setdefault(sample_key, []).append(instrument)
+            except ValueError:
+                continue
+    return result
+
 
 def _valid(lbls, vocab):
     return [l for l in lbls if l in vocab]
@@ -376,3 +444,145 @@ def ingest_jamendo_to_mood(jamendo_root, mood_out_dir, tags_by_id, max_workers=1
         return True
 
     return parallel_count(work_items, worker, max_workers=max_workers)
+
+
+# ---------------------------------------------------------------------------
+# INGEST-BREADTH A: OpenMIC-2018 (real recordings -> inst/, real_instrument)
+# ---------------------------------------------------------------------------
+
+def ingest_openmic(openmic_root, out_dir, labels_by_key, prefix="openmic_"):
+    """Write one 16 kHz PCM clip per OpenMIC-2018 key that has >=1 in-vocab instrument.
+
+    Audio lives at <openmic_root>/audio/<key[:3]>/<key>.ogg.
+    labels_by_key: {sample_key: [raw openmic instrument names]} from parse_openmic_labels.
+    Writes <prefix>clip_{i:06d}.wav + .instrument.json to out_dir.
+    Skips keys with empty mapped instruments; skips unreadable files with log.warning.
+    No effects.npy written (source=real_instrument).
+    Returns count of clips written.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    count = 0
+    for key in sorted(labels_by_key):
+        inst = openmic_instruments(labels_by_key[key])
+        if not inst:
+            continue
+        audio_path = os.path.join(openmic_root, "audio", key[:3], f"{key}.ogg")
+        try:
+            pcm = to_pcm16k(audio_path)
+        except Exception:
+            log.warning("ingest_openmic: skipped unreadable file %s", audio_path)
+            continue
+        samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        base = os.path.join(out_dir, f"{prefix}clip_{count:06d}")
+        sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
+        with open(base + ".instrument.json", "w") as f:
+            json.dump(inst, f)
+        count += 1
+    return count
+
+
+# ---------------------------------------------------------------------------
+# INGEST-BREADTH B: IRMAS TrainingData (real recordings -> inst/, real_instrument)
+# ---------------------------------------------------------------------------
+
+def ingest_irmas(irmas_root, out_dir, prefix="irmas_"):
+    """Write one 16 kHz PCM clip per IRMAS wav that has a known bracket code.
+
+    Walks <irmas_root>/**/*.wav; parses the [xxx] bracket token in each filename
+    to get the instrument code via irmas_instrument().
+    Writes <prefix>clip_{i:06d}.wav + .instrument.json to out_dir.
+    Skips files with unknown/missing bracket code or unreadable audio.
+    No effects.npy written (source=real_instrument).
+    Returns count of clips written.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    wavs = sorted(glob.glob(os.path.join(irmas_root, "**", "*.wav"), recursive=True))
+    count = 0
+    for wav_path in wavs:
+        basename = os.path.basename(wav_path)
+        m = re.search(r"\[([a-z]{3})\]", basename)
+        if not m:
+            continue
+        inst = irmas_instrument(m.group(1))
+        if not inst:
+            continue
+        try:
+            pcm = to_pcm16k(wav_path)
+        except Exception:
+            log.warning("ingest_irmas: skipped unreadable file %s", wav_path)
+            continue
+        samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        base = os.path.join(out_dir, f"{prefix}clip_{count:06d}")
+        sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
+        with open(base + ".instrument.json", "w") as f:
+            json.dump(inst, f)
+        count += 1
+    return count
+
+
+# ---------------------------------------------------------------------------
+# INGEST-BREADTH C: MedleyDB sample (real recordings -> inst/, real_instrument)
+# ---------------------------------------------------------------------------
+
+def ingest_medleydb_sample(sample_root, out_dir, prefix="medleydbsample_"):
+    """Write one 16 kHz PCM clip per stem in a MedleyDB sample directory.
+
+    Directory layout:
+        <sample_root>/<Track>/<Track>_STEMS/<stem>.wav
+        <sample_root>/<Track>/<Track>_METADATA.yaml  (PyYAML)
+
+    The METADATA.yaml has a 'stems' dict mapping stem-id -> {'filename': ..., 'instrument': ...}.
+    Uses medleydb_instrument(instrument_name) to map to vocab.
+    Writes <prefix>clip_{i:06d}.wav + .instrument.json to out_dir.
+    Skips stems with missing yaml, missing instrument field, or unreadable audio.
+    No effects.npy written (source=real_instrument).
+    Returns count of clips written.
+    """
+    import yaml  # PyYAML; installed in venv (pip install pyyaml)
+
+    os.makedirs(out_dir, exist_ok=True)
+    count = 0
+
+    for track_name in sorted(os.listdir(sample_root)):
+        track_dir = os.path.join(sample_root, track_name)
+        if not os.path.isdir(track_dir):
+            continue
+        meta_path = os.path.join(track_dir, f"{track_name}_METADATA.yaml")
+        if not os.path.isfile(meta_path):
+            log.warning("ingest_medleydb_sample: no metadata yaml for track %s", track_name)
+            continue
+        try:
+            with open(meta_path, encoding="utf-8") as fh:
+                meta = yaml.safe_load(fh)
+        except Exception as exc:
+            log.warning("ingest_medleydb_sample: failed to parse yaml %s: %s", meta_path, exc)
+            continue
+
+        stems_info = meta.get("stems") or {}
+        stems_dir = os.path.join(track_dir, f"{track_name}_STEMS")
+
+        for stem_id in sorted(stems_info):
+            stem_data = stems_info[stem_id]
+            stem_filename = stem_data.get("filename")
+            instrument_name = stem_data.get("instrument")
+            if not stem_filename or not instrument_name:
+                log.warning(
+                    "ingest_medleydb_sample: missing filename/instrument for stem %s in %s",
+                    stem_id, track_name)
+                continue
+            wav_path = os.path.join(stems_dir, stem_filename)
+            inst = medleydb_instrument(instrument_name)
+            if not inst:
+                continue
+            try:
+                pcm = to_pcm16k(wav_path)
+            except Exception:
+                log.warning("ingest_medleydb_sample: skipped unreadable stem %s", wav_path)
+                continue
+            samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+            base = os.path.join(out_dir, f"{prefix}clip_{count:06d}")
+            sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
+            with open(base + ".instrument.json", "w") as f:
+                json.dump(inst, f)
+            count += 1
+    return count
