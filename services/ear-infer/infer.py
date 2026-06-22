@@ -34,7 +34,9 @@ def _stub_heads(pcm: bytes):
         for i in range(n):
             idx = (seed + i * 31 + off) % len(labels)
             conf = round(0.55 + ((seed >> (i + off)) & 7) / 20, 2)
-            out.append({"label": labels[idx], "confidence": conf})
+            c = conf >= 0.66
+            out.append({"label": labels[idx], "confidence": conf,
+                        "confident": c, "flag": "" if c else "★"})
         return out
     return {"instruments": pick(INSTRUMENTS,1,0), "effects": pick(EFFECTS,2,5), "mood": pick(MOOD,2,11)}
 
@@ -105,14 +107,30 @@ def _load_thresholds(model_path):
     return dict(_THRESHOLD_DEFAULTS)
 
 
-def _decode(prob, labels, decision=0.5, top_k=0):
+def _decode(prob, labels, decision=0.5, high_confidence=None, top_k=0):
+    """Decode a sigmoid head into [{label, confidence, confident, flag}].
+
+    A prediction clears `decision` to be returned at all. It is marked
+    ``confident`` only if its probability also reaches `high_confidence`
+    (a stricter bar); otherwise it gets ``flag="★"`` so the UI can star
+    low-confidence/over-fired suggestions. If `high_confidence` is None it
+    defaults to a bar above the decision threshold.
+    """
+    if high_confidence is None:
+        high_confidence = max(0.66, decision + 0.2)
     order = np.argsort(prob)[::-1]
     picks = [i for i in order if prob[i] >= decision]
     if not picks:
         picks = [int(order[0])]
     if top_k:
         picks = picks[:top_k]
-    return [{"label": labels[i], "confidence": round(float(prob[i]), 2)} for i in picks]
+    out = []
+    for i in picks:
+        p = float(prob[i])
+        conf = p >= high_confidence
+        out.append({"label": labels[i], "confidence": round(p, 2),
+                    "confident": conf, "flag": "" if conf else "★"})
+    return out
 
 class Model:
     def __init__(self):
@@ -130,6 +148,9 @@ class Model:
             except Exception:
                 self.interp = None
         self.thresholds = _load_thresholds(path)
+        # Per-head "confident" bar: a prediction clears the decision threshold to be
+        # returned, but is only unflagged if it also reaches this higher bar.
+        self.high_confidence = {h: max(0.66, t + 0.2) for h, t in self.thresholds.items()}
 
     def _match_outputs(self, out_details):
         # TFLite strips Keras output-layer names to "StatefulPartitionedCall:N", so
@@ -165,8 +186,12 @@ class Model:
         def head(name):
             d = out_by_head[name]
             return _dequant(self.interp.get_tensor(d["index"])[0], d)
+        # Resilient: derive the confident-bar from thresholds if not set in __init__
+        # (covers code/tests that construct Model without going through __init__).
+        hc = getattr(self, "high_confidence", None) or {
+            h: max(0.66, t + 0.2) for h, t in self.thresholds.items()}
         return {
-            "instruments": _decode(head("instrument"), INSTRUMENTS, decision=self.thresholds["instrument"]),
-            "effects":     _decode(head("effects"),    EFFECTS,     decision=self.thresholds["effects"]),
-            "mood":        _decode(head("mood"),        MOOD,        decision=self.thresholds["mood"]),
+            "instruments": _decode(head("instrument"), INSTRUMENTS, decision=self.thresholds["instrument"], high_confidence=hc["instrument"]),
+            "effects":     _decode(head("effects"),    EFFECTS,     decision=self.thresholds["effects"],    high_confidence=hc["effects"]),
+            "mood":        _decode(head("mood"),        MOOD,        decision=self.thresholds["mood"],       high_confidence=hc["mood"]),
         }

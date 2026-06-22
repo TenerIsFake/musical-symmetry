@@ -154,3 +154,27 @@ def test_infer_end_to_end_real_model(monkeypatch):
     assert all(d["label"] in infer.EFFECTS for d in out["effects"])
     assert all(d["label"] in infer.INSTRUMENTS for d in out["instruments"])
     assert all(d["label"] in infer.MOOD for d in out["mood"])
+
+
+def test_decode_confidence_flag():
+    """Predictions above decision but below high_confidence get flag='★' / confident=False."""
+    labels = ["a", "b", "c"]
+    # a=0.9 (>=high), b=0.55 (>=decision .5 but <high .7) -> flagged
+    out = infer._decode(np.array([0.9, 0.55, 0.1], np.float32), labels,
+                        decision=0.5, high_confidence=0.7)
+    by = {d["label"]: d for d in out}
+    assert by["a"]["confident"] is True and by["a"]["flag"] == ""
+    assert by["b"]["confident"] is False and by["b"]["flag"] == "★"
+    assert "c" not in by  # below decision
+
+def test_decode_default_high_confidence():
+    """When high_confidence is None it defaults above the decision threshold."""
+    out = infer._decode(np.array([0.6], np.float32), ["x"], decision=0.5)  # 0.6 < max(0.66,0.7)
+    assert out[0]["confident"] is False and out[0]["flag"] == "★"
+
+def test_stub_has_flag_fields():
+    """Stub output carries the same confident/flag keys for a uniform API."""
+    s = infer._stub_heads(b"\x01\x02\x03\x04")
+    for head in ("instruments", "effects", "mood"):
+        for d in s[head]:
+            assert "confident" in d and "flag" in d
