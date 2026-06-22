@@ -27,6 +27,7 @@ from prep.ingest import (
     ingest_openmic,
     ingest_irmas,
     ingest_medleydb_sample,
+    ingest_moises,
     parse_openmic_labels,
 )
 
@@ -52,6 +53,10 @@ def main(argv=None):
     parser.add_argument("--workers", type=int, default=16,
                         help="Thread-pool size for parallel ingest reads (default 16; "
                              "set to 1 for serial/debug mode).")
+    parser.add_argument("--moises-root", default="/mnt/t/Moises",
+                        help="Root of the Moises separated-stem tree "
+                             "(default: /mnt/t/Moises). "
+                             "Stage is skipped when this directory does not exist.")
     args = parser.parse_args(argv)
 
     masters = args.masters
@@ -59,6 +64,7 @@ def main(argv=None):
     seed = args.seed
     nsynth_max = args.nsynth_max
     workers = args.workers
+    moises_root = args.moises_root
     jamendo_tsv = args.jamendo_tsv or os.path.join(
         masters, "jamendo_mood", "autotagging_moodtheme.tsv")
 
@@ -181,6 +187,22 @@ def main(argv=None):
     else:
         log.info("medleydb_sample: %s not found, skipping", medleydb_sample_dir)
         summary["medleydb_sample"] = 0
+
+    # ------------------------------------------------------------------
+    # Stage 2e: Moises separated stems (inst) — clean real_instrument, windowed
+    # Root lives at /mnt/t/Moises (or --moises-root override), NOT under masters.
+    # ------------------------------------------------------------------
+    if os.path.isdir(moises_root):
+        try:
+            n = ingest_moises(moises_root, inst_out)
+            log.info("moises: %d clips written", n)
+            summary["moises"] = n
+        except Exception as exc:
+            log.error("moises FAILED: %s", exc)
+            summary["moises"] = 0
+    else:
+        log.info("moises: %s not found, skipping", moises_root)
+        summary["moises"] = 0
 
     # ------------------------------------------------------------------
     # Stage 3: Jamendo mood/theme (mood)

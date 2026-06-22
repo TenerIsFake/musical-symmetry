@@ -524,6 +524,77 @@ def ingest_irmas(irmas_root, out_dir, prefix="irmas_"):
 # INGEST-BREADTH C: MedleyDB sample (real recordings -> inst/, real_instrument)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# INGEST-BREADTH D: Moises separated stems (real_instrument, windowed)
+# ---------------------------------------------------------------------------
+
+_MOISES = {
+    "vocals": "Vocals", "backing_vocals": "Vocals", "bass": "Bass guitar",
+    "lead": "Electric guitar", "rhythm": "Electric guitar", "piano": "Acoustic piano",
+    "keys": "Electric piano", "strings": "Strings", "wind": "Woodwinds",
+    "kick": "Acoustic kit", "snare": "Acoustic kit", "hat": "Acoustic kit",
+    "toms": "Acoustic kit", "cymbals": "Acoustic kit", "other_kit": "Acoustic kit",
+}
+# DROP (return []): "other" (residual), "metronome" (click track), unknown stems.
+
+
+def moises_instrument(stem):
+    """Moises stem token -> [vocab label] or [] if other/metronome/unknown."""
+    m = _MOISES.get(stem.strip().lower())
+    return [m] if m and m in INSTRUMENTS else []
+
+
+def ingest_moises(moises_root, out_dir, max_clips_per_stem=20, prefix="moises_"):
+    """Walk <moises_root>/**/*.wav. Parse stem from filename; inst=moises_instrument(stem);
+    skip if empty (other/metronome/unknown). Read via to_pcm16k (resamples 96k->16k),
+    window into 1s clips (prep.audio.window_clips), take up to max_clips_per_stem windows
+    EVENLY SPACED across the stem (not just the first N — a 7min stem's start may be silent;
+    sample across it). For each chosen window write <prefix>clip_{i:06d}.wav (16k PCM_16) +
+    .instrument.json (inst list). source=real_instrument (no effects.npy). Skip unreadable
+    (log.warning). Return clip count. Uses a global running idx across all stems (prefix makes
+    it collision-free vs musdb's bare clip_ + openmic_/irmas_/medleydbsample_).
+    """
+    from prep.audio import window_clips  # local import mirrors pattern above
+
+    os.makedirs(out_dir, exist_ok=True)
+    wavs = sorted(glob.glob(os.path.join(moises_root, "**", "*.wav"), recursive=True))
+
+    idx = 0  # global running index across all stems
+    for wav_path in wavs:
+        basename = os.path.basename(wav_path)
+        m = re.search(r"-([a-z_]+)-[A-G][^/]*\.wav$", basename)
+        if not m:
+            continue
+        stem = m.group(1)
+        inst = moises_instrument(stem)
+        if not inst:
+            continue  # other / metronome / unknown -> drop
+
+        try:
+            pcm = to_pcm16k(wav_path)
+        except Exception:
+            log.warning("ingest_moises: skipped unreadable file %s", wav_path)
+            continue
+
+        windows = window_clips(pcm)
+        if not windows:
+            continue
+
+        # Even-spacing: sample across the stem rather than just the head
+        step = max(1, len(windows) // max_clips_per_stem)
+        chosen = windows[::step][:max_clips_per_stem]
+
+        for clip in chosen:
+            samples = np.frombuffer(clip, dtype="<i2").astype(np.float32) / 32768.0
+            base = os.path.join(out_dir, f"{prefix}clip_{idx:06d}")
+            sf.write(base + ".wav", samples, 16000, subtype="PCM_16")
+            with open(base + ".instrument.json", "w") as fh:
+                json.dump(inst, fh)
+            idx += 1
+
+    return idx
+
+
 def ingest_medleydb_sample(sample_root, out_dir, prefix="medleydbsample_"):
     """Write one 16 kHz PCM clip per stem in a MedleyDB sample directory.
 
