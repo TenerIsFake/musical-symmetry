@@ -4,14 +4,35 @@ from labels import INSTRUMENTS, EFFECTS, MOOD
 
 HEADS = {"instrument": len(INSTRUMENTS), "effects": len(EFFECTS), "mood": len(MOOD)}
 
+def _sep_block(x, filters, stride, name):
+    # depthwise-separable conv block: DW 3x3 (stride) -> BN -> ReLU -> PW 1x1 -> BN -> ReLU
+    x = tf.keras.layers.DepthwiseConv2D(3, strides=stride, padding="same", use_bias=False, name=f"{name}_dw")(x)
+    x = tf.keras.layers.BatchNormalization(name=f"{name}_dwbn")(x)
+    x = tf.keras.layers.ReLU(name=f"{name}_dwrelu")(x)
+    x = tf.keras.layers.Conv2D(filters, 1, padding="same", use_bias=False, name=f"{name}_pw")(x)
+    x = tf.keras.layers.BatchNormalization(name=f"{name}_pwbn")(x)
+    x = tf.keras.layers.ReLU(name=f"{name}_pwrelu")(x)
+    return x
+
 def build_model(n_mels=128, frames=64):
     inp = tf.keras.Input(shape=(n_mels, frames, 1), name="logmel")
-    x = inp
-    for f in (16, 32, 64):
-        x = tf.keras.layers.Conv2D(f, 3, padding="same", activation="relu")(x)
-        x = tf.keras.layers.MaxPool2D()(x)
-    x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    outs = [tf.keras.layers.Dense(w, activation="sigmoid", name=name)(x) for name, w in HEADS.items()]
+    # stem
+    x = tf.keras.layers.Conv2D(32, 3, strides=2, padding="same", use_bias=False, name="stem")(inp)
+    x = tf.keras.layers.BatchNormalization(name="stem_bn")(x)
+    x = tf.keras.layers.ReLU(name="stem_relu")(x)
+    # depthwise-separable blocks (downsample via stride)
+    x = _sep_block(x, 64,  2, "blk1")
+    x = _sep_block(x, 128, 2, "blk2")
+    x = _sep_block(x, 128, 1, "blk3")
+    x = _sep_block(x, 256, 2, "blk4")
+    x = _sep_block(x, 512, 1, "blk5")
+    x = tf.keras.layers.GlobalAveragePooling2D(name="gap")(x)
+    # per-head bottleneck: Dense(128)->ReLU->Dense(width, sigmoid). Head OUTPUT layer named per HEADS.
+    outs = []
+    for name, w in HEADS.items():
+        h = tf.keras.layers.Dense(128, activation="relu", name=f"{name}_fc")(x)
+        h = tf.keras.layers.Dense(w, activation="sigmoid", name=name)(h)
+        outs.append(h)
     m = tf.keras.Model(inp, outs)
     m.output_names_widths = lambda: dict(HEADS)
     return m
