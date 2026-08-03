@@ -5,6 +5,7 @@ import type { PitchClass, OrchestrationSuggestion, VoicingAssignment } from '@mu
 import { INSTRUMENTS } from '../data/instrument-ranges';
 import type { Instrument } from '../data/instrument-ranges';
 import { useUser } from '../context/UserContext';
+import { isNativePlatform } from '../utils/platform';
 
 // ─── MIDI / audio utilities ───────────────────────────────────────────────────
 
@@ -273,12 +274,19 @@ export default function OrchestrationPage() {
           This feature requires a <strong className="text-indigo-400">Pro</strong> or higher
           subscription.
         </p>
-        <a
-          href="https://symmetry.tendrid.us/pricing"
-          className="inline-block px-6 py-3 rounded-lg bg-indigo-700 text-white font-semibold hover:bg-indigo-600 transition-colors"
-        >
-          Upgrade to Pro
-        </a>
+        {/* Play policy: no external purchase links inside the native app */}
+        {isNativePlatform ? (
+          <p className="text-gray-400 text-sm">
+            Available with a Pro subscription on the web at symmetry.tendrid.us.
+          </p>
+        ) : (
+          <a
+            href="https://symmetry.tendrid.us/pricing"
+            className="inline-block px-6 py-3 rounded-lg bg-indigo-700 text-white font-semibold hover:bg-indigo-600 transition-colors"
+          >
+            Upgrade to Pro
+          </a>
+        )}
       </div>
     );
   }
