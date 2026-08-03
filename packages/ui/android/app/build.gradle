@@ -16,12 +16,36 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // SECURITY NOTE: an earlier revision of this file committed the release
+    // keystore password as a hardcoded fallback. That keystore/password pair
+    // lives in git history and must be considered compromised — ROTATE the
+    // release keystore (generate a new one) before uploading to Play, and
+    // enroll in Play App Signing so a leaked upload key can be reset.
+    //
+    // Signing credentials are now supplied ONLY via environment variables
+    // (CHROMETRIA_KEYSTORE, CHROMETRIA_STORE_PASSWORD, CHROMETRIA_KEY_PASSWORD)
+    // or Gradle properties (chrometria.keystore / chrometria.storePassword /
+    // chrometria.keyPassword, e.g. in ~/.gradle/gradle.properties — never in
+    // the repo). A release build fails fast with a clear message if any are
+    // missing. There are no fallback values.
+    def signingCred = { String envName, String propName ->
+        def fromEnv = System.getenv(envName)
+        if (fromEnv) return fromEnv
+        return project.hasProperty(propName) ? project.property(propName) : null
+    }
+    def releaseKeystorePath = signingCred("CHROMETRIA_KEYSTORE", "chrometria.keystore")
+    def releaseStorePassword = signingCred("CHROMETRIA_STORE_PASSWORD", "chrometria.storePassword")
+    def releaseKeyPassword = signingCred("CHROMETRIA_KEY_PASSWORD", "chrometria.keyPassword")
+    def releaseSigningConfigured = releaseKeystorePath && releaseStorePassword && releaseKeyPassword
+
     signingConfigs {
         release {
-            storeFile file(System.getenv("CHROMETRIA_KEYSTORE") ?: "/home/tener/.secrets/chrometria-release.keystore")
-            storePassword System.getenv("CHROMETRIA_STORE_PASSWORD") ?: "chrometria2026"
-            keyAlias "chrometria"
-            keyPassword System.getenv("CHROMETRIA_KEY_PASSWORD") ?: "chrometria2026"
+            if (releaseSigningConfigured) {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseStorePassword
+                keyAlias "chrometria"
+                keyPassword releaseKeyPassword
+            }
         }
     }
     buildTypes {
@@ -29,6 +53,25 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    if (!releaseSigningConfigured) {
+        // Only fail when a release build/bundle is actually requested, so
+        // debug builds keep working without credentials.
+        gradle.taskGraph.whenReady { graph ->
+            def wantsSignedRelease = graph.allTasks.any { task ->
+                task.project == project && task.name.toLowerCase().contains("release")
+            }
+            if (wantsSignedRelease) {
+                throw new GradleException(
+                    "Release signing is not configured. Set the CHROMETRIA_KEYSTORE, " +
+                    "CHROMETRIA_STORE_PASSWORD and CHROMETRIA_KEY_PASSWORD environment variables " +
+                    "(or chrometria.keystore / chrometria.storePassword / chrometria.keyPassword " +
+                    "Gradle properties). Never commit these values. NOTE: the previous keystore " +
+                    "password was committed to git history — rotate the keystore before release."
+                )
+            }
         }
     }
 }
