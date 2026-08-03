@@ -22,6 +22,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Android App Links: open magic-link login URLs in the app so the
+                 session is established in the app's WebView instead of the
+                 external browser. NOTE: for autoVerify to work, assetlinks.json
+                 must be deployed at
+                 https://symmetry.tendrid.us/.well-known/assetlinks.json
+                 (template: packages/ui/public/.well-known/assetlinks.json —
+                 fill in the SHA-256 fingerprint of the NEW release keystore). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="symmetry.tendrid.us"
+                    android:pathPrefix="/api/auth/verify" />
+            </intent-filter>
+
         </activity>
 
         <!-- AdMob removed: the Android app ships ad-free (v1 product decision). -->
