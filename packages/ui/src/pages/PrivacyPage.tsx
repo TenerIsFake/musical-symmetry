@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         <ul className="list-disc ml-6 space-y-1 text-gray-300">
           <li>No personally identifiable information is collected.</li>
           <li>
-            Google AdSense may set cookies and collect usage data as described in{' '}
+            On the website only, Google AdSense may set cookies and collect usage data as described in{' '}
             <a
               href="https://policies.google.com/privacy"
               target="_blank"
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
             >
               Google's Privacy Policy
             </a>
-            .
+            . The Android app does not show ads and does not load AdSense.
           </li>
           <li>Standard server access logs (IP address, timestamp, page path) retained for 30 days for security purposes.</li>
         </ul>
@@ -74,8 +74,19 @@ export default function PrivacyPage() {
         </ul>
         <p className="text-gray-300 mt-3">
           We do not sell, rent, or share your personal data with third parties for marketing purposes.
-          We do not use your data to build advertising profiles. We do not use third-party analytics
-          services (no Google Analytics, no Mixpanel, no Amplitude).
+          We do not use your data to build advertising profiles. On the website we use{' '}
+          <a
+            href="https://plausible.io/data-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-400 hover:text-indigo-300"
+          >
+            Plausible
+          </a>
+          , a privacy-friendly, cookieless analytics service that collects aggregate page-view
+          statistics without tracking individuals across sites. Plausible is not loaded in the
+          Android app. We use no other third-party analytics (no Google Analytics, no Mixpanel,
+          no Amplitude).
         </p>
       </section>
 
@@ -118,9 +129,10 @@ export default function PrivacyPage() {
         </div>
 
         <div className="mb-5">
-          <h4 className="text-base font-semibold text-gray-200 mb-1">Google AdSense (free tier only)</h4>
+          <h4 className="text-base font-semibold text-gray-200 mb-1">Google AdSense (website free tier only)</h4>
           <p className="text-gray-300">
-            Free-tier users see ads served by Google AdSense (publisher ID: ca-pub-9760203099492988).
+            On the website, free-tier users see ads served by Google AdSense (publisher ID:
+            ca-pub-9760203099492988). The Android app is ad-free and does not load AdSense.
             Google may use cookies and device identifiers to serve personalized ads based on your
             browsing history. You can opt out of personalized ads at{' '}
             <a
