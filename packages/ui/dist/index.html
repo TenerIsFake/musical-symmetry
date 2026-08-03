@@ -16,12 +16,15 @@
     <meta name="twitter:description" content="See the hidden geometry of chords. Analyze pitch-class sets with group theory." />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>" />
     <meta name="theme-color" content="#111827" />
-    <meta name="google-adsense-account" content="ca-pub-9760203099492988">
-    <script defer data-domain="symmetry.tendrid.us" src="https://plausible.io/js/script.js"></script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9760203099492988" crossorigin="anonymous"></script>
-    <script type="module" crossorigin src="/assets/main-dpqjs3Si.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/index-CsQSCGz0.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-BuaN1W9o.css">
+    <!--
+      AdSense and Plausible are intentionally NOT loaded statically here.
+      This HTML is bundled into the Capacitor Android app, where AdSense is
+      prohibited (web-only product) and analytics should not run. They are
+      injected at runtime for web browsers only — see src/utils/webScripts.ts.
+    -->
+    <script type="module" crossorigin src="/assets/main-D7j2zPlZ.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/index-C8tS4unP.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CpTpM4v6.css">
   </head>
   <body class="bg-gray-900 text-white min-h-screen">
     <div id="root"></div>
