@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { useCollections } from '../hooks/useCollections';
 import { useUser } from '../context/UserContext';
+import { API_BASE } from '../utils/apiBase';
 
 interface Props {
   onLoadPcs: (pcs: PitchClass[]) => void;
@@ -45,7 +46,7 @@ export default function CollectionsSidebar({ onLoadPcs }: Props) {
 
     try {
       if (isPublished) {
-        const res = await fetch(`/api/public/collections/${collectionId}/publish`, {
+        const res = await fetch(`${API_BASE}/api/public/collections/${collectionId}/publish`, {
           method: 'DELETE',
           credentials: 'include',
         });
@@ -56,7 +57,7 @@ export default function CollectionsSidebar({ onLoadPcs }: Props) {
           alert(err.error || 'Failed to unpublish');
         }
       } else {
-        const res = await fetch(`/api/public/collections/${collectionId}/publish`, {
+        const res = await fetch(`${API_BASE}/api/public/collections/${collectionId}/publish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

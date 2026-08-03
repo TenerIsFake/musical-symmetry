@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ClassroomLobby from '../components/ClassroomLobby';
 import ClassroomDashboard from '../components/ClassroomDashboard';
+import { API_BASE } from '../utils/apiBase';
 
 export default function ClassroomPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -11,7 +12,7 @@ export default function ClassroomPage() {
   } | null>(null);
 
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
+    fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.id) setUserId(data.id); })
       .catch(() => {});

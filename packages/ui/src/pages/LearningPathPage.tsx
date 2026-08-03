@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { LEARNING_PATHS } from '../data/learning-paths/index.js';
 import type { LearningPath, Lesson } from '../data/learning-paths/types.js';
 import { useLearningProgress } from '../hooks/useLearningProgress.js';
+import { API_BASE } from '../utils/apiBase';
 
 // --- Simple Markdown Renderer ---
 function renderMarkdown(md: string): string {
@@ -340,7 +341,7 @@ export default function LearningPathPage({ pathId, lessonId }: LearningPathPageP
 
   // Check login status
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
+    fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
       .then(r => setUserLoggedIn(r.ok))
       .catch(() => setUserLoggedIn(false));
   }, []);

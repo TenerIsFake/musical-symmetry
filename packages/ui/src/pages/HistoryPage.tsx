@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { useHistory } from '../hooks/useHistory';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://symmetry.tendrid.us';
+import { API_BASE } from '../utils/apiBase';
 
 const PAGE_SIZE = 20;
 

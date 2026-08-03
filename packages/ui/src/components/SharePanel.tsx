@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://symmetry.tendrid.us';
+import { API_BASE } from '../utils/apiBase';
 const isNative = typeof (window as any).Capacitor !== 'undefined';
 
 type CardStyle =

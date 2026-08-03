@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { wsUrl } from '../utils/apiBase';
 
 export interface RoomParticipant {
   id: string;
@@ -23,11 +24,7 @@ interface UseRoomResult {
   participantId: string | null;
 }
 
-function getWsUrl(path: string): string {
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
-  return `${proto}//${host}${path}`;
-}
+const getWsUrl = wsUrl;
 
 export function useRoom(roomId: string | null, options: UseRoomOptions): UseRoomResult {
   const [participants, setParticipants] = useState<RoomParticipant[]>([]);

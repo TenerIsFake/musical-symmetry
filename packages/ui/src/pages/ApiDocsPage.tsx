@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 const EXAMPLES: Record<string, { method: string; url: string; body?: string; description: string; tier?: string }> = {
   classify: {
@@ -218,7 +219,7 @@ export default function ApiDocsPage() {
 
       <h2 className="text-xl font-semibold mt-8 mb-3">OpenAPI Spec</h2>
       <p className="text-gray-400">
-        Download the full spec: <a href="/api/openapi.json" className="text-indigo-400 underline">/api/openapi.json</a>
+        Download the full spec: <a href={`${API_BASE}/api/openapi.json`} className="text-indigo-400 underline">/api/openapi.json</a>
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '../context/UserContext';
+import { API_BASE } from '../utils/apiBase';
 
 const NOTE_NAMES: Record<number, string> = {
   0: 'C', 1: 'C♯', 2: 'D', 3: 'E♭', 4: 'E', 5: 'F',
@@ -173,7 +174,7 @@ export default function DailyChallengePage() {
 
   // Load challenge
   useEffect(() => {
-    fetch('/api/challenges/today', { credentials: 'include' })
+    fetch(`${API_BASE}/api/challenges/today`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then((data: Challenge) => {
         setChallenge(data);
@@ -187,7 +188,7 @@ export default function DailyChallengePage() {
 
   // Load leaderboard
   useEffect(() => {
-    fetch('/api/challenges/leaderboard')
+    fetch(`${API_BASE}/api/challenges/leaderboard`)
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then((data: { leaderboard: LeaderboardEntry[] }) => setLeaderboard(data.leaderboard))
       .catch(() => {})
@@ -213,7 +214,7 @@ export default function DailyChallengePage() {
     setTimerRunning(false);
 
     try {
-      const res = await fetch('/api/challenges/today/submit', {
+      const res = await fetch(`${API_BASE}/api/challenges/today/submit`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -222,7 +223,7 @@ export default function DailyChallengePage() {
       const data = await res.json() as SubmitResult;
       setResult(data);
       // Refresh leaderboard after submission
-      fetch('/api/challenges/leaderboard')
+      fetch(`${API_BASE}/api/challenges/leaderboard`)
         .then(r => r.ok ? r.json() : null)
         .then((d: { leaderboard: LeaderboardEntry[] } | null) => {
           if (d) setLeaderboard(d.leaderboard);

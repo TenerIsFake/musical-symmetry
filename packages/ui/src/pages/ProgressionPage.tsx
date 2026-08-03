@@ -5,6 +5,7 @@ import { useUser } from '../context/UserContext';
 import { playChordProgression } from '../utils/audio';
 import { downloadMidi } from '../utils/midi-writer';
 import ProgressionTemplates from '../components/ProgressionTemplates';
+import { API_BASE } from '../utils/apiBase';
 
 // ---- Types ----
 
@@ -217,7 +218,7 @@ function GenreDnaPanel({ chords, tier }: GenreDnaProps) {
       // Use a flat interval vector for now — the backend will score it
       const avgIv: number[] = [2, 2, 3, 3, 3, 1];
 
-      const res = await fetch('/api/genre/detect', {
+      const res = await fetch(`${API_BASE}/api/genre/detect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -242,7 +243,7 @@ function GenreDnaPanel({ chords, tier }: GenreDnaProps) {
     setError(null);
     try {
       const progression = chords.map(c => c.pcs);
-      const res = await fetch('/api/genre/suggest', {
+      const res = await fetch(`${API_BASE}/api/genre/suggest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

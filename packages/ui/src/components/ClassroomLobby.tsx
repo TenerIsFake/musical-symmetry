@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 interface Props {
   onJoin: (classroomId: string, role: 'teacher' | 'student', displayName: string) => void;
@@ -14,7 +15,7 @@ export default function ClassroomLobby({ onJoin }: Props) {
   async function handleCreate() {
     if (!roomName.trim()) return;
     try {
-      const res = await fetch('/api/classroom', {
+      const res = await fetch(`${API_BASE}/api/classroom`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -33,7 +34,7 @@ export default function ClassroomLobby({ onJoin }: Props) {
   async function handleJoin() {
     if (!joinCode.trim() || !displayName.trim()) return;
     try {
-      const res = await fetch('/api/classroom/join', {
+      const res = await fetch(`${API_BASE}/api/classroom/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

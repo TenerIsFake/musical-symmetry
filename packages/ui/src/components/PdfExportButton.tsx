@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 interface Props {
   file: File;
@@ -17,7 +18,7 @@ export default function PdfExportButton({ file, sliceMode, minNotes }: Props) {
       formData.append('sliceMode', sliceMode);
       formData.append('minNotes', String(minNotes));
 
-      const res = await fetch('/api/report', {
+      const res = await fetch(`${API_BASE}/api/report`, {
         method: 'POST',
         credentials: 'include',
         body: formData,

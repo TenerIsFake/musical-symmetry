@@ -9,6 +9,7 @@ import {
 } from '@musical-symmetry/core';
 import { useUser } from '../context/UserContext';
 import { forteNumber } from '../data/forte-numbers';
+import { API_BASE } from '../utils/apiBase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,7 +124,7 @@ const QUESTION_TYPE_DESCRIPTIONS: Record<QuestionType, string> = {
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
-const API = '/api/assignments';
+const API = `${API_BASE}/api/assignments`;
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(API + path, {

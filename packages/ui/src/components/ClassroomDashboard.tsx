@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { classify, NOTE_NAMES } from '@musical-symmetry/core';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { wsUrl as buildWsUrl } from '../utils/apiBase';
 
 interface StudentEntry {
   userId: string;
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export default function ClassroomDashboard({ classroomId, role, userId, displayName }: Props) {
-  const wsUrl = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/classroom`;
+  const wsUrl = buildWsUrl('/ws/classroom');
   const { connected, lastMessage, send } = useWebSocket(wsUrl);
   const [students, setStudents] = useState<Map<string, StudentEntry>>(new Map());
   const [memberCount, setMemberCount] = useState(0);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 interface LessonProgressEntry {
   path_id: string;
@@ -22,7 +23,7 @@ export function useLearningProgress(enabled: boolean): UseLearningProgressResult
     if (!enabled) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/learning/progress', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/learning/progress`, { credentials: 'include' });
       if (res.ok) {
         const data = (await res.json()) as { progress: LessonProgressEntry[] };
         setCompletedLessons(new Set(data.progress.map(p => `${p.path_id}/${p.lesson_id}`)));
@@ -40,7 +41,7 @@ export function useLearningProgress(enabled: boolean): UseLearningProgressResult
 
   const markComplete = useCallback(async (pathId: string, lessonId: string) => {
     try {
-      const res = await fetch(`/api/learning/progress/${pathId}/${lessonId}/complete`, {
+      const res = await fetch(`${API_BASE}/api/learning/progress/${pathId}/${lessonId}/complete`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -54,7 +55,7 @@ export function useLearningProgress(enabled: boolean): UseLearningProgressResult
 
   const resetPath = useCallback(async (pathId: string) => {
     try {
-      const res = await fetch(`/api/learning/progress/${pathId}`, {
+      const res = await fetch(`${API_BASE}/api/learning/progress/${pathId}`, {
         method: 'DELETE',
         credentials: 'include',
       });

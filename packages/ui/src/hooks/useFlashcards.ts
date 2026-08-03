@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://symmetry.tendrid.us';
+import { API_BASE } from '../utils/apiBase';
 
 export interface FlashcardDeck {
   id: number;
