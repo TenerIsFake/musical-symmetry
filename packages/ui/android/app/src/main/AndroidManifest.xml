@@ -40,4 +40,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Microphone: required for the Live Detection / Practice pitch-detection
+         tools (getUserMedia in the WebView). Audio is processed entirely
+         on-device and never uploaded. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>

@@ -12,11 +12,40 @@ interface Props {
   onClassify?: (pcs: PitchClass[]) => void;
 }
 
+const RATIONALE_KEY = 'mic-rationale-acknowledged';
+
 export default function MicControls({ onDetect, showAccumulator = false, onClassify }: Props) {
   const { isListening, detectedPC, detectedFreq, error, start, stop } = useMicPitchDetect();
   const lastPCRef = useRef<PitchClass | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [accumulatedPCs, setAccumulatedPCs] = useState<Set<PitchClass>>(new Set());
+  const [showRationale, setShowRationale] = useState(false);
+
+  // Pre-permission rationale: explain why we need the mic BEFORE triggering
+  // the system permission prompt (shown once).
+  const handleStartClick = useCallback(() => {
+    let acknowledged = false;
+    try {
+      acknowledged = localStorage.getItem(RATIONALE_KEY) === '1';
+    } catch {
+      // localStorage unavailable — fall through to showing the rationale
+    }
+    if (!acknowledged) {
+      setShowRationale(true);
+      return;
+    }
+    start();
+  }, [start]);
+
+  const handleEnableMic = useCallback(() => {
+    try {
+      localStorage.setItem(RATIONALE_KEY, '1');
+    } catch {
+      // non-fatal
+    }
+    setShowRationale(false);
+    start();
+  }, [start]);
 
   // Debounce onDetect and accumulate pitch classes
   useEffect(() => {
@@ -71,7 +100,7 @@ export default function MicControls({ onDetect, showAccumulator = false, onClass
       <div className="flex items-center gap-4 mb-3">
         {!isListening ? (
           <button
-            onClick={start}
+            onClick={handleStartClick}
             className="px-4 py-2 rounded bg-red-700 hover:bg-red-600 text-sm font-medium transition-colors flex items-center gap-2"
           >
             <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
@@ -158,6 +187,32 @@ export default function MicControls({ onDetect, showAccumulator = false, onClass
                 </span>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* One-time pre-permission rationale */}
+      {showRationale && !isListening && (
+        <div className="border border-indigo-800 bg-indigo-950/50 rounded-lg p-3 mt-2">
+          <p className="text-sm text-gray-300 mb-3">
+            Pitch detection listens through your microphone to identify the notes you
+            play or sing. Audio is analyzed entirely on this device — it is never
+            recorded, stored, or uploaded. Your device will now ask for microphone
+            permission.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleEnableMic}
+              className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-sm font-medium text-white transition-colors"
+            >
+              Enable Microphone
+            </button>
+            <button
+              onClick={() => setShowRationale(false)}
+              className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-sm text-gray-300 transition-colors"
+            >
+              Not Now
+            </button>
           </div>
         </div>
       )}

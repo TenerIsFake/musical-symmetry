@@ -101,7 +101,20 @@ export function useMicPitchDetect() {
       setIsListening(true);
       rafRef.current = requestAnimationFrame(detect);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Microphone access denied');
+      const name = err instanceof DOMException ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        setError(
+          'Microphone access was denied. To use pitch detection, allow the microphone ' +
+          'permission — in the Android app: Settings > Apps > Chrometria > Permissions > Microphone; ' +
+          'in a browser: the padlock/site-settings menu in the address bar.'
+        );
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        setError('No microphone was found on this device.');
+      } else if (name === 'NotReadableError') {
+        setError('The microphone is in use by another app. Close it and try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Microphone access failed');
+      }
     }
   }, [detect]);
 
