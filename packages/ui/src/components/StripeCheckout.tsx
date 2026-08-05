@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { API_BASE } from '../utils/apiBase';
+import { isNativePlatform } from '../utils/platform';
 
 interface StripeCheckoutProps {
   tier: 'pro' | 'research';
@@ -8,13 +10,18 @@ interface StripeCheckoutProps {
 
 export default function StripeCheckout({ tier, label, currentTier }: StripeCheckoutProps) {
   const [loading, setLoading] = useState(false);
+
+  // Defense in depth: never render an external (Stripe) purchase flow inside
+  // the native app — Google Play payments policy. Callers should already gate
+  // on platform, but this guarantees it.
+  if (isNativePlatform) return null;
   const isCurrentTier = currentTier === tier;
 
   const handleClick = async () => {
     if (isCurrentTier || loading) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/billing/checkout', {
+      const res = await fetch(`${API_BASE}/api/billing/checkout`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

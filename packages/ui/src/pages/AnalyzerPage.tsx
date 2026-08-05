@@ -6,6 +6,7 @@ import SliceDetail from '../components/SliceDetail';
 import PdfExportButton from '../components/PdfExportButton';
 import { useResearchMode } from '../context/ResearchMode';
 import type { SliceData } from '../components/TimelineChart';
+import { API_BASE } from '../utils/apiBase';
 
 const NOTE_NAMES: Record<number, string> = {
   0: 'C', 1: 'C♯', 2: 'D', 3: 'E♭', 4: 'E', 5: 'F',
@@ -42,8 +43,6 @@ function mapSlices(rawSlices: any[]): SliceData[] {
   }));
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-
 export default function AnalyzerPage() {
   const { researchMode } = useResearchMode();
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -74,9 +73,10 @@ export default function AnalyzerPage() {
       formData.append('sliceMode', sliceMode);
       formData.append('minNotes', String(minNotes));
 
-      const res = await fetch('/api/analyze', {
+      const res = await fetch(`${API_BASE}/api/analyze`, {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       if (!res.ok) {

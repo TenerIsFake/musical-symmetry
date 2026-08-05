@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 interface SetItem {
   pitchClasses: number[];
@@ -68,7 +69,7 @@ export default function PublicProfilePage({ username, slug }: Props) {
   useEffect(() => {
     setLoading(true);
     setNotFound(false);
-    fetch(`/api/public/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`)
+    fetch(`${API_BASE}/api/public/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`)
       .then(res => {
         if (res.status === 404) { setNotFound(true); return null; }
         return res.json();

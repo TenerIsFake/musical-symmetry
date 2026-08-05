@@ -59,6 +59,10 @@ app.use((_req, res, next) => {
 
 const ALLOWED_ORIGINS = [
   'https://symmetry.tendrid.us',
+  // Capacitor WebView origins for the Android/iOS apps: the bundled SPA is
+  // served from these origins and calls this API cross-origin.
+  'https://localhost',
+  'capacitor://localhost',
   ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:5173', 'http://localhost:3009'] : []),
 ];
 
@@ -87,7 +91,11 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: 'lax',
+    // Production uses SameSite=None (with Secure) so the session cookie is
+    // sent on cross-site requests from the Capacitor app origin
+    // (https://localhost). Dev stays Lax: SameSite=None requires Secure,
+    // which plain-http localhost cannot satisfy.
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
 }));
 

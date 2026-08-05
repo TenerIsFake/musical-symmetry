@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -8,7 +7,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -16,30 +14,43 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
             android:exported="true">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Android App Links: open magic-link login URLs in the app so the
+                 session is established in the app's WebView instead of the
+                 external browser. NOTE: for autoVerify to work, assetlinks.json
+                 must be deployed at
+                 https://symmetry.tendrid.us/.well-known/assetlinks.json
+                 (template: packages/ui/public/.well-known/assetlinks.json —
+                 fill in the SHA-256 fingerprint of the NEW release keystore). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="symmetry.tendrid.us" android:pathPrefix="/api/auth/verify" />
+            </intent-filter>
         </activity>
 
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-9760203099492988~3512586788" />
+        <!-- AdMob removed: the Android app ships ad-free (v1 product decision). -->
 
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Microphone: required for the Live Detection / Practice pitch-detection
+         tools (getUserMedia in the WebView). Audio is processed entirely
+         on-device and never uploaded. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>

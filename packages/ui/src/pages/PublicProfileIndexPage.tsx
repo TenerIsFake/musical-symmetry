@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 interface CollectionSummary {
   slug: string;
@@ -26,7 +27,7 @@ export default function PublicProfileIndexPage({ username }: Props) {
   useEffect(() => {
     setLoading(true);
     setNotFound(false);
-    fetch(`/api/public/${encodeURIComponent(username)}`)
+    fetch(`${API_BASE}/api/public/${encodeURIComponent(username)}`)
       .then(res => {
         if (res.status === 404) { setNotFound(true); return null; }
         return res.json();

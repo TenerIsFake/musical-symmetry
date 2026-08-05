@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { useFlashcards, type FlashcardDeck, type FlashcardCard } from '../hooks/useFlashcards';
 import { gradeCard, type Quality } from '../utils/sm2';
+import { API_BASE } from '../utils/apiBase';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -405,8 +406,6 @@ function StudyView({
   const [atlasEntry, setAtlasEntry] = useState<AtlasEntry | null>(null);
   const [entryLoading, setEntryLoading] = useState(false);
   const [grading, setGrading] = useState(false);
-
-  const API_BASE = import.meta.env.VITE_API_URL || 'https://symmetry.tendrid.us';
 
   useEffect(() => {
     fetchDueCards(deck.id).then(cards => {

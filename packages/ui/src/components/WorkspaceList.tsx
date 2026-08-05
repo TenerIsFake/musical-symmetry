@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
+import { API_BASE } from '../utils/apiBase';
 
 type WorkspaceType = 'classifier' | 'analyzer' | 'progression';
 
@@ -59,7 +60,7 @@ export default function WorkspaceList({ onLoad, filterType }: Props) {
     if (!user) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/workspaces', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/workspaces`, { credentials: 'include' });
       if (res.ok) {
         const body = await res.json() as { workspaces: WorkspaceSummary[] };
         setWorkspaces(body.workspaces);
@@ -75,7 +76,7 @@ export default function WorkspaceList({ onLoad, filterType }: Props) {
 
   async function handleLoad(id: string) {
     try {
-      const res = await fetch(`/api/workspaces/${id}`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/workspaces/${id}`, { credentials: 'include' });
       if (!res.ok) { setError('Failed to load workspace.'); return; }
       const body = await res.json() as { workspace: WorkspaceData };
       onLoad(body.workspace);
@@ -86,7 +87,7 @@ export default function WorkspaceList({ onLoad, filterType }: Props) {
 
   async function handleDelete(id: string) {
     try {
-      const res = await fetch(`/api/workspaces/${id}`, {
+      const res = await fetch(`${API_BASE}/api/workspaces/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -104,7 +105,7 @@ export default function WorkspaceList({ onLoad, filterType }: Props) {
   async function handleShare(id: string) {
     setSharing(id);
     try {
-      const res = await fetch(`/api/workspaces/${id}/share`, {
+      const res = await fetch(`${API_BASE}/api/workspaces/${id}/share`, {
         method: 'POST',
         credentials: 'include',
       });

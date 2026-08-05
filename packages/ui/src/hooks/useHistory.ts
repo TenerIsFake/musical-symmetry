@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 export interface HistoryEntry {
   id: number;
@@ -11,8 +12,6 @@ export interface HistoryEntry {
   bookmarked: number;
   created_at: string;
 }
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://symmetry.tendrid.us';
 
 interface UseHistoryOptions {
   limit?: number;

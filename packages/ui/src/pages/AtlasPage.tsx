@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
+import { API_BASE } from '../utils/apiBase';
 
 interface AtlasSummary {
   forteNumber: string;
@@ -18,7 +19,7 @@ export default function AtlasPage() {
   const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
-    fetch('/api/atlas').then(r => r.json()).then(d => setEntries(d.entries));
+    fetch(`${API_BASE}/api/atlas`).then(r => r.json()).then(d => setEntries(d.entries));
   }, []);
 
   const groups = [...new Set(entries.map(e => e.group))].sort();

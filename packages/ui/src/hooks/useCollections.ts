@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 interface Collection {
   id: string;
@@ -22,7 +23,7 @@ export function useCollections() {
   const fetchCollections = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/collections', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/collections`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setCollections(data.collections);
@@ -34,7 +35,7 @@ export function useCollections() {
   useEffect(() => { fetchCollections(); }, [fetchCollections]);
 
   async function createCollection(name: string) {
-    const res = await fetch('/api/collections', {
+    const res = await fetch(`${API_BASE}/api/collections`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -48,7 +49,7 @@ export function useCollections() {
   }
 
   async function addToCollection(collectionId: string, pitchClasses: number[], label?: string) {
-    const res = await fetch(`/api/collections/${collectionId}/items`, {
+    const res = await fetch(`${API_BASE}/api/collections/${collectionId}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -59,14 +60,14 @@ export function useCollections() {
   }
 
   async function getItems(collectionId: string): Promise<CollectionItem[]> {
-    const res = await fetch(`/api/collections/${collectionId}/items`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/api/collections/${collectionId}/items`, { credentials: 'include' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.items;
   }
 
   async function deleteCollection(id: string) {
-    await fetch(`/api/collections/${id}`, { method: 'DELETE', credentials: 'include' });
+    await fetch(`${API_BASE}/api/collections/${id}`, { method: 'DELETE', credentials: 'include' });
     await fetchCollections();
   }
 

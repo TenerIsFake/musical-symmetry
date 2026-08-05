@@ -25,6 +25,7 @@ import SaveButton from '../components/SaveButton';
 import CollectionsSidebar from '../components/CollectionsSidebar';
 import MidiInput from '../components/MidiInput';
 import ExportMenu from '../components/ExportMenu';
+import { API_BASE } from '../utils/apiBase';
 
 export type Action =
   | { type: 'TOGGLE_PC'; pc: PitchClass }
@@ -123,7 +124,7 @@ export default function ClassifierPage() {
     if (!user) return;
     setCreatingRoom(true);
     try {
-      const res = await fetch('/api/rooms', {
+      const res = await fetch(`${API_BASE}/api/rooms`, {
         method: 'POST',
         credentials: 'include',
       });

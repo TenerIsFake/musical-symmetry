@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useUser } from '../context/UserContext';
-import { initAdMob, showBannerAd, hideBannerAd, shouldShowAds } from '../utils/admob';
+import { useUser, type User } from '../context/UserContext';
+import { isNativePlatform } from '../utils/platform';
 
 declare global {
   interface Window {
@@ -8,30 +8,31 @@ declare global {
   }
 }
 
-const isNative = typeof (window as any).Capacitor !== 'undefined';
-
 interface AdBannerProps {
   slot: string;
   format?: 'auto' | 'horizontal' | 'vertical' | 'rectangle';
   className?: string;
 }
 
+function shouldShowAds(user: User | null): boolean {
+  if (!user) return true;
+  return user.tier === 'free';
+}
+
+/**
+ * Web-only AdSense banner. The Android app ships ad-free (v1 product
+ * decision), so this renders nothing on native — and the AdSense script is
+ * never injected there either (see src/utils/webScripts.ts).
+ */
 export default function AdBanner({ slot, format = 'auto', className = '' }: AdBannerProps) {
   const { user, loading } = useUser();
   const adRef = useRef<HTMLModElement>(null);
   const pushed = useRef(false);
 
-  const showAds = shouldShowAds(user);
+  const showAds = !isNativePlatform && shouldShowAds(user);
 
   useEffect(() => {
-    if (loading || !showAds) return;
-
-    if (isNative) {
-      initAdMob().then(() => showBannerAd());
-      return () => { hideBannerAd(); };
-    }
-
-    if (pushed.current) return;
+    if (loading || !showAds || pushed.current) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       pushed.current = true;
@@ -40,12 +41,7 @@ export default function AdBanner({ slot, format = 'auto', className = '' }: AdBa
     }
   }, [loading, showAds]);
 
-  if (loading || !showAds) {
-    if (isNative) hideBannerAd();
-    return null;
-  }
-
-  if (isNative) return null;
+  if (loading || !showAds) return null;
 
   return (
     <div className={`ad-container my-4 ${className}`}>

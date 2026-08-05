@@ -3,6 +3,7 @@ import FileUpload from '../components/FileUpload';
 import TimelineChart from '../components/TimelineChart';
 import { useUser } from '../context/UserContext';
 import type { SliceData } from '../components/TimelineChart';
+import { API_BASE } from '../utils/apiBase';
 
 const NOTE_NAMES_LOCAL: Record<number, string> = {
   0: 'C', 1: 'C♯', 2: 'D', 3: 'E♭', 4: 'E', 5: 'F',
@@ -23,7 +24,7 @@ async function fetchAnalysis(file: File): Promise<AnalysisResult> {
   formData.append('sliceMode', 'beat');
   formData.append('minNotes', '2');
 
-  const res = await fetch('/api/analyze', { method: 'POST', body: formData });
+  const res = await fetch(`${API_BASE}/api/analyze`, { method: 'POST', body: formData, credentials: 'include' });
   if (!res.ok) {
     const body = await res.json();
     throw new Error(body.error || `HTTP ${res.status}`);

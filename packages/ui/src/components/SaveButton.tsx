@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useUser } from '../context/UserContext';
+import { API_BASE } from '../utils/apiBase';
+import { isNativePlatform } from '../utils/platform';
 
 type WorkspaceType = 'classifier' | 'analyzer' | 'progression';
 
@@ -31,7 +33,7 @@ export default function SaveButton({ type, data, defaultName = '' }: Props) {
     setSaving(true);
     setStatus('idle');
     try {
-      const res = await fetch('/api/workspaces', {
+      const res = await fetch(`${API_BASE}/api/workspaces`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -86,12 +88,19 @@ export default function SaveButton({ type, data, defaultName = '' }: Props) {
                 <p className="text-xs text-gray-400 mb-4">
                   Free accounts can save up to {FREE_LIMIT} workspaces. Upgrade for unlimited saves.
                 </p>
-                <a
-                  href="https://symmetry.tendrid.us/pricing"
-                  className="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded"
-                >
-                  Upgrade to Pro
-                </a>
+                {/* Play policy: no external purchase links inside the native app */}
+                {isNativePlatform ? (
+                  <p className="text-xs text-gray-400 mb-2">
+                    Unlimited saves are available with a subscription on the web at symmetry.tendrid.us.
+                  </p>
+                ) : (
+                  <a
+                    href="https://symmetry.tendrid.us/pricing"
+                    className="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded"
+                  >
+                    Upgrade to Pro
+                  </a>
+                )}
                 <button
                   onClick={() => setOpen(false)}
                   className="block mt-2 text-xs text-gray-500 hover:text-gray-300 mx-auto"

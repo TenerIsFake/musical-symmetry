@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { API_BASE } from '../utils/apiBase';
 
 export interface User {
   id: string;
@@ -20,7 +21,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refresh = () => {
-    fetch('/api/auth/me', { credentials: 'include' })
+    fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
       .then(res => res.ok ? res.json() : null)
       .then(data => setUser(data))
       .catch(() => setUser(null))

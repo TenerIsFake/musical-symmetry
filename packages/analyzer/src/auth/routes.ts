@@ -13,6 +13,37 @@ import './types.js';
 
 export const authRouter = Router();
 
+// ── Rate limiting for magic-link requests ────────────────────────────────────
+// Simple in-memory sliding-window limiter (no extra dependencies). Limits both
+// per-IP and per-email to blunt login-email bombing and abuse. State is
+// per-process, which is fine for this single-instance deployment.
+const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_MAX_REQUESTS = 5;
+const rateBuckets = new Map<string, number[]>();
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const recent = (rateBuckets.get(key) ?? []).filter(t => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_MAX_REQUESTS) {
+    rateBuckets.set(key, recent);
+    return true;
+  }
+  recent.push(now);
+  rateBuckets.set(key, recent);
+  return false;
+}
+
+// Periodically drop empty buckets so the map does not grow unbounded.
+const rateCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [key, times] of rateBuckets) {
+    const recent = times.filter(t => now - t < RATE_WINDOW_MS);
+    if (recent.length === 0) rateBuckets.delete(key);
+    else rateBuckets.set(key, recent);
+  }
+}, RATE_WINDOW_MS);
+rateCleanup.unref?.();
+
 // POST /api/auth/magic-link — Generate a magic link token
 authRouter.post('/magic-link', async (req, res) => {
   try {
@@ -28,6 +59,11 @@ authRouter.post('/magic-link', async (req, res) => {
       return;
     }
 
+    if (isRateLimited(`ip:${req.ip}`) || isRateLimited(`email:${email.toLowerCase()}`)) {
+      res.status(429).json({ error: 'Too many login requests. Please try again later.' });
+      return;
+    }
+
     const token = createMagicToken(email);
 
     if (isEmailConfigured()) {
@@ -37,45 +73,46 @@ authRouter.post('/magic-link', async (req, res) => {
         return;
       }
       res.json({ message: 'Check your email for a login link' });
-    } else {
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Dev convenience only. NEVER return the token in production: doing so
+      // would let anyone log in as any email address.
       res.json({
         message: 'Magic link generated (dev mode: token returned in response)',
         token,
         verifyUrl: `/api/auth/verify?token=${token}`,
       });
+    } else {
+      // Production with email misconfigured: fail closed.
+      console.error('magic-link requested but RESEND_API_KEY is not configured');
+      res.status(503).json({ error: 'Login is temporarily unavailable. Please try again later.' });
     }
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
-// GET /api/auth/verify — Verify magic link token & create session
+// GET /api/auth/verify — Verify magic link token & create session.
+// This URL is what users click in the login email, so on success we redirect
+// (302) into the SPA dashboard instead of returning raw JSON. The SPA uses
+// hash routing, so the dashboard lives at /#dashboard.
 authRouter.get('/verify', (req, res) => {
   try {
     const token = req.query.token as string;
     if (!token) {
-      res.status(400).json({ error: 'Token is required' });
+      res.redirect(302, '/#dashboard?login=missing-token');
       return;
     }
 
     const email = verifyMagicToken(token);
     if (!email) {
-      res.status(401).json({ error: 'Invalid or expired token' });
+      res.redirect(302, '/#dashboard?login=invalid-or-expired');
       return;
     }
 
     const user = getOrCreateUser('magic', { email });
 
     req.session.userId = user.id;
-    res.json({
-      message: 'Authenticated successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        tier: user.tier,
-      },
-    });
+    res.redirect(302, '/#dashboard?login=success');
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }

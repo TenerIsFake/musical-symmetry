@@ -4,6 +4,8 @@ import { useAchievements } from '../hooks/useAchievements';
 import AchievementBadge from '../components/AchievementBadge';
 import { LEARNING_PATHS } from '../data/learning-paths/index.js';
 import { useLearningProgress } from '../hooks/useLearningProgress.js';
+import { API_BASE } from '../utils/apiBase';
+import { isNativePlatform } from '../utils/platform';
 
 function DailyChallengeTeaser() {
   const [submitted, setSubmitted] = useState<boolean | null>(null);
@@ -11,7 +13,7 @@ function DailyChallengeTeaser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/challenges/today', { credentials: 'include' })
+    fetch(`${API_BASE}/api/challenges/today`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then((data: { submitted?: boolean } | null) => {
         if (data) setSubmitted(!!data.submitted);
@@ -19,7 +21,7 @@ function DailyChallengeTeaser() {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    fetch('/api/challenges/streak', { credentials: 'include' })
+    fetch(`${API_BASE}/api/challenges/streak`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then((data: { streak?: number } | null) => {
         if (data) setStreak(data.streak ?? 0);
@@ -290,7 +292,7 @@ function LoggedInView({ user }: { user: UserProfile }) {
   }, [user.apiKey]);
 
   const handleRegenerate = useCallback(() => {
-    fetch('/api/auth/regenerate-key', { method: 'POST', credentials: 'include' }).catch(() => {});
+    fetch(`${API_BASE}/api/auth/regenerate-key`, { method: 'POST', credentials: 'include' }).catch(() => {});
   }, []);
 
   return (
@@ -338,22 +340,31 @@ function LoggedInView({ user }: { user: UserProfile }) {
             Current plan: <TierBadge tier={user.tier} />
           </span>
         </div>
-        <div className="mt-4 flex gap-3">
-          {user.tier === 'free' && (
-            <>
-              <StripeCheckout tier="pro" label="Upgrade to Pro — $9/mo" currentTier={user.tier} />
-              <StripeCheckout tier="research" label="Upgrade to Research — $29/mo" currentTier={user.tier} />
-            </>
-          )}
-          {(user.tier === 'pro' || user.tier === 'research') && (
-            <a
-              href="/api/billing/portal"
-              className="px-4 py-2 bg-gray-700 rounded text-sm font-medium text-white hover:bg-gray-600 transition-colors"
-            >
-              Manage Subscription
-            </a>
-          )}
-        </div>
+        {isNativePlatform ? (
+          // Google Play policy: the Android app must not offer or link to an
+          // external purchase flow for digital goods. Paid tiers are web-only;
+          // show a neutral, non-tappable note instead of any purchase UI.
+          <p className="mt-4 text-sm text-gray-400">
+            Subscription management is available on the web at symmetry.tendrid.us.
+          </p>
+        ) : (
+          <div className="mt-4 flex gap-3">
+            {user.tier === 'free' && (
+              <>
+                <StripeCheckout tier="pro" label="Upgrade to Pro — $7/mo" currentTier={user.tier} />
+                <StripeCheckout tier="research" label="Upgrade to Research — $15/mo" currentTier={user.tier} />
+              </>
+            )}
+            {(user.tier === 'pro' || user.tier === 'research') && (
+              <a
+                href={`${API_BASE}/api/billing/portal`}
+                className="px-4 py-2 bg-gray-700 rounded text-sm font-medium text-white hover:bg-gray-600 transition-colors"
+              >
+                Manage Subscription
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Restart Tour */}
@@ -381,7 +392,7 @@ function LoginView() {
     if (!email) return;
     setStatus('sending');
     try {
-      const res = await fetch('/api/auth/magic-link', {
+      const res = await fetch(`${API_BASE}/api/auth/magic-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -437,7 +448,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
+    fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setUser(data))
       .catch(() => setUser(null))

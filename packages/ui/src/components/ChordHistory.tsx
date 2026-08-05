@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
 import { useUser } from '../context/UserContext';
+import { API_BASE } from '../utils/apiBase';
 
 export interface HistoryEntry {
   id: number;
@@ -17,8 +18,6 @@ interface Props {
   onRestore: (pcs: PitchClass[]) => void;
   onClear: () => void;
 }
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://symmetry.tendrid.us';
 
 const NOTE_MAP: Record<number, string> = {
   0:'C', 1:'C#', 2:'D', 3:'Eb', 4:'E', 5:'F',

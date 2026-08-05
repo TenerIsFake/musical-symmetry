@@ -54,9 +54,12 @@ The Research tier unlocks batch processing, full API access, and academic export
 
 **TIERS**
 
-- **Free** — Core tools with ads and standard rate limits. No account required to start.
-- **Pro ($4.99/month)** — No ads, higher rate limits, and full access to all 24 tools.
-- **Research ($14.99/month)** — Everything in Pro plus batch processing, academic export (Lilypond / LaTeX / BibTeX), and full API access for programmatic integration.
+The Android app is free and ad-free. Optional subscriptions are available on the web at symmetry.tendrid.us and also unlock the same account in the app:
+
+- **Free** — Core tools with standard rate limits. No account required to start. No ads in the Android app.
+- **Student ($3/month, web subscription)** — Higher rate limits for coursework and study tools.
+- **Pro ($7/month, web subscription)** — Higher rate limits and full access to all 24 tools.
+- **Research ($15/month, web subscription)** — Everything in Pro plus batch processing, academic export (Lilypond / LaTeX / BibTeX), and full API access for programmatic integration.
 
 ---
 
@@ -76,6 +79,6 @@ The math is real. The tools are professional. The learning curve is worth it.
 
 ---
 
-## Release Notes — v1.0.0 (500 characters max)
+## Release Notes — v2.0 (500 characters max)
 
-Initial release of Chrometria. All 24 tools are live: Classifier, Analyzer, Atlas, Ear Training, Quiz (SM-2), Progression Builder, Live Detection, Compare, Melody, Interval Cycles, Search, Rhythm, Voice-Leading Graph, Timeline, Practice, Tuning, Score Annotation, Assignments, and Classroom mode. Free, Pro ($4.99/mo), and Research ($14.99/mo) tiers available. Academic export and full API access in Research tier.
+Chrometria 2.0 for Android. All 24 tools: Classifier, Analyzer, Atlas, Ear Training, Quiz (SM-2), Progression Builder, Live Detection, Compare, Melody, Interval Cycles, Search, Rhythm, Voice-Leading Graph, Timeline, Practice, Tuning, Score Annotation, Assignments, and Classroom mode. The app is free and ad-free. Optional Student/Pro/Research subscriptions (purchased on the web) unlock higher limits, academic export, and API access across web and app.

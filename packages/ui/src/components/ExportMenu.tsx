@@ -9,6 +9,7 @@ import {
   generateLaTeX,
 } from '../utils/export-academic';
 import { toMusicXML } from '../utils/musicxml-writer';
+import { isNativePlatform } from '../utils/platform';
 
 interface Props {
   analysis: SymmetryAnalysis | null;
@@ -228,12 +229,19 @@ export default function ExportMenu({ analysis, pcs }: Props) {
               Upgrade to unlock publication-ready output.
             </p>
             <div className="flex gap-3 justify-center">
-              <a
-                href="https://symmetry.tendrid.us/pricing"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                Upgrade to Research
-              </a>
+              {/* Play policy: no external purchase links inside the native app */}
+              {isNativePlatform ? (
+                <p className="text-sm text-gray-400 self-center">
+                  Available with a Research subscription on the web at symmetry.tendrid.us.
+                </p>
+              ) : (
+                <a
+                  href="https://symmetry.tendrid.us/pricing"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Upgrade to Research
+                </a>
+              )}
               <button
                 onClick={() => setShowUpgrade(false)}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium rounded-lg transition-colors"

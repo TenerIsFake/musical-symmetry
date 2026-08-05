@@ -1,3 +1,4 @@
+import { API_BASE } from '../utils/apiBase';
 export default function LandingPage() {
   return (
     <div className="min-h-screen">
@@ -433,7 +434,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
             <a href="#about" className="hover:text-gray-300 transition-colors">About the Math</a>
-            <a href="/api/docs" className="hover:text-gray-300 transition-colors">API Docs</a>
+            <a href={`${API_BASE}/api/docs`} className="hover:text-gray-300 transition-colors">API Docs</a>
             <a
               href="https://github.com"
               target="_blank"

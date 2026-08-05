@@ -3,6 +3,7 @@ import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
 import { useUser } from '../context/UserContext';
 import { useFlashcards } from '../hooks/useFlashcards';
+import { API_BASE } from '../utils/apiBase';
 
 interface AtlasEntry {
   forteNumber: string;
@@ -104,7 +105,7 @@ export default function AtlasEntryPage({ forteNumber }: Props) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`/api/atlas/${forteNumber}`)
+    fetch(`${API_BASE}/api/atlas/${forteNumber}`)
       .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); })
       .then(setEntry)
       .catch(() => setError('Set class not found'));
@@ -178,7 +179,7 @@ export default function AtlasEntryPage({ forteNumber }: Props) {
           Open in Classifier
         </a>
         <a
-          href={`/api/og/orbit?pcs=${entry.primeForm.join(',')}`}
+          href={`${API_BASE}/api/og/orbit?pcs=${entry.primeForm.join(',')}`}
           target="_blank"
           className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition"
         >

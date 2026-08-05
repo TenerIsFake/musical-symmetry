@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
+import { API_BASE } from '../utils/apiBase';
+import { isNativePlatform } from '../utils/platform';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -225,7 +227,7 @@ export default function CorpusPage() {
   const fetchCorpora = useCallback(async () => {
     if (!isResearch) return;
     try {
-      const res = await fetch('/api/corpus', { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/corpus`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setSavedCorpora(data.corpora ?? []);
@@ -271,7 +273,7 @@ export default function CorpusPage() {
     formData.append('name', corpusName.trim() || `Corpus ${new Date().toLocaleDateString()}`);
 
     try {
-      const res = await fetch('/api/corpus/analyze', {
+      const res = await fetch(`${API_BASE}/api/corpus/analyze`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -296,7 +298,7 @@ export default function CorpusPage() {
   async function handleDelete(id: number) {
     if (!confirm('Delete this corpus?')) return;
     try {
-      await fetch(`/api/corpus/${id}`, { method: 'DELETE', credentials: 'include' });
+      await fetch(`${API_BASE}/api/corpus/${id}`, { method: 'DELETE', credentials: 'include' });
       setSavedCorpora(prev => prev.filter(c => c.id !== id));
     } catch {
       // ignore
@@ -309,7 +311,7 @@ export default function CorpusPage() {
     setCompareLoading(true);
     setCompareResult(null);
     try {
-      const res = await fetch(`/api/corpus/compare?a=${compareA}&b=${compareB}`, {
+      const res = await fetch(`${API_BASE}/api/corpus/compare?a=${compareA}&b=${compareB}`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -343,12 +345,19 @@ export default function CorpusPage() {
         <p className="text-gray-500 text-sm">
           This feature requires a <strong className="text-purple-400">Research</strong> tier subscription.
         </p>
-        <a
-          href="https://symmetry.tendrid.us/pricing"
-          className="inline-block px-6 py-3 rounded-lg bg-purple-700 text-white font-semibold hover:bg-purple-600 transition-colors"
-        >
-          Upgrade to Research
-        </a>
+        {/* Play policy: no external purchase links inside the native app */}
+        {isNativePlatform ? (
+          <p className="text-gray-400 text-sm">
+            Available with a Research subscription on the web at symmetry.tendrid.us.
+          </p>
+        ) : (
+          <a
+            href="https://symmetry.tendrid.us/pricing"
+            className="inline-block px-6 py-3 rounded-lg bg-purple-700 text-white font-semibold hover:bg-purple-600 transition-colors"
+          >
+            Upgrade to Research
+          </a>
+        )}
       </div>
     );
   }
