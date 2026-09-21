@@ -37,9 +37,12 @@ rests on something unverified, it says so.
 - **No Stripe cancellation code exists.** `auth/stripe.ts` has only a checkout `cancel_url`.
 - **Entitlement names already in code** (`packages/ui/src/utils/revenuecat.ts:54-60`):
   `research_access`, `pro_access`, `student_access`.
-- **Latent bug:** `sketches.user_id` is `INTEGER NOT NULL REFERENCES users(id)` while
-  `users.id` is `TEXT PRIMARY KEY` (`sketches/db.ts:8` vs `auth/db.ts:21`). The foreign key
-  cannot match. Must be resolved as part of deletion work.
+- **`sketches.user_id` is `INTEGER` against a `TEXT` `users.id`** (`sketches/db.ts:8` vs
+  `auth/db.ts:21`). ⚠️ **Corrected 2026-09-21: this is a cosmetic schema smell, NOT a bug.**
+  It was reported as a latent defect that would break the foreign key; tested empirically on
+  a scratch database (both a hex id and an all-digit id) and `DELETE ... WHERE user_id = ?`
+  matches correctly in both cases, because SQLite applies column affinity to the bound
+  parameter. Worth tidying one day; **not** a deletion hazard, and nothing depends on fixing it.
 - No `ios/` project, no Capacitor iOS, **no App Store Connect record**. Creating one is
   web-UI only.
 

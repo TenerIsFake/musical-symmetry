@@ -12,6 +12,29 @@ function getStripe(): Stripe | null {
   return new Stripe(key, { apiVersion: '2026-04-22.dahlia' });
 }
 
+/**
+ * Cancel a subscription immediately. Used by account deletion — leaving a
+ * subscription billing an account that no longer exists is the worst outcome
+ * of a half-done erasure.
+ *
+ * Returns whether Stripe actually cancelled. It deliberately does NOT throw:
+ * an already-cancelled or unknown subscription must not block the user's
+ * erasure, which Apple 5.1.1(v) and GDPR both require to succeed. The caller
+ * logs the false and carries on.
+ */
+export async function cancelSubscription(subscriptionId: string): Promise<boolean> {
+  const stripe = getStripe();
+  if (!stripe) return false;
+  try {
+    await stripe.subscriptions.cancel(subscriptionId);
+    return true;
+  } catch (err) {
+    console.error('[billing] could not cancel subscription during account deletion:',
+      subscriptionId, err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
 export function isValidTier(tier: string): tier is 'student' | 'pro' | 'research' {
   return tier === 'student' || tier === 'pro' || tier === 'research';
 }

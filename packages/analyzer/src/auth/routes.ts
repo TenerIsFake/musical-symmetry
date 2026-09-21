@@ -6,9 +6,11 @@ import {
   getUserById,
   getUserByApiKey,
   regenerateApiKey,
+  deleteAccount,
 } from './db.js';
 import { requireAuth } from './middleware.js';
 import { isEmailConfigured, sendMagicLinkEmail } from './email.js';
+import { cancelSubscription } from './stripe.js';
 import './types.js';
 
 export const authRouter = Router();
@@ -186,6 +188,72 @@ authRouter.get('/api-key', requireAuth, (req, res) => {
     }
 
     res.json({ apiKey: user.api_key });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+/**
+ * DELETE /api/auth/account — erase this account and everything identifying it.
+ *
+ * Apple Guideline 5.1.1(v) requires an account-deletion path that a user can
+ * start inside the app. Before 2026-09-21 this project had none: the published
+ * page told people to send an email, which satisfies Google Play's Data Safety
+ * rules but not Apple's, and is a poor answer to a GDPR erasure request either
+ * way. The same endpoint backs the iOS Settings screen, the web Dashboard and
+ * the Android app.
+ *
+ * The caller must retype their own email address. Deletion is irreversible and
+ * a stray tap should not be sufficient.
+ *
+ * Stripe is cancelled BEFORE the database work, and deliberately outside the
+ * transaction — it is a network call, and holding SQLite open across one turns
+ * a slow response into a locked database. A failed cancellation is logged and
+ * does not stop the erasure: the user's right to leave outranks our billing
+ * bookkeeping, and a subscription with no account cannot be renewed into
+ * anything meaningful.
+ */
+authRouter.delete('/account', requireAuth, async (req, res) => {
+  try {
+    const user = req.user!;
+    const confirm = typeof req.body?.confirm === 'string' ? req.body.confirm.trim() : '';
+
+    if (confirm.toLowerCase() !== user.email.toLowerCase()) {
+      res.status(400).json({
+        error: 'Type your account email address exactly to confirm deletion.',
+      });
+      return;
+    }
+
+    let cancelled: string | null = null;
+    if (user.stripe_subscription_id) {
+      if (await cancelSubscription(user.stripe_subscription_id)) {
+        cancelled = user.stripe_subscription_id;
+      }
+    }
+
+    try {
+      deleteAccount(user.id);
+    } catch (err) {
+      // The database work is transactional and has rolled back, so the account
+      // survives — but Stripe has already cancelled and there is nothing to
+      // undo it with. This cannot be made atomic across two systems, so make
+      // it loud instead: the id below is what a human needs to reinstate it.
+      if (cancelled) {
+        console.error(
+          '[billing] ORPHANED CANCELLATION — subscription', cancelled,
+          'was cancelled at Stripe but the account deletion then failed and rolled back.',
+          'The account still exists with no active subscription. Reinstate it by hand.',
+          err instanceof Error ? err.message : err,
+        );
+      }
+      throw err;
+    }
+
+    // The session store is keyed by sid and holds no user column, so the
+    // caller's session is destroyed here rather than swept by user id.
+    req.session?.destroy(() => {});
+    res.status(204).end();
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }

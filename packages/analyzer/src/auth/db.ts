@@ -213,3 +213,71 @@ export function regenerateApiKey(userId: string): string {
   db.prepare('UPDATE users SET api_key = ? WHERE id = ?').run(newKey, userId);
   return newKey;
 }
+
+/**
+ * Tables referencing users(id) WITHOUT ON DELETE CASCADE, in deletion order
+ * (children before parents). Read off the schema 2026-09-21, not assumed.
+ *
+ * Everything else cascades and is handled by the DELETE on users: achievements,
+ * analysis_history, classroom_members, collections (-> collection_items),
+ * corpora, daily_submissions, exercise_completions, flashcard_decks (->
+ * flashcard_cards), lesson_progress.
+ *
+ * These tables are created by their own route modules at import time, so in a
+ * partially-loaded process some may not exist yet — hence the existence check.
+ */
+export const MANUAL_DELETE: ReadonlyArray<readonly [table: string, column: string]> = [
+  ['assignment_submissions', 'student_id'],
+  ['assignments', 'creator_id'],
+  ['classroom_members', 'user_id'],
+  ['classrooms', 'teacher_id'],
+  ['workspaces', 'user_id'],
+  ['sketches', 'user_id'],
+];
+
+function tableExists(db: Database.Database, name: string): boolean {
+  return !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?").get(name);
+}
+
+/**
+ * Delete an account and everything identifying about it. Apple Guideline
+ * 5.1.1(v); also the honest answer to a GDPR erasure request.
+ *
+ * `foreign_keys = ON` is set for this connection, so a bare DELETE on users
+ * does not orphan rows — it THROWS. Every non-cascading child must go first,
+ * which is why this list is explicit rather than inferred.
+ *
+ * `api_usage` is deliberately unlinked rather than deleted: those rows drive
+ * rate-limit and volume accounting, and removing them would silently rewrite
+ * historical totals. The row survives, the identity does not.
+ *
+ * `sessions` is an express-session store keyed by sid with no user column, so
+ * it cannot be cleaned by user id; the route destroys the caller's session.
+ */
+export function deleteAccount(userId: string): void {
+  const db = getDb();
+  const row = db.prepare('SELECT email FROM users WHERE id = ?').get(userId) as
+    { email: string } | undefined;
+  if (!row) return;
+
+  db.transaction(() => {
+    db.prepare('UPDATE api_usage SET user_id = NULL WHERE user_id = ?').run(userId);
+
+    // Submissions made by OTHER students against this user's assignments.
+    // Without this the account is undeletable the moment anyone hands work in:
+    // deleting the assignment trips the submission's foreign key. A user must
+    // never be trapped because someone else interacted with their content.
+    if (tableExists(db, 'assignment_submissions') && tableExists(db, 'assignments')) {
+      db.prepare(`DELETE FROM assignment_submissions
+                  WHERE assignment_id IN (SELECT id FROM assignments WHERE creator_id = ?)`)
+        .run(userId);
+    }
+
+    for (const [table, column] of MANUAL_DELETE) {
+      if (!tableExists(db, table)) continue;
+      db.prepare(`DELETE FROM ${table} WHERE ${column} = ?`).run(userId);
+    }
+    db.prepare('DELETE FROM magic_tokens WHERE email = ?').run(row.email);
+    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  })();
+}
