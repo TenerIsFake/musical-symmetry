@@ -1,5 +1,13 @@
 # Musical Symmetry — iOS App Spec
 
+> ⛔ **SUPERSEDED 2026-09-21 by [`2026-09-21-ios-native-v1-design.md`](./2026-09-21-ios-native-v1-design.md).**
+> This document was never built. Read it as historical intent, **not** as status or as a plan.
+> Specific things in it that are now known to be wrong:
+> - It claims `test-vectors.json` covers "every core function". It holds 13 vectors across 3
+>   functions, and nine `packages/core` modules have no tests at all.
+> - It argues against a WebView wrapper — which is what actually shipped on Android.
+> - Its scope is the whole product; the agreed v1 is ~11 screens.
+
 ## Overview
 
 A native iOS app that brings the Musical Symmetry Toolkit to iPhone/iPad. Users can explore pitch-class set symmetry interactively, analyze music files, and detect pitches in real-time from the device microphone — all offline, no server required.

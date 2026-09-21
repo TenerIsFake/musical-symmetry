@@ -1,5 +1,10 @@
 # Musical Symmetry — Android App Spec
 
+> ⚠️ **NOT STATUS (noted 2026-09-21).** This describes a native Kotlin rewrite that was never
+> built. What actually ships on Android is a **Capacitor wrapper** around the web build
+> (`packages/ui/android/`, appId `us.tendrid.chrometria`) — the approach this document argues
+> against. Read it as intent only.
+
 ## Overview
 
 A native Android app bringing the Musical Symmetry Toolkit to phones and tablets. Interactive pitch-class exploration, file analysis, and real-time microphone pitch detection — fully offline.
