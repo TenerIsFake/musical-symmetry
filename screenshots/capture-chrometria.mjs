@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer';
 import { join } from 'path';
 
 const BASE_URL = 'http://localhost:3009';
-const OUTPUT_DIR = '/home/tener/handoff/vault/02_Product/Chrometria/screenshots';
+const OUTPUT_DIR = process.env.SCREENSHOT_OUT ?? './out/chrometria-screenshots';
 
 const PAGES = [
   { path: '/',                 name: 'chrometria-01-dashboard' },

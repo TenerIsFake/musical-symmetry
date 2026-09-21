@@ -10,7 +10,7 @@ import os, sys, time
 import numpy as np
 import tensorflow as tf
 
-MODELS = "/mnt/t/ml/timbria-ear/models"
+MODELS = os.environ.get("EAR_MODELS", "./models")
 EFF_W = 22
 
 

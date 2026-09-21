@@ -21,6 +21,7 @@ services:
       - "3014:3010"
     environment:
       - PORT=3010
+      - NODE_ENV=production
       - SESSION_SECRET=${SESSION_SECRET}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
@@ -53,11 +54,11 @@ services:
       - CF_ACCESS_AUD=${CF_ACCESS_AUD_TIMBRIA:-}
       - REVENUECAT_API_KEY=${REVENUECAT_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      # Remote Coral Edge-TPU ear-infer service on the Windows host (10.0.0.155:9009).
-      # Unset -> StubEarInfer; set -> ResilientEarInfer(Http, Stub fallback). See
-      # services/ear-infer/ + build-ear-infer.ts. Windows LAN IP (not the WSL gateway,
-      # which changes across WSL restarts).
-      - EAR_INFER_URL=${EAR_INFER_URL:-http://10.0.0.155:9009}
+      # Optional remote Coral Edge-TPU ear-infer service. Unset -> StubEarInfer;
+      # set -> ResilientEarInfer(Http, Stub fallback). See services/ear-infer/ +
+      # build-ear-infer.ts. Point it at the host running the TPU; use that host's
+      # stable address rather than a gateway address that moves between restarts.
+      - EAR_INFER_URL=${EAR_INFER_URL:-}
     volumes:
       - timbria-data:/data
     restart: unless-stopped
@@ -72,8 +73,8 @@ services:
         VITE_KIWIX_BASE: ${VITE_KIWIX_BASE:-https://kiwix.tendrid.us}
         VITE_KIWIX_WIKI_ID: ${VITE_KIWIX_WIKI_ID:-53a8f711-f7f9-ec23-08fc-38fcf579ba32}
     container_name: timbria-ui
-    # Public entry point — LAN-exposed so SRV-1's cloudflared can reach it,
-    # then fronted by the timbria.tendrid.us tunnel + Cloudflare Access.
+    # Public entry point — published on the LAN so the tunnel daemon can reach
+    # it, then fronted by the timbria.tendrid.us tunnel + Cloudflare Access.
     ports:
       - "3017:80"
     depends_on:

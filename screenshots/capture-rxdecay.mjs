@@ -1,6 +1,6 @@
 import puppeteer from './node_modules/puppeteer/lib/esm/puppeteer/puppeteer.js';
 
-const OUTPUT_DIR = '/home/tener/handoff/vault/02_Product/RxDecay/screenshots';
+const OUTPUT_DIR = process.env.SCREENSHOT_OUT ?? './out/rxdecay-screenshots';
 
 const pages = [
   { url: 'http://localhost:3011/', file: 'rxdecay-01-tracker.png', label: 'tracker' },

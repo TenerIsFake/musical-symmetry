@@ -5,7 +5,7 @@
 # Usage:
 #   bash fetch_instrument_breadth.sh [MASTERS_DIR]
 #
-# Defaults to /mnt/t/ml/timbria-ear/masters if not specified.
+# Defaults to $EAR_MASTERS, else ./masters, if not specified.
 # Download commands are commented out — verify exact file URLs before running.
 #
 # Dataset sizes:
@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-M="${1:-/mnt/t/ml/timbria-ear/masters}"
+M="${1:-${EAR_MASTERS:-./masters}}"
 
 # ---------------------------------------------------------------------------
 # OpenMIC-2018 (Zenodo record 1432913, CC BY 4.0)

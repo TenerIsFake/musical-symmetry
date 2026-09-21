@@ -5,7 +5,7 @@ dataset.py feature code) actually trains and emits a real int8 .tflite. The
 instrument/mood heads are left unsupervised (we only have synthetic effect labels),
 so only the effects head learns — that's the one head trainable purely from synthesis.
 
-Outputs the int8 tflite to /mnt/t/ml/timbria-ear/models/. edgetpu_compile + on-Coral
+Outputs the int8 tflite to $EAR_MODELS (default ./models). edgetpu_compile + on-Coral
 inference happen in a following shell step.
 """
 import os, sys, time
@@ -21,7 +21,7 @@ from model import build_model, masked_bce
 SR = 16000
 N_MELS = 128
 FRAMES = 64
-MODELS_DIR = "/mnt/t/ml/timbria-ear/models"
+MODELS_DIR = os.environ.get("EAR_MODELS", "./models")
 
 
 def dry_signal(rng, sec=1.1):

@@ -22,3 +22,14 @@ services/ear-infer/training/venv/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Internal development plans and specs. Kept locally, not published: they
+# describe the build machines (hostnames, LAN addresses, drive mappings) and
+# this repo is public. Removed from tracking 2026-09-21.
+docs/superpowers/
+
+# Local tool state and ad-hoc backups — never publish (they capture host
+# addresses and absolute paths). Added 2026-09-21 after `git add -A` staged them.
+.superpowers/
+*.bak-preclaude
+*.bak-*

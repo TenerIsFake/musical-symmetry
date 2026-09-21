@@ -6,7 +6,7 @@ Two questions:
      If yes -> the model learned signal; the 0.5 threshold + summed-BCE imbalance
      is the cause, and the fix is per-head thresholds + pos-weighting (not more data).
 """
-import glob, sys
+import glob, os, sys
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import precision_recall_fscore_support
@@ -15,8 +15,8 @@ sys.path.insert(0, ".")
 from dataset import make_dataset_from_tfrecords
 from model import HEADS  # {"instrument":19,"effects":22,"mood":8}
 
-TFLITE = "/mnt/t/ml/timbria-ear/models/v1-isolated/ear-isolated.tflite"
-EVAL_GLOB = "/home/tener/ear-tfrecords/part-0003*.tfrecord"
+TFLITE = os.environ.get("EAR_TFLITE", "./models/v1-isolated/ear-isolated.tflite")
+EVAL_GLOB = os.environ.get("EAR_TFRECORDS", "./tfrecords/part-0003*.tfrecord")
 
 ds = make_dataset_from_tfrecords(EVAL_GLOB, batch_size=1, shuffle=0)
 

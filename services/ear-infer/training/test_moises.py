@@ -1,6 +1,6 @@
 """TDD tests for Moises stem ingest (moises_instrument mapper + ingest_moises writer).
 
-Brief: /home/tener/musical-symmetry/.git/sdd/moises-brief.md
+Brief: .git/sdd/moises-brief.md (local, not committed)
 
 Tests:
   1. test_moises_map_in_vocab  — mapper vocab coverage + specific mappings + drops

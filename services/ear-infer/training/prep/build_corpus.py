@@ -53,9 +53,9 @@ def main(argv=None):
     parser.add_argument("--workers", type=int, default=16,
                         help="Thread-pool size for parallel ingest reads (default 16; "
                              "set to 1 for serial/debug mode).")
-    parser.add_argument("--moises-root", default="/mnt/t/Moises",
+    parser.add_argument("--moises-root", default=os.environ.get("MOISES_ROOT", "./moises"),
                         help="Root of the Moises separated-stem tree "
-                             "(default: /mnt/t/Moises). "
+                             "(default: $MOISES_ROOT, else ./moises). "
                              "Stage is skipped when this directory does not exist.")
     args = parser.parse_args(argv)
 
@@ -190,7 +190,7 @@ def main(argv=None):
 
     # ------------------------------------------------------------------
     # Stage 2e: Moises separated stems (inst) — clean real_instrument, windowed
-    # Root lives at /mnt/t/Moises (or --moises-root override), NOT under masters.
+    # Root is $MOISES_ROOT / --moises-root, NOT under masters.
     # ------------------------------------------------------------------
     if os.path.isdir(moises_root):
         try:
