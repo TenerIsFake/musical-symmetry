@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "vectors": "tsx src/conformance/generate.ts"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
