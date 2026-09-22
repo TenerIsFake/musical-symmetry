@@ -7,8 +7,13 @@
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "declaration": true,
-    "outDir": "dist",
-    "rootDir": "src"
+    "outDir": "dist"
   },
+  // `rootDir: "src"` used to sit here and contradicted this include list, so
+  // `npm run typecheck` failed outright with TS6059 on every test file. Nothing
+  // emits from this package — there is no build script and `main` points at
+  // src/index.ts — so the setting was dead weight as well as wrong. Removed
+  // 2026-09-21 so CI can typecheck the tests too, which is where the
+  // conformance vectors for the Swift port will live.
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }
