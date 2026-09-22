@@ -4,8 +4,8 @@ import XCTest
 final class PcSetTests: XCTestCase {
     func testMod12MatchesVectors() throws {
         for vector in try Vectors.cases(for: "mod12") {
-            let input = (vector.args[0] as? NSNumber)?.intValue ?? 0
-            let expected = (vector.value as? NSNumber)?.intValue
+            let input = try XCTUnwrap((vector.args[0] as? NSNumber)?.intValue)
+            let expected = try XCTUnwrap((vector.value as? NSNumber)?.intValue)
             XCTAssertEqual(mod12(input), expected, "mod12(\(input))")
         }
     }

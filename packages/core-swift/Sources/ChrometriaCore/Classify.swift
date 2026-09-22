@@ -3,7 +3,14 @@ import Foundation
 /// The full symmetry analysis of a pitch-class set, mirroring
 /// `packages/core/src/classify.ts`'s return shape exactly — the twelve
 /// field names below are compared verbatim against recorded JSON keys.
-public struct SymmetryAnalysis: Equatable {
+///
+/// Explicitly `Sendable`: this package is in Swift 6 language mode, which does
+/// not infer `Sendable` for `public` structs even though every stored property
+/// here already is. Without this, a consuming iOS app cannot write the
+/// idiomatic `Task { classify(pcs) }` pattern to compute off the main actor —
+/// it is a hard compile error, not a style nit — and that off-main-actor use
+/// is exactly how this package is meant to be consumed.
+public struct SymmetryAnalysis: Equatable, Sendable {
     public let pitchClasses: [PitchClass]
     public let transpositionalStabilizer: [PitchClass]
     public let inversionalAxes: [PitchClass]

@@ -11,8 +11,16 @@ final class ClassifyTests: XCTestCase {
         var mismatches: [String] = []
         for vector in cases {
             let input = try XCTUnwrap(vector.intArrayArg(0))
-            guard let expected = vector.value as? [String: Any] else { continue }
+            let expected = try XCTUnwrap(vector.value as? [String: Any],
+                                          "classify(\(input)): recorded value did not decode as an object")
             let actual = classify(input)
+
+            // Guards against a regenerated vector file silently dropping a
+            // field: the loop below only checks keys the RECORDED object
+            // carries, so if the corpus lost a key, this is the only place
+            // that would notice. All 4,095 cases currently carry exactly 12.
+            XCTAssertEqual(expected.count, 12,
+                            "classify(\(input)): expected 12 recorded fields, got \(expected.count)")
 
             // Compare EVERY field, not a chosen few. This test is the only
             // exhaustive coverage several of these functions get — see the note

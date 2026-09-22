@@ -29,7 +29,11 @@ public func distinctTranspositions(_ pcs: [PitchClass]) -> Int {
 /// `packages/core/src/symmetry.ts` exactly, including capitalisation —
 /// these strings are compared verbatim by later ports.
 public func abstractGroup(_ pcs: [PitchClass]) -> String {
-    // Single pitch class (or empty set) has full dihedral symmetry D12
+    // Trap: this tests the RAW array length, not the de-duplicated pitch-class
+    // set, so a raw array with duplicates does NOT take this branch — e.g.
+    // classify([0, 0]).abstractGroup == "Z2", not "D12" as classify([0]) is.
+    // Faithful to symmetry.ts; do not "fix" it. The vector corpus contains no
+    // duplicated input, so nothing in the test suite exercises this edge.
     if pcs.count <= 1 { return "D12" }
     let tOrder = transpositionalStabilizer(pcs).count
     let iCount = inversionalAxes(pcs).count

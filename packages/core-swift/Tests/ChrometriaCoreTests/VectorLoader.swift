@@ -10,14 +10,32 @@ struct Vector {
     let args: [Any]
     let value: Any
 
+    /// Decodes every element as an `NSNumber`, or fails (returns `nil`) as a
+    /// whole. `compactMap` would silently DROP a non-number element instead,
+    /// turning a malformed vector into a shorter array that can happen to
+    /// compare equal to the expected result — a corrupt fixture must fail
+    /// loudly, not pass by accident.
     func intArrayArg(_ index: Int) -> [Int]? {
         guard index < args.count, let raw = args[index] as? [Any] else { return nil }
-        return raw.compactMap { ($0 as? NSNumber)?.intValue }
+        var result: [Int] = []
+        result.reserveCapacity(raw.count)
+        for element in raw {
+            guard let number = (element as? NSNumber)?.intValue else { return nil }
+            result.append(number)
+        }
+        return result
     }
 
+    /// See `intArrayArg` — same all-or-nothing decoding, applied to `value`.
     var intArrayValue: [Int]? {
         guard let raw = value as? [Any] else { return nil }
-        return raw.compactMap { ($0 as? NSNumber)?.intValue }
+        var result: [Int] = []
+        result.reserveCapacity(raw.count)
+        for element in raw {
+            guard let number = (element as? NSNumber)?.intValue else { return nil }
+            result.append(number)
+        }
+        return result
     }
 }
 
