@@ -34,10 +34,25 @@ async function renderDashboard({ native }: { native: boolean }) {
     isNativePlatform: native,
     platform: native ? 'android' : 'web',
   }));
-  // the page and its hooks all read from the same API
+  // The page and its hooks all read from the same API. Each endpoint must be
+  // given its REAL response shape, not a bare {}.
+  //
+  // A previous version returned {} for everything but /api/auth/me and passed
+  // locally three times, then failed in CI: useAchievements does
+  // `setAchievements(data.achievements)` with no guard, so `{}` sets it to
+  // undefined and the render throws on `.length`. Whether that happened at all
+  // depended on which promise resolved before the assertion — a timing-
+  // dependent test, which is worse than no test.
   vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-    if (String(url).includes('/api/auth/me')) {
+    const href = String(url);
+    if (href.includes('/api/auth/me')) {
       return Promise.resolve({ ok: true, json: async () => USER });
+    }
+    if (href.includes('/api/achievements')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ achievements: [], earned: 0, total: 0 }),
+      });
     }
     return Promise.resolve({ ok: true, json: async () => ({}) });
   }));
