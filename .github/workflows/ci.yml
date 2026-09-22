@@ -64,6 +64,43 @@ jobs:
       - name: Test — timbria-ui
         run: npm -w packages/timbria-ui test
 
+  # packages/core-swift is a port of packages/core, held to the same generated
+  # conformance vectors: Vitest replays them against the TypeScript, XCTest
+  # replays the SAME file against the Swift. That is the whole argument for
+  # porting rather than embedding a JS runtime — and it is only a guarantee if
+  # something checks it without being asked. Hence this job.
+  #
+  # A failure here usually means the two implementations have drifted. Read it
+  # that way before assuming the Swift is at fault: if test-vectors.json was
+  # regenerated, the TypeScript's behaviour moved and the Swift must follow.
+  swift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No official setup-swift action from Apple; this is the toolchain the
+      # package was developed against. Pinned deliberately — a silent major
+      # bump could change language-mode defaults, which is exactly what bit
+      # this package during development (Swift 6 mode rejected a non-Sendable
+      # static that earlier toolchains accepted).
+      - name: Install Swift
+        run: |
+          SWIFT=swift-6.4.0-RELEASE
+          curl -fsSL -O "https://download.swift.org/swift-6.4.0-release/ubuntu2404/${SWIFT}/${SWIFT}-ubuntu24.04.tar.gz"
+          tar xzf "${SWIFT}-ubuntu24.04.tar.gz"
+          echo "$PWD/${SWIFT}-ubuntu24.04/usr/bin" >> "$GITHUB_PATH"
+
+      - run: swift --version
+
+      # Note: `swift test` prints a trailing swift-testing summary reading
+      # "Test run with 0 tests in 0 suites passed" — that means no
+      # swift-testing tests exist here, NOT that nothing ran. The real result
+      # is XCTest's "Executed N tests, with M failures", and the step's exit
+      # code, which is what actually gates this job.
+      - name: Test — core-swift (conformance against the generated vectors)
+        working-directory: packages/core-swift
+        run: swift test
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
