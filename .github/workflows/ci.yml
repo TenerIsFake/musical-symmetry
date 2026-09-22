@@ -1,0 +1,69 @@
+# Tests and typechecks on every push and pull request.
+#
+# Added 2026-09-21. Until then nothing enforced the suites on a push — they
+# were run by hand, which works right up until the once it doesn't. It matters
+# more from here: the iOS plan ports `packages/core` to Swift and verifies it
+# against generated conformance vectors, and "the TypeScript and the Swift
+# agree" is only a guarantee if something checks it without being asked.
+#
+# Every workspace listed below was confirmed green before this file was written
+# (258 tests). If a job here is red, the repo is red — do not add `|| true`.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the version used on the build machine.
+          node-version: '22'
+          cache: npm
+
+      # `npm ci` needs the lockfile to match package.json exactly, which is the
+      # point: a drifted lockfile fails here rather than producing a build that
+      # only works on one machine.
+      - run: npm ci
+
+      - name: Test — core (the music-theory engine)
+        run: npm -w packages/core test
+
+      - name: Test — analyzer (API, auth, account deletion)
+        run: npm -w packages/analyzer test
+
+      - name: Test — ui
+        run: npm -w packages/ui test
+
+      - name: Test — timbria-api
+        run: npm -w packages/timbria-api test
+
+      - name: Test — timbria-ui
+        run: npm -w packages/timbria-ui test
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      # packages/timbria-ui has no typecheck script; the rest do.
+      - run: npm -w packages/core run typecheck
+      - run: npm -w packages/analyzer run typecheck
+      - run: npm -w packages/ui run typecheck
+      - run: npm -w packages/timbria-api run typecheck
