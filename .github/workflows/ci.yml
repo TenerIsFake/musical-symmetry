@@ -37,6 +37,18 @@ jobs:
       # only works on one machine.
       - run: npm ci
 
+      # packages/timbria-api shells out to ffmpeg to decode audio clips. It is
+      # not on the runner image, and its absence does not fail loudly: the
+      # decode returns ENOENT, the route answers 400, and two route tests then
+      # report "expected 400 to be 200" — which reads like a routing bug rather
+      # than a missing binary.
+      #
+      # This is why the first run of this workflow went red. It was rehearsed in
+      # a clean CLONE on the build machine, which already had ffmpeg — proving
+      # the checkout was complete, not that the environment was.
+      - name: Install ffmpeg (required by timbria-api's audio tests)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Test — core (the music-theory engine)
         run: npm -w packages/core test
 
