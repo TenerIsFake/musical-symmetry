@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import StripeCheckout from '../components/StripeCheckout';
+import DeleteAccount from '../components/DeleteAccount';
 import { useAchievements } from '../hooks/useAchievements';
 import AchievementBadge from '../components/AchievementBadge';
 import { LEARNING_PATHS } from '../data/learning-paths/index.js';
@@ -365,6 +366,19 @@ function LoggedInView({ user }: { user: UserProfile }) {
             )}
           </div>
         )}
+      </div>
+
+      {/* Account deletion — Apple Guideline 5.1.1(v) requires this to be
+          startable in the app, not by emailing support. The same endpoint
+          serves web, Android and iOS. */}
+      <div className="border-t border-gray-800 pt-6">
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          Danger zone
+        </h3>
+        <DeleteAccount
+          email={user.email}
+          onDeleted={() => { window.location.hash = ''; window.location.reload(); }}
+        />
       </div>
 
       {/* Restart Tour */}

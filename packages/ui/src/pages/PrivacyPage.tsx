@@ -182,7 +182,12 @@ export default function PrivacyPage() {
           </li>
         </ul>
         <p className="text-gray-300 mt-3">
-          To request deletion of your account and associated data, email us at the address below.
+          You can delete your account yourself, at any time, from{' '}
+          <a href="#dashboard" className="text-indigo-300 underline">your dashboard</a> —
+          look for &ldquo;Delete my account&rdquo; under Danger zone. It removes your
+          account and the data listed above from every device, cancels any active
+          subscription, and cannot be undone. If you would rather we did it for you, or
+          you can no longer sign in, email us at the address below.
         </p>
       </section>
 
