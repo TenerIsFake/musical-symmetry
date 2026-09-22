@@ -321,25 +321,20 @@ public func areEqual(_ a: [PitchClass], _ b: [PitchClass]) -> Bool {
     toPcSet(a) == toPcSet(b)
 }
 
-/// Normal form: the rotation that packs the set most tightly to the left.
-/// Port `packages/core/src/pcset.ts` exactly — do not substitute a different
-/// tie-breaking rule, the vectors encode this one.
+/// Normal form.
+///
+/// ⚠️ CORRECTED 2026-09-22. An earlier version of this snippet was WRONG — it
+/// transposed every rotation to start at 0 and tie-broke by scanning backward.
+/// The real engine treats the untransposed sorted set as a candidate that can
+/// win outright (`normalize([2,5,9])` is `[2,5,9]`, not `[0,3,7]`) and tie-breaks
+/// with a forward scan. The wrong version fails thousands of the 4,095 vectors.
+///
+/// Do not transcribe the code below on faith: PORT `packages/core/src/pcset.ts`
+/// and let the vectors arbitrate. The standing rule is that the TypeScript is
+/// authoritative wherever this plan and it disagree — that rule is what caught
+/// this defect, and it is why the rule exists.
 public func normalize(_ pcs: [PitchClass]) -> [PitchClass] {
-    let set = toPcSet(pcs)
-    guard set.count > 1 else { return set }
-    var best: [PitchClass] = []
-    for i in 0..<set.count {
-        let rotated = (0..<set.count).map { mod12(set[($0 + i) % set.count] - set[i]) }
-        if best.isEmpty || isMoreCompact(rotated, than: best) { best = rotated }
-    }
-    return best
-}
-
-private func isMoreCompact(_ a: [PitchClass], than b: [PitchClass]) -> Bool {
-    for i in stride(from: a.count - 1, through: 1, by: -1) where a[i] != b[i] {
-        return a[i] < b[i]
-    }
-    return false
+    // See packages/core/src/pcset.ts — mirror it, including the tie-break.
 }
 ```
 
