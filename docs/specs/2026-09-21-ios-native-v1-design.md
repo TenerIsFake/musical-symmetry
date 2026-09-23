@@ -293,6 +293,12 @@ The Capacitor sequence, in dependency order:
 1. **`ios/` platform scaffold** — `@capacitor/ios` plus `npx cap add ios`, and an `ios` section
    in `capacitor.config.ts` mirroring the Android one. Capacitor 8 uses Swift Package Manager
    rather than CocoaPods, which is why this step runs on Linux at all.
+   ⚠️ **`cap add ios` ships Capacitor's own logo as the app icon** and nothing objects — it
+   builds, installs and reaches TestFlight. Yissian's build 2 went out with the equivalent
+   Expo placeholder. `scripts/make-ios-icon.py` renders the real icon from
+   `public/chrometria-icon.svg` at 1024×1024 with the alpha channel flattened (Apple rejects
+   an icon that has one); `src/__tests__/ios-icon.test.ts` pins both, and pins the placeholder
+   out by hash, because size and colour type alone do not distinguish it.
 2. **The purchase UI** — the screen that calls `getOfferings` / `purchasePackage` /
    `restorePurchases`, gated on `ios_unlock` per §6.1. This is new work on every platform;
    see the verified finding in §6.1 that `revenuecat.ts` has no callers.
