@@ -4,7 +4,7 @@ import { NOTE_NAMES } from '@musical-symmetry/core';
 import { GROUP_DESCRIPTIONS } from '../data/group-descriptions';
 import { forteNumber } from '../data/forte-numbers';
 import { useResearchMode } from '../context/ResearchMode';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import Tooltip from './Tooltip';
 import { generateCitation, type CitationStyle } from '../utils/citations';
 
@@ -52,12 +52,12 @@ function PropertyBadge({ label, value }: { label: ReactNode; value: string | boo
 
 export default function ClassificationPanel({ analysis, chord }: Props) {
   const { researchMode } = useResearchMode();
-  const { user } = useUser();
+  const allow = useOnDeviceGate();
   const [citeOpen, setCiteOpen] = useState(false);
   const [citeStyle, setCiteStyle] = useState<CitationStyle>('apa');
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
 
-  const isResearch = user?.tier === 'research';
+  const isResearch = allow('research');
 
   async function handleCopy(text: string) {
     try {

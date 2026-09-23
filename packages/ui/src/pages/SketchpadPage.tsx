@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { useSketchpad, type MelodyNote, type SavedSketch } from '../hooks/useSketchpad';
 import ExerciseSuggestions from '../components/ExerciseSuggestions';
 import {
@@ -83,6 +84,15 @@ function scheduleNoiseBurst(ctx: AudioContext, startTime: number, duration: numb
 export default function SketchpadPage() {
   const { user } = useUser();
   const tier = getTier(user?.tier ?? 'free');
+  const allow = useOnDeviceGate();
+  // ⚠️ BOTH limits stay keyed to the ACCOUNT tier, and neither may move with the
+  // device unlock. Bar count looks like a local editor cap and is not: `bars` is a
+  // persisted field, and packages/analyzer/src/sketches/routes.ts validates it against
+  // the account tier on POST (:76) and PUT (:123). Widening it here would let a paying
+  // iOS customer build a 40-bar sketch and then be told, on save, "Free tier limit:
+  // max 8 bars. Upgrade for more." — a 403 from the server, rendered verbatim below.
+  // Sketch count is the same: saving is POST /api/sketches.
+  // Only the EXPORT gates (isPro/isResearch, local Blob writers) move with the unlock.
   const barLimit = BAR_LIMITS[tier];
   const sketchLimit = SKETCH_LIMITS[tier];
 
@@ -138,8 +148,8 @@ export default function SketchpadPage() {
   const [chordEditBar, setChordEditBar] = useState<number | null>(null);
   const [chordInput, setChordInput] = useState('');
 
-  const isPro = tier === 'pro' || tier === 'research';
-  const isResearch = tier === 'research';
+  const isPro = allow('pro');
+  const isResearch = allow('research');
 
   // Build a normalized SketchData snapshot for export functions
   function buildSketchData(): SketchData {

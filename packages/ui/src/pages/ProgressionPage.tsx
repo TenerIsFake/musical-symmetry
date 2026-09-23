@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { NOTE_NAMES, generalizedVoiceLeading, applyP, applyL, applyR, CHORD_TEMPLATES, identifyChord } from '@musical-symmetry/core';
 import type { PitchClass, Chord } from '@musical-symmetry/core';
 import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { playChordProgression } from '../utils/audio';
 import { downloadMidi } from '../utils/midi-writer';
 import ProgressionTemplates from '../components/ProgressionTemplates';
@@ -344,9 +345,15 @@ const FREE_CHORD_LIMIT = 4;
 
 export default function ProgressionPage() {
   const { user } = useUser();
+  // `tier` stays the raw account tier: it is handed to <GenreDnaPanel>, whose gates
+  // are all server-backed (POST /api/genre/detect, /api/genre/suggest) and must
+  // never consult the on-device unlock. Only isPro/isResearch below — which gate
+  // purely local behaviour (voice-leading optimize, MIDI file write, chord/template
+  // caps) — are routed through it.
   const tier = user?.tier ?? 'free';
-  const isPro = tier === 'pro' || tier === 'research';
-  const isResearch = tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
+  const isResearch = allow('research');
 
   const [chords, setChords] = useState<ProgressionChord[]>([]);
   const [showPalette, setShowPalette] = useState(false);

@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { classify, NOTE_NAMES, zRelated } from '@musical-symmetry/core';
 import { normalize } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 
 // ─── Forte number lookup (prime-form key → Forte label) ───────────────────────
 // Built from the atlas catalog embedded in forte-numbers.ts + atlas/data.ts.
@@ -117,8 +117,8 @@ function emptyIVConstraints(): IVConstraint[] {
 }
 
 export default function SearchPage() {
-  const { user } = useUser();
-  const isResearch = user?.tier === 'research';
+  const allow = useOnDeviceGate();
+  const isResearch = allow('research');
 
   // ── Filter state ────────────────────────────────────────────────────────────
   const [cardinalityFilter, setCardinalityFilter] = useState<Set<number>>(initCardinalitySet);

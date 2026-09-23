@@ -198,12 +198,15 @@ defensible the moment it hands out the thing that costs money to serve.
 - Grant a **new entitlement, `ios_unlock`** — *not* `pro_access`. Reusing a tier entitlement is
   the leak, because `tierFromEntitlements` (`packages/ui/src/utils/revenuecat.ts:54-60`) maps
   entitlement → `User['tier']`, and tier is what the server's rate limiter reads.
-- **Delete `tierFromEntitlements`, or narrow it to `ios_unlock`.** ⚠️ **Verified 2026-09-23:
-  nothing imports `utils/revenuecat.ts` at all** — `initRevenueCat`, `getOfferings`,
-  `purchasePackage` and `restorePurchases` have zero call sites in the monorepo. The
-  RevenueCat integration is written but not wired, on Android too. Earlier notes calling it
-  "wired" were reading the file, not its callers. **Consequence: the purchase UI does not
-  exist yet on any platform** and is real work, not a carry-over.
+- ~~**Delete `tierFromEntitlements`**~~ — **done 2026-09-23.** It is gone; nothing maps an
+  entitlement onto `User['tier']` any more. The entitlement contract now lives in
+  `packages/ui/src/utils/entitlements.ts`, and the leak is structural rather than
+  documentary: `canUseServer(tier, required)` **takes no unlock parameter**, so no call site
+  can pass one. `canUseOnDevice(tier, required, unlocked)` is the only gate the purchase
+  opens. A test pins the arity, because that absence is the whole guarantee.
+  (Context for why this needed doing at all: nothing imported `utils/revenuecat.ts` — zero
+  call sites on any platform, Android included. Earlier notes calling the RevenueCat
+  integration "wired" were reading the file, not its callers.)
 - **No `max(server tier, entitlement)` rule, and no RevenueCat → `updateTier` webhook.** Both
   existed only to move an iOS purchase into the server tier, which is the thing being
   prevented. A purchase is a device fact; a subscription is an account fact.
@@ -299,9 +302,19 @@ The Capacitor sequence, in dependency order:
    `public/chrometria-icon.svg` at 1024×1024 with the alpha channel flattened (Apple rejects
    an icon that has one); `src/__tests__/ios-icon.test.ts` pins both, and pins the placeholder
    out by hash, because size and colour type alone do not distinguish it.
-2. **The purchase UI** — the screen that calls `getOfferings` / `purchasePackage` /
-   `restorePurchases`, gated on `ios_unlock` per §6.1. This is new work on every platform;
-   see the verified finding in §6.1 that `revenuecat.ts` has no callers.
+2. ~~**The purchase UI**~~ — **done 2026-09-23.** `DeviceUnlockCard` sells and restores;
+   `DeviceUnlockProvider` holds the entitlement once for the whole app; 25 screens consult it
+   through `useOnDeviceGate()`. Three things worth not re-deriving:
+   - **The price is read from the store, never hardcoded.** App Store prices are
+     per-storefront and US$12.99 is one tier of many.
+   - **`unlockForSale` is narrower than `purchasesSupported`.** Android has a live `goog_`
+     key for a product of its own, so it "supports purchases" while not selling *this* one.
+     Without the split, the safety of every gated screen on Android would rest on a
+     RevenueCat dashboard never mapping `ios_unlock` to a Play product.
+   - ⚠️ **A limit with a server-side twin stays on the account tier.** Sketchpad's bar count
+     reads like a local editor cap; `packages/analyzer/src/sketches/routes.ts` revalidates it
+     on save. Widening it client-side grants nothing — it moves the refusal from the editor
+     to a 403, shown to the one user who paid.
 3. **macOS CI** — build, sign, upload to TestFlight. Two documented snags: `capacitor.config.ts`
    needs TypeScript loadable as a devDependency, and the Capacitor template ships no shared
    `xcscheme` (Xcode writes one on first GUI open, which never happens on a headless runner).

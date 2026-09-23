@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import {
   PROGRESSION_TEMPLATES,
   CATEGORY_META,
@@ -132,9 +132,8 @@ export default function ProgressionTemplates({
   sessionLoads,
   onSessionLoad,
 }: ProgressionTemplatesProps) {
-  const { user } = useUser();
-  const tier = user?.tier ?? 'free';
-  const isPro = tier === 'pro' || tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
 
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [keyRoot, setKeyRoot] = useState<number>(0); // 0 = C

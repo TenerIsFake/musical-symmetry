@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { NOTE_NAMES, toCSEG, analyzeContour, contourInversion, contourRetrograde, contourRetrogradeInversion, contourSimilarity, contourClass } from '@musical-symmetry/core';
 import type { ContourAnalysis, CSEG } from '@musical-symmetry/core';
 import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import PianoRollInput from '../components/PianoRollInput';
 import ContourDiagram from '../components/ContourDiagram';
 import MicControls from '../components/MicControls';
@@ -17,7 +18,11 @@ const TIER_LIMITS = { free: 12, pro: 64, research: 256 } as const;
 export default function MelodyPage() {
   const { user } = useUser();
   const tier = (user?.tier ?? 'free') as keyof typeof TIER_LIMITS;
-  const maxNotes = TIER_LIMITS[tier];
+  const allow = useOnDeviceGate();
+  // The unlock grants full on-device capability, so it overrides the account-tier
+  // lookup at the top rung; below that, TIER_LIMITS[tier] is unchanged (including
+  // its pre-existing gap for 'student', which this conversion must not paper over).
+  const maxNotes = allow('research') ? TIER_LIMITS.research : TIER_LIMITS[tier];
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [compareNotes, setCompareNotes] = useState<Note[]>([]);
@@ -68,7 +73,7 @@ export default function MelodyPage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-white">Melody Input</h2>
           <div className="flex gap-2">
-            {tier !== 'free' && (
+            {allow('student') && (
               <button
                 onClick={() => setMicMode(!micMode)}
                 className={`px-3 py-1.5 rounded text-sm font-medium ${
@@ -89,7 +94,7 @@ export default function MelodyPage() {
           </div>
         </div>
 
-        {micMode && tier !== 'free' && (
+        {micMode && allow('student') && (
           <div className="mb-3">
             <MicControls onDetect={handleMicDetect} />
           </div>
@@ -234,7 +239,7 @@ export default function MelodyPage() {
       {!analysis && (
         <div className="text-center py-12">
           <p className="text-gray-400">Place at least 2 notes on the piano roll to see contour analysis.</p>
-          {tier === 'free' && (
+          {!allow('student') && (
             <p className="text-gray-500 text-sm mt-2">
               Free tier: up to {TIER_LIMITS.free} notes. Upgrade for mic input and longer sequences.
             </p>

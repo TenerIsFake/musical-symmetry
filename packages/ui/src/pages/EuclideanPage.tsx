@@ -7,7 +7,7 @@ import {
   isMaximallyEvenRhythm,
 } from '@musical-symmetry/core';
 import type { RhythmPattern, KnownClave } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 
 // ─── Web Audio Helpers ────────────────────────────────────────────────────────
 
@@ -167,8 +167,8 @@ function StepGrid({ pattern, currentStep }: StepGridProps) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function EuclideanPage() {
-  const { user } = useUser();
-  const isPro = user?.tier === 'pro' || user?.tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
 
   const maxN = isPro ? 64 : 16;
 

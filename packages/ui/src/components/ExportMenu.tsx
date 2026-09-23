@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { SymmetryAnalysis, PitchClass } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import {
   toLilypond,
   toLatexTable,
@@ -19,14 +19,14 @@ interface Props {
 type ToastMsg = string | null;
 
 export default function ExportMenu({ analysis, pcs }: Props) {
-  const { user } = useUser();
+  const allow = useOnDeviceGate();
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState<ToastMsg>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const isResearch = user?.tier === 'research';
-  const isPro = user?.tier === 'pro' || user?.tier === 'research';
+  const isResearch = allow('research');
+  const isPro = allow('pro');
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);

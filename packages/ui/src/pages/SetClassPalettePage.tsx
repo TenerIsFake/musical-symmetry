@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { NOTE_NAMES, allForms, toPcSet } from '@musical-symmetry/core';
 import type { PitchClass, PcSetForm } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { playPitchClasses } from '../utils/audio';
 
 // ---------- Mini piano (display-only) ----------
@@ -155,8 +155,7 @@ function PcFilter({
 // ---------- Main Page ----------
 
 export default function SetClassPalettePage() {
-  const { user } = useUser();
-  const tier = user?.tier ?? 'free';
+  const allow = useOnDeviceGate();
 
   const [selected, setSelected] = useState<Set<PitchClass>>(new Set([0, 4, 7] as PitchClass[]));
   const [forms, setForms] = useState<PcSetForm[] | null>(null);
@@ -182,7 +181,7 @@ export default function SetClassPalettePage() {
     const cardinality = pcs.length;
 
     // Tier gate
-    if (tier === 'free' && cardinality > 4) {
+    if (!allow('student') && cardinality > 4) {
       alert('Free tier supports cardinality ≤ 4. Upgrade to Pro for all cardinalities.');
       return;
     }
@@ -214,7 +213,7 @@ export default function SetClassPalettePage() {
   const transpositions = filteredForms ? filteredForms.filter(f => f.type === 'T') : [];
   const inversions = filteredForms ? filteredForms.filter(f => f.type === 'TnI') : [];
 
-  const tierBlocked = tier === 'free' && cardinality > 4;
+  const tierBlocked = !allow('student') && cardinality > 4;
 
   return (
     <div className="space-y-6">
@@ -244,7 +243,7 @@ export default function SetClassPalettePage() {
             Cardinality: <span className="text-white font-semibold">{cardinality}</span>
           </span>
 
-          {tier === 'free' && cardinality > 4 && (
+          {!allow('student') && cardinality > 4 && (
             <span className="text-xs text-amber-400 bg-amber-900/30 px-2 py-0.5 rounded">
               Free tier: upgrade to Pro for cardinality &gt; 4
             </span>
@@ -258,7 +257,7 @@ export default function SetClassPalettePage() {
             Show all forms
           </button>
 
-          {tier === 'research' && forms && (
+          {allow('research') && forms && (
             <button
               onClick={handleExportJson}
               className="px-3 py-1.5 rounded bg-purple-700 hover:bg-purple-600 text-white text-sm font-semibold transition-colors"

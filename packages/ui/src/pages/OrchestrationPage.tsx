@@ -5,6 +5,7 @@ import type { PitchClass, OrchestrationSuggestion, VoicingAssignment } from '@mu
 import { INSTRUMENTS } from '../data/instrument-ranges';
 import type { Instrument } from '../data/instrument-ranges';
 import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { isNativePlatform } from '../utils/platform';
 
 // ─── MIDI / audio utilities ───────────────────────────────────────────────────
@@ -249,7 +250,8 @@ type Family = typeof ALL_FAMILIES[number];
 const FORTE_PATTERN = /^\d{1,2}-z?\d{1,2}$/i;
 
 export default function OrchestrationPage() {
-  const { user, loading } = useUser();
+  const { loading } = useUser();
+  const allow = useOnDeviceGate();
 
   const [selectedPcs, setSelectedPcs] = useState<Set<PitchClass>>(new Set());
   const [forteInput, setForteInput] = useState('');
@@ -260,8 +262,11 @@ export default function OrchestrationPage() {
   const [suggestions, setSuggestions] = useState<OrchestrationSuggestion[]>([]);
   const [ran, setRan] = useState(false);
 
-  // Tier gate — Pro+ required
-  if (!loading && (!user || user.tier === 'free')) {
+  // Tier gate — Pro+ required (this on-device check preserves the existing
+  // "blocks only the free tier" behavior for accounts, matching the prior
+  // `!user || user.tier === 'free'`; the unlock additionally opens it for
+  // an anonymous, device-unlocked purchaser, same as everywhere else).
+  if (!loading && !allow('student')) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center space-y-6">
         <div className="text-5xl">&#127928;</div>

@@ -6,7 +6,7 @@ import {
   NOTE_NAMES,
 } from '@musical-symmetry/core';
 import type { PitchClass, Operation, ChainStep } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { playChordProgression } from '../utils/audio';
 
 // ---- Constants ----
@@ -197,9 +197,8 @@ function ChainEdge({ step }: { step: ChainStep }) {
 // ---- Main component ----
 
 export default function TransformChainPage() {
-  const { user } = useUser();
-  const tier = user?.tier ?? 'free';
-  const isPro = tier === 'pro' || tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
   const maxChain = isPro ? PRO_MAX_CHAIN : FREE_MAX_CHAIN;
 
   // Seed state

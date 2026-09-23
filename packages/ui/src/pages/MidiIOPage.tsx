@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { classify, NOTE_NAMES, quantizeToSet, voiceLeadingDistance } from '@musical-symmetry/core';
 import type { PitchClass } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { useMidiInput } from '../hooks/useMidiInput';
 import { useMidiOutput } from '../hooks/useMidiOutput';
 
@@ -115,9 +115,9 @@ function KeyboardVisualizer({ activeNotes }: KeyboardVisualizerProps) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function MidiIOPage() {
-  const { user } = useUser();
-  const isPro = user?.tier === 'pro' || user?.tier === 'research';
-  const isResearch = user?.tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
+  const isResearch = allow('research');
 
   const midi = useMidiInput();
   const midiOut = useMidiOutput();

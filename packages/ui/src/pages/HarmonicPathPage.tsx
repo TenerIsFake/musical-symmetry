@@ -7,7 +7,7 @@ import {
   identifyChord,
 } from '@musical-symmetry/core';
 import type { Chord, PitchClass } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { playChordProgression } from '../utils/audio';
 
 // ---- Constants ----
@@ -379,10 +379,9 @@ function StepTable({ startChord, path }: { startChord: Chord; path: PathStep[] }
 // ---- Main Page ----
 
 export default function HarmonicPathPage() {
-  const { user } = useUser();
-  const tier = user?.tier ?? 'free';
-  const isPro = tier === 'pro' || tier === 'research';
-  const isResearch = tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
+  const isResearch = allow('research');
   const maxPath = isResearch ? Infinity : isPro ? PRO_MAX_PATH : FREE_MAX_PATH;
 
   // Starting chord

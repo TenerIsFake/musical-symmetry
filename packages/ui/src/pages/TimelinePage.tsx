@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { classify, identifyChord, NOTE_NAMES } from '@musical-symmetry/core';
 import { useUser } from '../context/UserContext';
+import { useOnDeviceGate, useDeviceUnlockState } from '../context/DeviceUnlockContext';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -516,8 +517,13 @@ async function importFromFile(
 export default function TimelinePage() {
   const { user } = useUser();
   const tier = user?.tier ?? 'free';
-  const isPro = tier === 'pro' || tier === 'research';
-  const isResearch = tier === 'research';
+  const allow = useOnDeviceGate();
+  // The badge is styled from the gates above, so it must be labelled from them too:
+  // an unlocked buyer on the free plan gets pro/research capability here, and a badge
+  // reading "free" beside an unlocked limit is the screen contradicting itself.
+  const { unlocked } = useDeviceUnlockState();
+  const isPro = allow('pro');
+  const isResearch = allow('research');
 
   const slotLimit = isResearch ? Infinity : isPro ? PRO_SLOT_LIMIT : FREE_SLOT_LIMIT;
 
@@ -627,7 +633,7 @@ export default function TimelinePage() {
                 : 'bg-gray-700 text-gray-400'
             }`}
           >
-            {tier}
+            {unlocked ? 'unlocked' : tier}
           </span>
         </div>
 

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { NOTE_NAMES, generateCandidates } from '@musical-symmetry/core';
 import type { PitchClass, CompositionCandidate, CompositionConstraints } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 
 // ---------- MIDI utilities ----------
 
@@ -167,12 +167,11 @@ function CandidateCard({ candidate, index }: { candidate: CompositionCandidate; 
 // ---------- Main page ----------
 
 export default function ConstraintComposerPage() {
-  const { user } = useUser();
-  const tier = user?.tier ?? 'free';
+  const allow = useOnDeviceGate();
 
-  const maxLength = tier === 'research' ? 64 : tier === 'pro' ? 32 : 8;
-  const canUseContour = tier !== 'free';
-  const canUseRegister = tier !== 'free';
+  const maxLength = allow('research') ? 64 : allow('pro') ? 32 : 8;
+  const canUseContour = allow('student');
+  const canUseRegister = allow('student');
 
   const [selectedPcs, setSelectedPcs] = useState<Set<PitchClass>>(new Set([0, 4, 7] as PitchClass[]));
   const [length, setLength] = useState(8);
@@ -278,7 +277,7 @@ export default function ConstraintComposerPage() {
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Length: <span className="text-indigo-400 font-mono">{length}</span> notes
-            {tier === 'free' && <span className="text-xs text-gray-500 ml-2">(Free: max 8 — upgrade for more)</span>}
+            {!allow('student') && <span className="text-xs text-gray-500 ml-2">(Free: max 8 — upgrade for more)</span>}
           </label>
           <input
             type="range"

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { createCard, gradeCard, isDue, type Card, type Quality } from '../utils/sm2';
 import { QUIZ_CARDS, getFreeDeck, getFullDeck, type QuizCard } from '../data/quiz-cards';
 import { GROUP_DESCRIPTIONS } from '../data/group-descriptions';
@@ -230,8 +230,10 @@ function GroupBadge({ group }: { group: string }) {
 // ─── Main component ─────────────────────────────────────────────────────────────
 
 export default function QuizPage() {
-  const { user } = useUser();
-  const isPro = user?.tier === 'pro' || user?.tier === 'research';
+  const allow = useOnDeviceGate();
+  // Deck contents, the daily attempt cap and the symmetry/vector quiz types are all
+  // computed locally from @musical-symmetry/core — this file makes no network call.
+  const isPro = allow('pro');
 
   const [quizType, setQuizType] = useState<QuizType>('forte');
   const [reviewState, setReviewState] = useState<ReviewState>(loadState);

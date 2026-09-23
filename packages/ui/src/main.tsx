@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ResearchModeProvider } from './context/ResearchMode';
 import { UserProvider } from './context/UserContext';
+import { DeviceUnlockProvider } from './context/DeviceUnlockContext';
 import { injectWebOnlyScripts } from './utils/webScripts';
 import './index.css';
 
@@ -12,9 +13,11 @@ injectWebOnlyScripts();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <UserProvider>
-      <ResearchModeProvider>
-        <App />
-      </ResearchModeProvider>
+      <DeviceUnlockProvider>
+        <ResearchModeProvider>
+          <App />
+        </ResearchModeProvider>
+      </DeviceUnlockProvider>
     </UserProvider>
   </React.StrictMode>,
 );
