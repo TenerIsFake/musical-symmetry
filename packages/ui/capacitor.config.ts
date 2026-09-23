@@ -7,6 +7,11 @@ const config: CapacitorConfig = {
   android: {
     backgroundColor: '#111827',
   },
+  ios: {
+    backgroundColor: '#111827',
+    // The app is a full-screen canvas; never inset for the keyboard/scroll view.
+    contentInset: 'never',
+  },
   server: {
     androidScheme: 'https',
   },

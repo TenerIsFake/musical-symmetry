@@ -386,7 +386,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold mb-1">Pro</h3>
               <div className="text-3xl font-extrabold mb-1">
-                $9<span className="text-lg font-normal text-gray-400">/mo</span>
+                $7<span className="text-lg font-normal text-gray-400">/mo</span>
               </div>
               <div className="text-sm text-gray-500 mb-6">billed monthly</div>
               <ul className="space-y-3 text-sm text-gray-300 flex-1">
@@ -408,7 +408,7 @@ export default function LandingPage() {
             <div className="rounded-2xl bg-gray-800/50 border border-gray-700/50 p-6 flex flex-col">
               <h3 className="text-xl font-bold mb-1">Research</h3>
               <div className="text-3xl font-extrabold mb-1">
-                $29<span className="text-lg font-normal text-gray-400">/mo</span>
+                $15<span className="text-lg font-normal text-gray-400">/mo</span>
               </div>
               <div className="text-sm text-gray-500 mb-6">billed monthly</div>
               <ul className="space-y-3 text-sm text-gray-300 flex-1">
