@@ -12,7 +12,11 @@ import { resolve } from 'path';
  *
  * Apple's two hard requirements are checked by parsing the PNG's IHDR chunk
  * directly — a 25-byte header read, so this needs no image dependency.
- * Regenerate with `python3 scripts/make-ios-icon.py`.
+ * Regenerate with `python3 public/make-icons.py`, which owns every icon output
+ * from the canonical SVG — the web PNG, the App Store PNG and this slot. It was
+ * already doing the first two when the iOS platform was added; adding a third
+ * target beat adding a second script that renders the same SVG with a different
+ * library and drifts from it silently.
  */
 
 const ICON = resolve(

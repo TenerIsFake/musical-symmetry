@@ -28,10 +28,16 @@ from PIL import Image
 HERE = Path(__file__).resolve().parent
 SVG = HERE / "chrometria-icon.svg"
 
-# (filename, pixels, keep_alpha)
+# (path relative to this file, pixels, keep_alpha)
 TARGETS = [
     ("chrometria-icon-512.png", 512, True),        # web / PWA, as before
     ("chrometria-icon-ios-1024.png", 1024, False),  # App Store: RGB, no alpha
+    # The Capacitor iOS app icon. `npx cap add ios` ships Capacitor's own blue
+    # logo here and nothing objects — it builds, installs, and reaches
+    # TestFlight. Yissian's build 2 went out with the equivalent Expo
+    # placeholder for exactly this reason, so the slot is generated rather than
+    # left to whoever remembers. Same no-alpha rule as the App Store target.
+    ("../ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png", 1024, False),
 ]
 
 
@@ -58,11 +64,17 @@ def main():
     if not SVG.exists():
         sys.exit(f"missing source: {SVG}")
     for name, px, keep_alpha in TARGETS:
+        dest = (HERE / name).resolve()
+        if not dest.parent.is_dir():
+            # The iOS target lives outside public/ and only exists once the
+            # platform has been added. Say so rather than failing on write.
+            print(f"  {name:32} skipped — {dest.parent} does not exist")
+            continue
         img = render(px)
         # Re-encoding a PNG whose pixels are unchanged still rewrites the file
         # (a different encoder produces different bytes), which shows up as a
         # meaningless diff on a committed asset. Skip when the content matches.
-        existing = HERE / name
+        existing = dest
         if existing.exists():
             old = Image.open(existing).convert("RGBA")
             new = img if keep_alpha else flatten(img)
@@ -70,14 +82,14 @@ def main():
                 print(f"  {name:32} unchanged — not rewritten")
                 continue
         if keep_alpha:
-            img.save(HERE / name)
+            img.save(dest)
         else:
-            flatten(img).save(HERE / name)
-        check = Image.open(HERE / name)
+            flatten(img).save(dest)
+        check = Image.open(dest)
         alpha = "A" in check.mode
         assert check.size == (px, px), f"{name}: wrong size {check.size}"
         assert alpha == keep_alpha, f"{name}: alpha={alpha}, expected {keep_alpha}"
-        print(f"  {name:32} {check.size[0]}x{check.size[1]} {check.mode}"
+        print(f"  {dest.name:32} {check.size[0]}x{check.size[1]} {check.mode}"
               f"{'  (no alpha — App Store safe)' if not keep_alpha else ''}")
 
 
