@@ -6,7 +6,8 @@ import AchievementBadge from '../components/AchievementBadge';
 import { LEARNING_PATHS } from '../data/learning-paths/index.js';
 import { useLearningProgress } from '../hooks/useLearningProgress.js';
 import { API_BASE } from '../utils/apiBase';
-import { isNativePlatform } from '../utils/platform';
+import { platform } from '../utils/platform';
+import DeviceUnlockCard from '../components/DeviceUnlockCard';
 
 function DailyChallengeTeaser() {
   const [submitted, setSubmitted] = useState<boolean | null>(null);
@@ -341,13 +342,19 @@ function LoggedInView({ user }: { user: UserProfile }) {
             Current plan: <TierBadge tier={user.tier} />
           </span>
         </div>
-        {isNativePlatform ? (
+        {platform === 'android' ? (
           // Google Play policy: the Android app must not offer or link to an
           // external purchase flow for digital goods. Paid tiers are web-only;
           // show a neutral, non-tappable note instead of any purchase UI.
           <p className="mt-4 text-sm text-gray-400">
             Subscription management is available on the web at symmetry.tendrid.us.
           </p>
+        ) : platform === 'ios' ? (
+          // iOS cannot share Android's branch. Apple 3.1.1 forbids pointing at an
+          // external purchase location, so the note above is wrong here — and Apple
+          // requires that anything sold is sold through IAP, which is what the card
+          // does. It renders nothing at all until there is a real product behind it.
+          <DeviceUnlockCard />
         ) : (
           <div className="mt-4 flex gap-3">
             {user.tier === 'free' && (

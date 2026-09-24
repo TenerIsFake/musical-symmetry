@@ -1,7 +1,9 @@
 # Chrometria iOS — native v1 design
 
-**Status:** approved decisions, ready for an implementation plan · **Date:** 2026-09-21
+**Status:** partly superseded — see §0 · **Date:** 2026-09-21, revised 2026-09-23
 **Supersedes:** `ios-app-spec.md`, which was never built and described a different scope.
+**Superseded in part by:** the Capacitor-wrap decision of 2026-09-23. §0, §6, §7, §9 and §10
+carry revision banners; §1, §3, §5 and §8 stand as written.
 
 This records decisions that are settled, so they are not re-argued later. Where a decision
 rests on something unverified, it says so.
@@ -10,15 +12,26 @@ rests on something unverified, it says so.
 
 ## 0. Decisions taken
 
-| # | Decision | By |
-|---|---|---|
-| 1 | Native iOS app, **not** a WebView wrapper | Tener, 2026-09-21 |
-| 2 | `packages/core` is **ported to Swift**, verified against generated vectors | this design |
-| 3 | **One-time non-consumable, US$12.99.** No subscription on iOS | Tener, 2026-09-21 |
-| 4 | Account deletion ships **first**, before any Swift | this design |
-| 5 | v1 is ~11 screens, offline-first | this design |
-| 6 | Magic-link auth via a one-time **code**, not a universal link | this design |
-| 7 | **No bidirectional sync** in v1 | this design |
+> ⚠️ **Revised 2026-09-23. Rows 1, 2, 5 and 6 are SUPERSEDED.** Tener chose a **Capacitor
+> wrap** over a native rewrite, because everything after the core port needs Xcode and
+> therefore macOS, which he does not have — a constraint that surfaced only when this plan
+> forced the question. A wrap is developed on Linux with macOS as a CI build step.
+> See `ios-pipeline/from-code/2026-09-23-DECISION-chrometria-capacitor-wrap.md`.
+>
+> The sections below are kept because most of the analysis survives the change — the Apple
+> guidelines, the offline boundary, the account-deletion design and the auth reasoning apply
+> to either approach. Read §2 (the Swift port) as **done and still useful, but no longer on
+> the critical path**: `packages/core-swift` is merged and a wrap simply does not use it.
+
+| # | Decision | By | Status |
+|---|---|---|---|
+| 1 | ~~Native iOS app~~ → **Capacitor wrap** | Tener, 2026-09-23 | supersedes the 09-21 decision |
+| 2 | ~~`packages/core` ported to Swift~~ | — | done (`4c64ae0`), unused by a wrap |
+| 3 | **One-time non-consumable, US$12.99.** No subscription on iOS | Tener, 2026-09-21 | stands — but see §6, what it unlocks changed |
+| 4 | Account deletion ships **first** | this design | ✅ done; a wrap inherits it inside the webview |
+| 5 | ~~v1 is ~11 native screens~~ | — | a wrap ships the existing web app |
+| 6 | ~~Magic-link via a one-time code~~ | — | a wrap keeps the existing web auth flow |
+| 7 | **No bidirectional sync** in v1 | this design | stands |
 
 ## 1. What is already true (verified 2026-09-21, do not re-derive)
 
@@ -150,8 +163,13 @@ unverified, and building it properly makes the question moot.
 
 ## 6. Purchases — Guideline 3.1.1
 
-**One-time non-consumable, US$12.99**, granting the existing `pro_access` entitlement via
-RevenueCat's **Swift** SDK (the Capacitor plugin does not carry over).
+> **Revised 2026-09-23** for the Capacitor decision *and* to close a pricing leak the original
+> text created. Read the revision notes — the price is unchanged, what it buys is not.
+
+**One-time non-consumable, US$12.99**, bought through
+**`@revenuecat/purchases-capacitor`** (already a dependency at `^13.1.0`). The original text
+said the Swift SDK, "because the Capacitor plugin does not carry over" — that was true of a
+native rewrite and is now backwards: the plugin is exactly what carries over.
 
 **Rationale, recorded because it will be questioned:** the Stripe tiers are effectively API
 rate limits (`middleware.ts` `TIER_LIMITS`) — they fund server cost, which a subscription
@@ -159,18 +177,64 @@ legitimately covers. The iOS app's value is on-device computation at zero margin
 recurring charge has nothing to recur against. The market agrees: four of six comparable apps
 are one-time, at $4.99–$17.99.
 
+### 6.1 What $12.99 buys — on-device capability, never server quota
+
+⚠️ **This supersedes "grants the existing `pro_access` entitlement" and
+"effective tier = max(server tier, RevenueCat entitlement)".** Those two lines together
+priced Pro's *server* quota at $12.99 once against $7/month on the web — 1,000 classify calls
+a day, forever, for less than two months of the subscription, and the gap widened when
+Research moved $8 → $15 on 2026-09-23. They also contradict the rationale directly above
+them: a one-time price is defensible *because* the value is on-device, and it stops being
+defensible the moment it hands out the thing that costs money to serve.
+
+| | unlocked by the $12.99 purchase | stays on a subscription |
+|---|---|---|
+| runs where | the device | the server |
+| marginal cost | zero | per request |
+| features | ads off; classifier, atlas, progression/PLR, interval cycles, search, quiz, ear training, rhythm + Euclidean, tuning, transform, live pitch detection, MIDI, and the visualisations | API quota above the free tier, bulk operations, corpus, link analysis, digests, PDF reports, OG/share cards, classroom and rooms, server-side file analysis |
+
+**The purchase and the account tier are separate axes and must stay separate in code:**
+
+- Grant a **new entitlement, `ios_unlock`** — *not* `pro_access`. Reusing a tier entitlement is
+  the leak, because `tierFromEntitlements` (`packages/ui/src/utils/revenuecat.ts:54-60`) maps
+  entitlement → `User['tier']`, and tier is what the server's rate limiter reads.
+- ~~**Delete `tierFromEntitlements`**~~ — **done 2026-09-23.** It is gone; nothing maps an
+  entitlement onto `User['tier']` any more. The entitlement contract now lives in
+  `packages/ui/src/utils/entitlements.ts`, and the leak is structural rather than
+  documentary: `canUseServer(tier, required)` **takes no unlock parameter**, so no call site
+  can pass one. `canUseOnDevice(tier, required, unlocked)` is the only gate the purchase
+  opens. A test pins the arity, because that absence is the whole guarantee.
+  (Context for why this needed doing at all: nothing imported `utils/revenuecat.ts` — zero
+  call sites on any platform, Android included. Earlier notes calling the RevenueCat
+  integration "wired" were reading the file, not its callers.)
+- **No `max(server tier, entitlement)` rule, and no RevenueCat → `updateTier` webhook.** Both
+  existed only to move an iOS purchase into the server tier, which is the thing being
+  prevented. A purchase is a device fact; a subscription is an account fact.
+- A signed-in account keeps whatever server tier it already pays for, on iOS as on the web.
+  The two stack; neither substitutes for the other.
 - **Do not sell the Research tier in-app**, and include no external purchase links (3.1.1).
   Honour `research` if the signed-in account already has it.
-- **Effective tier = max(server tier, RevenueCat entitlement).**
-- Add a RevenueCat webhook → `updateTier` so a purchase on iOS is visible on the web.
 - There are zero existing subscribers, so there is **no migration problem**.
 - The non-consumable must be created in the ASC web UI — the API returns 403 for these.
 
-⚠️ **Independent of iOS: the web prices contradict each other.** `LandingPage.tsx:389,411`
-advertises $9/mo and $29/mo; `DashboardPage.tsx:354-355` charges $7/mo and $15/mo. The site
-advertises prices it does not charge. Fix that on its own merits.
+**The honest trade this makes:** an iOS-only user who never signs in pays once and never
+again, and the app is genuinely fully featured for them, because everything they touch runs on
+their phone. A user who wants the server — classrooms, bulk, corpus, the API — subscribes, and
+pays iOS's 15–30% on nothing. That is the split the price was chosen on.
+
+**Restore purchases is mandatory** (3.1.1 requires it for non-consumables) and is
+`restorePurchases()` above, which currently nothing calls.
+
+⚠️ **Independent of iOS: the web prices contradicted each other.** `LandingPage.tsx` advertised
+$9/mo and $29/mo while `DashboardPage.tsx` charged $7/mo and $15/mo. **Settled 2026-09-23:**
+Research $15, Pro $7, Student $3 everywhere; the landing page was the one that was wrong.
 
 ## 7. Auth
+
+> **Superseded 2026-09-23 by the Capacitor decision.** A wrap runs the existing web auth
+> inside the webview and needs none of this: no JSON verify variant, no six-digit code, no
+> Keychain. Kept because the reasoning is the right answer *if* a native client is ever
+> built, and because the 4.8 warning below applies to the wrap unchanged.
 
 Magic-link email (Resend) stays, and **Sign in with Apple is not required**: Guideline 4.8
 applies to third-party and social logins and exempts apps using only their own account system.
@@ -204,6 +268,15 @@ that way.
 
 ## 9. Risk
 
+> **Superseded 2026-09-23 by the Capacitor decision.** The D3 risk below was a *porting* risk:
+> it existed because native screens would have had to reimplement the visualisations. A wrap
+> ships the same D3 that runs on the web today, so that risk goes to zero — and it is replaced
+> by the one the native decision was originally taken to avoid: **Guideline 4.2 minimum
+> functionality**. The mitigating fact is in §1 — 26 of 42 pages import
+> `@musical-symmetry/core` and ~21 make no API call, so the app is not a thin client dressed
+> as an app. The new first-week risk is the toolchain: whether `npx cap add ios` and a
+> headless macOS CI build actually produce a signed `.ipa` without a Mac to debug on.
+
 **The biggest risk is not the mathematics** — that ports in days against vectors. It is the
 **D3 visualisations**: `VoiceLeadingGraphPage` is 852 lines, plus Tonnetz, orbit and the
 timeline chart. That is where the bulk of the effort goes, and where a reviewer forms their
@@ -213,15 +286,46 @@ not month three.
 
 ## 10. Sequence
 
-1. **Deletion endpoint + web/Android UI** — no Swift, unblocks three platforms, fixes the
-   `sketches` FK bug, writes the missing Stripe cancellation.
-2. **Vector generator + characterization vectors for every core module** — no Swift; valuable
-   to the web app on its own.
-3. **Swift port of core**, green against the vectors.
-4. **Classifier + Atlas + Live Detection** — the thinnest slice that is recognisably the
-   product, and it exercises the port, the audio stack and the visualisations.
-5. **Code-based auth + the $12.99 unlock.**
-6. **TestFlight.** Everything else is v1.1.
+> **Revised 2026-09-23.** Steps 1–3 of the original sequence are **done**: the deletion
+> endpoint shipped (`eec2a07`, `cbb7140`), the vector generator and characterization vectors
+> landed, and the Swift core port merged (`4c64ae0`) with CI enforcing TS/Swift equivalence.
+> The remaining steps assumed native screens and no longer apply.
 
-Steps 1 and 2 need no Swift, no App Store record and no decisions. They are the right place
-to start, and they retain their value even if the iOS app is never finished.
+The Capacitor sequence, in dependency order:
+
+1. **`ios/` platform scaffold** — `@capacitor/ios` plus `npx cap add ios`, and an `ios` section
+   in `capacitor.config.ts` mirroring the Android one. Capacitor 8 uses Swift Package Manager
+   rather than CocoaPods, which is why this step runs on Linux at all.
+   ⚠️ **`cap add ios` ships Capacitor's own logo as the app icon** and nothing objects — it
+   builds, installs and reaches TestFlight. Yissian's build 2 went out with the equivalent
+   Expo placeholder. `scripts/make-ios-icon.py` renders the real icon from
+   `public/chrometria-icon.svg` at 1024×1024 with the alpha channel flattened (Apple rejects
+   an icon that has one); `src/__tests__/ios-icon.test.ts` pins both, and pins the placeholder
+   out by hash, because size and colour type alone do not distinguish it.
+2. ~~**The purchase UI**~~ — **done 2026-09-23.** `DeviceUnlockCard` sells and restores;
+   `DeviceUnlockProvider` holds the entitlement once for the whole app; 25 screens consult it
+   through `useOnDeviceGate()`. Three things worth not re-deriving:
+   - **The price is read from the store, never hardcoded.** App Store prices are
+     per-storefront and US$12.99 is one tier of many.
+   - **`unlockForSale` is narrower than `purchasesSupported`.** Android has a live `goog_`
+     key for a product of its own, so it "supports purchases" while not selling *this* one.
+     Without the split, the safety of every gated screen on Android would rest on a
+     RevenueCat dashboard never mapping `ios_unlock` to a Play product.
+   - ⚠️ **A limit with a server-side twin stays on the account tier.** Sketchpad's bar count
+     reads like a local editor cap; `packages/analyzer/src/sketches/routes.ts` revalidates it
+     on save. Widening it client-side grants nothing — it moves the refusal from the editor
+     to a 403, shown to the one user who paid.
+3. **macOS CI** — build, sign, upload to TestFlight. Two documented snags: `capacitor.config.ts`
+   needs TypeScript loadable as a devDependency, and the Capacitor template ships no shared
+   `xcscheme` (Xcode writes one on first GUI open, which never happens on a headless runner).
+4. **ASC record, the $12.99 non-consumable, and the `appl_` RevenueCat key** — Tener/Cowork,
+   web consoles only. ⚠️ **Order matters and the trap is real:** a key with no product behind
+   it is a Guideline 2.1 non-functional purchase, a product with no key is an invisible
+   upsell. Wire the product into the offering's *first* package, then set the iOS key **last**,
+   in the same change that ships it. Yissian hit exactly this.
+5. **TestFlight**, then the sandbox purchase on a real device — the only thing that proves the
+   purchase path. `VALID` on ASC proves it only on paper.
+
+Steps 1–3 need nothing from Apple and no decisions. Step 4 is the gate, and it should not be
+requested before step 1 has produced something that compiles — a request filed early becomes a
+stale request.

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { useMidiInput } from './useMidiInput';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 
 const FREE_TIER_LIMIT_SECONDS = 5 * 60; // 5 minutes
 const DEBOUNCE_MS = 80;
@@ -19,7 +19,7 @@ export interface LiveMidiState {
 }
 
 export function useLiveMidi(): LiveMidiState {
-  const { user } = useUser();
+  const allow = useOnDeviceGate();
   const midi = useMidiInput();
 
   const [isLive, setIsLive] = useState(false);
@@ -71,8 +71,7 @@ export function useLiveMidi(): LiveMidiState {
       return;
     }
 
-    const isFree = !user || user.tier === 'free';
-    if (!isFree) return; // unlimited for pro/research
+    if (allow('student')) return; // unlimited for student and up, or the on-device unlock
 
     sessionStartRef.current = Date.now();
     setSessionElapsed(0);
@@ -94,7 +93,7 @@ export function useLiveMidi(): LiveMidiState {
         sessionIntervalRef.current = null;
       }
     };
-  }, [isLive, user]);
+  }, [isLive, allow]);
 
   const toggleLive = useCallback(() => {
     setIsLive(prev => {

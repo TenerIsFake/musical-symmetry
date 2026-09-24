@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES, voiceLeadingDistance } from '@musical-symmetry/core';
 import { playPitchClasses } from '../utils/audio';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -256,8 +256,8 @@ function circleOfFifthsLayout(nodes: GraphNode[]): GraphNode[] {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function VoiceLeadingGraphPage() {
-  const { user } = useUser();
-  const isPro = user?.tier === 'pro' || user?.tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
 
   // Controls
   const [includeSevenths, setIncludeSevenths] = useState(false);

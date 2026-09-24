@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { playPitchClasses } from '../utils/audio';
 
 // ─── Set class data ────────────────────────────────────────────────────────────
@@ -118,8 +118,8 @@ const INITIAL_SCORE: ScoreState = { correct: 0, incorrect: 0, streak: 0, bestStr
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function EarTrainingPage() {
-  const { user } = useUser();
-  const isPro = user?.tier === 'pro' || user?.tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
 
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [playMode, setPlayMode] = useState<PlayMode>('chord');

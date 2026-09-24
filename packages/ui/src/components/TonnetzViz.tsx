@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import type { Chord, PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES, applyP, applyL, applyR } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 
 interface Props {
   chord: Chord | null;
@@ -75,9 +75,9 @@ const PLR_COLORS = { P: '#f472b6', L: '#60a5fa', R: '#fb923c' };
 
 export default function TonnetzViz({ chord, targetChord, onChordChange }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { user } = useUser();
-  const isPro = user?.tier === 'pro' || user?.tier === 'research';
-  const isResearch = user?.tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
+  const isResearch = allow('research');
 
   // Animated transition state: prev pcs fading out, next pcs fading in
   const [displayChord, setDisplayChord] = useState<Chord | null>(chord);

@@ -23,6 +23,7 @@
     "tone": "^15.1.22"
   },
   "devDependencies": {
+    "@capacitor/ios": "^8.5.2",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^14.2.0",
     "@types/d3": "^7.4.3",

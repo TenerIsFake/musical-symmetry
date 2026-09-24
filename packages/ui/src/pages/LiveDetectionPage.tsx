@@ -3,7 +3,7 @@ import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES } from '@musical-symmetry/core';
 import { useClassifier } from '../hooks/useClassifier';
 import { useChord } from '../hooks/useChord';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import MicControls from '../components/MicControls';
 import ClassificationPanel from '../components/ClassificationPanel';
 
@@ -32,8 +32,7 @@ const NOTE_COLORS: string[] = [
 ];
 
 export default function LiveDetectionPage() {
-  const { user } = useUser();
-  const tier = user?.tier ?? 'free';
+  const allow = useOnDeviceGate();
 
   const [livePCs, setLivePCs] = useState<PitchClass[]>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -79,12 +78,12 @@ export default function LiveDetectionPage() {
       }
     }, 200);
 
-    if (tier === 'free') {
+    if (!allow('student')) {
       recordTimerRef.current = setTimeout(() => {
         stopRecordingInternal();
       }, FREE_RECORD_LIMIT_MS);
     }
-  }, [tier]);
+  }, [allow]);
 
   const stopRecordingInternal = useCallback(() => {
     if (recordTimerRef.current) {
@@ -167,7 +166,7 @@ export default function LiveDetectionPage() {
               <span className="flex items-center gap-1.5 text-red-400 text-sm font-mono">
                 <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
                 REC {formatTime(elapsedMs)}
-                {tier === 'free' && (
+                {!allow('student') && (
                   <span className="text-xs text-gray-500">/ {formatTime(FREE_RECORD_LIMIT_MS)}</span>
                 )}
               </span>
@@ -185,10 +184,10 @@ export default function LiveDetectionPage() {
             >
               <span className="w-2 h-2 rounded-full bg-red-300" />
               Record
-              {tier === 'free' && <span className="text-xs text-red-300">(15s)</span>}
+              {!allow('student') && <span className="text-xs text-red-300">(15s)</span>}
             </button>
           )}
-          {tier === 'research' && recordedSession && (
+          {allow('research') && recordedSession && (
             <button
               onClick={exportSession}
               className="px-3 py-1.5 rounded bg-purple-700 hover:bg-purple-600 text-sm font-medium text-white transition-colors"
@@ -346,12 +345,12 @@ export default function LiveDetectionPage() {
               <div className="text-xs text-gray-500">Symmetry Group</div>
             </div>
           </div>
-          {tier === 'free' && (
+          {!allow('student') && (
             <p className="mt-3 text-xs text-gray-500 text-center">
               Free tier: 15-second sessions. Upgrade to Pro for unlimited recording.
             </p>
           )}
-          {tier !== 'research' && (
+          {!allow('research') && (
             <p className="mt-1 text-xs text-gray-500 text-center">
               Research tier required to export session data.
             </p>

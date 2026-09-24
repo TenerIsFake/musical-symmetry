@@ -12,7 +12,7 @@ import {
   nearestTwelveTET,
 } from '@musical-symmetry/core';
 import type { TuningSystem } from '@musical-symmetry/core';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 
 // ─── Tier-gated tuning options ────────────────────────────────────────────────
 
@@ -366,10 +366,9 @@ function makeCustomTuning(ct: CustomTuning): TuningSystem {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function TuningPage() {
-  const { user } = useUser();
-  const tier = user?.tier ?? 'free';
-  const isPro = tier === 'pro' || tier === 'research';
-  const isResearch = tier === 'research';
+  const allow = useOnDeviceGate();
+  const isPro = allow('pro');
+  const isResearch = allow('research');
 
   const availableTunings = isPro ? PRO_TUNINGS : FREE_TUNINGS;
 

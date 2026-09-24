@@ -6,6 +6,7 @@ import { useChord } from '../hooks/useChord';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useLiveMidi } from '../hooks/useLiveMidi';
 import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import PianoKeyboard from '../components/PianoKeyboard';
 import TextInput from '../components/TextInput';
 import Presets from '../components/Presets';
@@ -118,7 +119,8 @@ export default function ClassifierPage() {
   const prevAnalysisRef = useRef<string | null>(null);
   const { user } = useUser();
   const liveMidi = useLiveMidi();
-  const isFree = !user || user.tier === 'free';
+  const allow = useOnDeviceGate();
+  const isFree = !allow('student');
 
   const handleNewRoom = useCallback(async () => {
     if (!user) return;

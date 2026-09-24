@@ -4,6 +4,7 @@ import { classify, NOTE_NAMES } from '@musical-symmetry/core';
 import { forteNumber } from '../data/forte-numbers';
 import { downloadAsFile } from '../utils/export-academic';
 import { useUser } from '../context/UserContext';
+import { useOnDeviceGate, useDeviceUnlockState } from '../context/DeviceUnlockContext';
 import { parseMusicXML } from '../utils/musicxml-parser';
 import type { MusicXMLMeasure } from '../utils/musicxml-parser';
 
@@ -316,8 +317,13 @@ function GroupLegend({ measures }: { measures: AnnotatedMeasure[] }) {
 export default function ScoreAnnotationPage() {
   const { user } = useUser();
   const tier = user?.tier ?? 'free';
-  const isPro = tier === 'pro' || tier === 'research';
-  const isResearch = tier === 'research';
+  const allow = useOnDeviceGate();
+  // The badge is styled from the gates above, so it must be labelled from them too:
+  // an unlocked buyer on the free plan gets pro/research capability here, and a badge
+  // reading "free" beside an unlocked limit is the screen contradicting itself.
+  const { unlocked } = useDeviceUnlockState();
+  const isPro = allow('pro');
+  const isResearch = allow('research');
 
   const measureLimit = isResearch ? Infinity : isPro ? PRO_MEASURE_LIMIT : FREE_MEASURE_LIMIT;
 
@@ -471,7 +477,7 @@ export default function ScoreAnnotationPage() {
                   : 'bg-gray-700 text-gray-400',
               ].join(' ')}
             >
-              {tier}
+              {unlocked ? 'unlocked' : tier}
             </span>
 
             {/* CSV download — Pro+ */}

@@ -3,7 +3,7 @@ import { toCSEG, contourSimilarity } from '@musical-symmetry/core';
 import type { CSEG } from '@musical-symmetry/core';
 import ContourDiagram from '../components/ContourDiagram';
 import { useMicPitchDetect } from '../hooks/useMicPitchDetect';
-import { useUser } from '../context/UserContext';
+import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { playPitchClasses } from '../utils/audio';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -216,8 +216,7 @@ function LeaderboardPanel({ difficulty }: { difficulty: Difficulty }) {
 // ─── Main component ─────────────────────────────────────────────────────────────
 
 export default function PracticePage() {
-  const { user } = useUser();
-  const tier = user?.tier ?? 'free';
+  const allow = useOnDeviceGate();
 
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [phase, setPhase] = useState<Phase>('setup');
@@ -240,8 +239,8 @@ export default function PracticePage() {
 
   // ─── Gate checks ──────────────────────────────────────────────────────────────
 
-  const isFreeBlocked = tier === 'free' && difficulty !== 'easy';
-  const isDailyLimitReached = tier === 'free' && todayAttempts >= FREE_DAILY_LIMIT;
+  const isFreeBlocked = !allow('student') && difficulty !== 'easy';
+  const isDailyLimitReached = !allow('student') && todayAttempts >= FREE_DAILY_LIMIT;
 
   // ─── Target generation ────────────────────────────────────────────────────────
 
@@ -373,7 +372,7 @@ export default function PracticePage() {
         <h2 className="text-lg font-semibold mb-3 text-gray-100">Difficulty</h2>
         <div className="flex gap-3 flex-wrap">
           {(['easy', 'medium', 'hard'] as Difficulty[]).map(d => {
-            const locked = tier === 'free' && d !== 'easy';
+            const locked = !allow('student') && d !== 'easy';
             return (
               <button
                 key={d}
@@ -397,7 +396,7 @@ export default function PracticePage() {
         </div>
         <p className="text-gray-500 text-xs mt-2">{DIFFICULTY_CONFIG[difficulty].description}</p>
 
-        {tier === 'free' && (
+        {!allow('student') && (
           <p className="text-gray-400 text-xs mt-2">
             Free tier: Easy mode only, {FREE_DAILY_LIMIT} attempts per day
             ({Math.max(0, FREE_DAILY_LIMIT - todayAttempts)} remaining today).
@@ -467,7 +466,7 @@ export default function PracticePage() {
       <div className="bg-gray-800 rounded-xl p-5">
         <h2 className="text-lg font-semibold mb-3 text-gray-100">Your Attempt</h2>
 
-        {isDailyLimitReached && tier === 'free' ? (
+        {isDailyLimitReached && !allow('student') ? (
           <div className="bg-yellow-900/40 border border-yellow-700 rounded-lg p-4 text-sm text-yellow-300">
             You've used all {FREE_DAILY_LIMIT} free attempts for today.{' '}
             <a href="#dashboard" className="underline text-yellow-200 hover:text-white">Upgrade to Pro</a> for unlimited practice.
@@ -563,14 +562,14 @@ export default function PracticePage() {
             <div className="flex gap-3 flex-wrap">
               <button
                 onClick={handleTryAgain}
-                disabled={isDailyLimitReached && tier === 'free'}
+                disabled={isDailyLimitReached && !allow('student')}
                 className="px-4 py-2 bg-gray-700 text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors disabled:opacity-50"
               >
                 Try Again
               </button>
               <button
                 onClick={handleNextChallenge}
-                disabled={isDailyLimitReached && tier === 'free'}
+                disabled={isDailyLimitReached && !allow('student')}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-50"
               >
                 Next Challenge
@@ -596,7 +595,7 @@ export default function PracticePage() {
             {(['easy', 'medium', 'hard'] as Difficulty[]).map(d => (
               <div key={d}>
                 <h3 className="text-sm font-medium text-gray-400 mb-2 capitalize">{d}</h3>
-                {tier === 'free' && d !== 'easy' ? (
+                {!allow('student') && d !== 'easy' ? (
                   <p className="text-gray-600 text-sm italic">Pro feature</p>
                 ) : (
                   <LeaderboardPanel difficulty={d} />
