@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { useOnDeviceGate } from '../context/DeviceUnlockContext';
-import { useSketchpad, type MelodyNote, type SavedSketch } from '../hooks/useSketchpad';
+import { useSketchpad, sketchSaveBlocked, type MelodyNote, type SavedSketch } from '../hooks/useSketchpad';
 import ExerciseSuggestions from '../components/ExerciseSuggestions';
 import {
   exportSketchAsMidi,
@@ -146,6 +146,15 @@ export default function SketchpadPage() {
   const [showExport, setShowExport] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [chordEditBar, setChordEditBar] = useState<number | null>(null);
+
+  // The page has always DISPLAYED the sketch limit; the Save button never read
+  // it, so hitting the cap produced a 403 after a round trip rather than a
+  // disabled button. Note this blocks NEW sketches only — see sketchSaveBlocked.
+  const atSketchCapacity = sketchSaveBlocked({
+    isNew: !currentSketch.id,
+    savedCount: sketches.length,
+    limit: sketchLimit,
+  });
   const [chordInput, setChordInput] = useState('');
 
   const isPro = allow('pro');
@@ -583,7 +592,7 @@ export default function SketchpadPage() {
         />
         <button
           onClick={handleSave}
-          disabled={saveStatus === 'saving' || !user}
+          disabled={saveStatus === 'saving' || !user || atSketchCapacity}
           className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
             saveStatus === 'saved'
               ? 'bg-green-700 text-white'
@@ -592,8 +601,14 @@ export default function SketchpadPage() {
               : saveStatus === 'saving'
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'bg-emerald-700 hover:bg-emerald-600 text-white'
-          } ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}
-          title={!user ? 'Log in to save' : undefined}
+          } ${!user || atSketchCapacity ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={
+            !user
+              ? 'Log in to save'
+              : atSketchCapacity
+              ? `You have ${sketchLimit} saved sketches, the maximum for your plan. Delete one, or open an existing sketch to keep editing it.`
+              : undefined
+          }
         >
           {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Saved' : 'Save'}
         </button>

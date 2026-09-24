@@ -23,17 +23,24 @@
 # Cowork's queue for weeks after the record already existed. The remaining
 # steps are tracked in the vault at ios-pipeline/blockers.md.
 #
-# COST. macOS runners are the expensive ones — roughly 10x Linux per minute on
-# metered accounts, at a published $0.08/min, so a 10-minute build is about
-# $0.80. GitHub documents standard runners as free and unmetered on public
-# repositories, and this repo is public, but the wording around which macOS
-# images count as "standard" is not unambiguous. ⚠️ Check the billing page
-# after the first run of this workflow and record the answer here. Either way
-# it is noise next to $25-100/month to rent a Mac — but "probably free" is not
-# a thing to leave unverified in a file that runs on every relevant push.
+# COST — ✅ SETTLED 2026-09-24: these runs are NOT billed.
 #
-# That cost is also why the triggers below are path-filtered rather than
-# running on everything.
+# The docs say standard runners are free and unmetered on public repositories,
+# but the wording about which macOS images count as "standard" is ambiguous
+# enough that it was not worth believing on faith. The billing page needs a
+# token scope this machine's does not have; the per-run timing endpoint does
+# not, and answers the question directly for a specific run:
+#
+#     gh api /repos/<owner>/<repo>/actions/runs/<run_id>/timing
+#
+# The first two runs of this workflow both came back
+# `"MACOS": {"total_ms": 0}` against 194s and 257s of wall clock. Zero billable
+# milliseconds on a public repo, confirmed rather than assumed.
+#
+# That is worth re-checking only if this repo ever goes private, where the same
+# minutes bill at roughly 10x Linux (a published $0.08/min). The triggers below
+# stay path-filtered regardless: a job that runs when it cannot possibly have
+# anything to say is noise whether or not it is free.
 name: iOS
 
 on:
