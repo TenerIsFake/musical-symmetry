@@ -1,0 +1,176 @@
+# Builds the Capacitor iOS app on a macOS runner.
+#
+# Why this exists: Tener has no Mac. That constraint is the reason Chrometria
+# ships as a Capacitor wrap rather than a native rewrite (see
+# docs/specs/2026-09-21-ios-native-v1-design.md §0) — the web app is developed
+# on Linux exactly as it is today, and macOS is a build step rather than a
+# workplace. This file is that build step. Without it, nothing anywhere ever
+# compiles the Xcode project.
+#
+# WHAT THIS JOB DOES NOT DO: sign, archive, or upload to TestFlight.
+#
+# That is deliberate, not unfinished. Signing needs an Apple distribution
+# certificate, a provisioning profile and an App Store Connect API key — none
+# of which exist yet, because there is no Chrometria app record yet. A job
+# wired to secrets that do not exist is either permanently red or permanently
+# skipped, and both teach people to ignore it. This repo already rejected that
+# pattern once, for the expo-doctor target on the Yissian pipeline.
+#
+# The order is the other way round on purpose: THIS JOB PASSING is the trigger
+# to request the ASC record, the US$12.99 non-consumable, the `appl_`
+# RevenueCat key and the signing certificates. Asking before there is a build
+# to attach them to produces a stale request — the Yissian ASC row sat in
+# Cowork's queue for weeks after the record already existed. The remaining
+# steps are tracked in the vault at ios-pipeline/blockers.md.
+#
+# COST. macOS runners are the expensive ones — roughly 10x Linux per minute on
+# metered accounts, at a published $0.08/min, so a 10-minute build is about
+# $0.80. GitHub documents standard runners as free and unmetered on public
+# repositories, and this repo is public, but the wording around which macOS
+# images count as "standard" is not unambiguous. ⚠️ Check the billing page
+# after the first run of this workflow and record the answer here. Either way
+# it is noise next to $25-100/month to rent a Mac — but "probably free" is not
+# a thing to leave unverified in a file that runs on every relevant push.
+#
+# That cost is also why the triggers below are path-filtered rather than
+# running on everything.
+name: iOS
+
+on:
+  # Changes to packages/ui/src are deliberately NOT a trigger. The Xcode build
+  # copies the web bundle in, it does not compile it, so a React change cannot
+  # break this job — and `test` / `typecheck` in ci.yml already cover that code
+  # on a Linux runner at a tenth of the price. What can break this job is the
+  # Xcode project, the Capacitor config, or a dependency change.
+  push:
+    branches: [master]
+    paths:
+      - 'packages/ui/ios/**'
+      - 'packages/ui/capacitor.config.ts'
+      - 'packages/ui/package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    paths:
+      - 'packages/ui/ios/**'
+      - 'packages/ui/capacitor.config.ts'
+      - 'packages/ui/package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios.yml'
+  # So it can be run against any branch by hand — which is how you will use it
+  # while setting up signing, rather than pushing empty commits to trigger it.
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Pinned, not `macos-latest`. The runner image determines the default Xcode,
+    # and an image rolling forward silently changes the compiler under a project
+    # nobody can open locally to debug. If this label is retired, the job fails
+    # immediately with an unmistakable message — which is the good failure.
+    # To bump it: raise the number, read the `xcodebuild -version` output in the
+    # run log, and update this comment with what it moved to.
+    runs-on: macos-15
+    # A cold SPM resolve plus a Release build is a few minutes. This is a
+    # backstop against a hung resolve billing macOS minutes until the 6h cap.
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches ci.yml and the build machine.
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Capacitor reads capacitor.config.ts, which means the CLI has to be able
+      # to load TypeScript. It can: `typescript` is a devDependency of
+      # packages/ui and `npm ci` installs workspace devDependencies. This step
+      # exists so that if that ever stops being true, the run fails HERE with an
+      # obvious cause rather than partway through `cap sync`.
+      #
+      # `cap ls` is the cheapest command that has to parse the config and find
+      # the platform. Note there is NO `cap config` subcommand in Capacitor 8,
+      # whatever the shape of the CLI suggests — check `cap --help` before
+      # reaching for one here, since a wrong subcommand fails on the runner
+      # rather than locally. Its output doubles as a diagnostic: the iOS plugin
+      # list should be exactly @revenuecat/purchases-capacitor.
+      - name: Check the Capacitor config is loadable
+        working-directory: packages/ui
+        run: npx cap ls ios
+
+      # `cap sync` copies packages/ui/dist into the native project. It must
+      # exist first, and it is gitignored, so it is built here rather than
+      # assumed.
+      - name: Build the web bundle
+        run: npm -w packages/ui run build
+
+      # Copies the web assets and resolves the Swift Package Manager
+      # dependencies. Capacitor 8 uses SPM rather than CocoaPods — which is the
+      # reason `npx cap add ios` could be run on Linux in the first place, and
+      # why there is no `pod install` here.
+      - name: Sync the iOS project
+        working-directory: packages/ui
+        run: npx cap sync ios
+
+      # Diagnostics, printed before the build so a failure below can be read
+      # against them. `-list` is the one that matters: if it shows no schemes,
+      # the shared scheme at
+      # ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme is missing or
+      # malformed. Xcode writes a scheme into the gitignored xcuserdata/ on
+      # first GUI open, which never happens on a runner, so that file is
+      # committed by hand — see its own comment.
+      - name: Toolchain and scheme
+        working-directory: packages/ui/ios/App
+        run: |
+          xcodebuild -version
+          xcodebuild -list -project App.xcodeproj
+
+      # Unsigned: this proves the project compiles, which is all it can prove
+      # until certificates exist.
+      #
+      # The project ships CODE_SIGN_STYLE = Automatic with no DEVELOPMENT_TEAM,
+      # so without the three flags below xcodebuild stops at "Signing for 'App'
+      # requires a development team" — a signing error, on a job that is not
+      # trying to sign. CODE_SIGNING_ALLOWED=NO is the one that does the work;
+      # the other two cover the entitlement and identity paths. If a future
+      # Xcode still refuses, the next thing to try is CODE_SIGN_STYLE=Manual,
+      # not a development team — this job must never need an Apple account.
+      - name: Build (unsigned, device SDK)
+        working-directory: packages/ui/ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      # A green build is not the same as a correct app. The failure this
+      # catches: `cap sync` not copying the web bundle, which produces a
+      # perfectly successful build of an app that opens to a blank webview.
+      # Nothing about the xcodebuild output would tell you.
+      - name: Check the built app actually contains the web app
+        working-directory: packages/ui/ios/App
+        run: |
+          APP="build/Build/Products/Release-iphoneos/App.app"
+          test -d "$APP" || { echo "::error::no App.app was produced at $APP"; exit 1; }
+          test -f "$APP/public/index.html" || {
+            echo "::error::App.app has no public/index.html — cap sync did not copy the web bundle"
+            ls -la "$APP"
+            exit 1
+          }
+          test -s "$APP/App" || { echo "::error::App.app has no executable"; exit 1; }
+          # The bundle id the App Store record will have to match.
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          echo "built $(du -sh "$APP" | cut -f1) app bundle with the web assets present"
