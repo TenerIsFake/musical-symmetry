@@ -1,6 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../utils/apiBase';
 
+/**
+ * Whether the server would refuse this save because the account is at its
+ * sketch-count limit.
+ *
+ * ⚠️ `isNew` is load-bearing. The server checks the count on POST only
+ * (packages/analyzer/src/sketches/routes.ts:52-58); PUT — saving an existing
+ * sketch — is never counted. Blocking on the count alone would lock a free user
+ * at capacity out of editing the sketches they already have.
+ *
+ * This is a client-side courtesy, not the enforcement. The server decides, and
+ * an unloaded or stale `savedCount` fails open here on purpose — better a 403
+ * the user can read than a button disabled for a limit we guessed at.
+ */
+export function sketchSaveBlocked(
+  { isNew, savedCount, limit }: { isNew: boolean; savedCount: number; limit: number },
+): boolean {
+  return isNew && savedCount >= limit;
+}
+
 export interface MelodyNote {
   pc: number;
   step: number;
