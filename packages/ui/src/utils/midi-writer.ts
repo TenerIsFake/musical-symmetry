@@ -2,6 +2,7 @@
  * Minimal MIDI file writer for chord progressions.
  * Produces a valid Type-0 SMF (single track) MIDI file.
  */
+import { saveFile } from './download';
 
 function writeVarLen(value: number): number[] {
   if (value < 0x80) return [value];
@@ -189,12 +190,7 @@ export function multiTrackToMidi(
   return new Blob([new Uint8Array(allBytes)], { type: 'audio/midi' });
 }
 
-export function downloadMidi(chords: number[][], bpm: number = 120, filename = 'progression.mid'): void {
+export function downloadMidi(chords: number[][], bpm: number = 120, filename = 'progression.mid'): Promise<boolean> {
   const blob = progressionToMidi(chords, bpm);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  return saveFile(blob, filename);
 }

@@ -3,6 +3,7 @@ import type { PitchClass } from '@musical-symmetry/core';
 import { classify, NOTE_NAMES, zRelated } from '@musical-symmetry/core';
 import { normalize } from '@musical-symmetry/core';
 import { useOnDeviceGate } from '../context/DeviceUnlockContext';
+import { saveFile } from '../utils/download';
 
 // ─── Forte number lookup (prime-form key → Forte label) ───────────────────────
 // Built from the atlas catalog embedded in forte-numbers.ts + atlas/data.ts.
@@ -259,13 +260,7 @@ export default function SearchPage() {
         s.isRetrogradePalindrome ? '1' : '0',
       ].join(',')),
     ].join('\n');
-    const blob = new Blob([rows], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'symmetry-search.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    void saveFile(rows, 'symmetry-search.csv', 'text/csv');
   }, [filtered, isResearch, zPairMasks]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────

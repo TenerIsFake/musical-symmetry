@@ -6,6 +6,7 @@ import { useChord } from '../hooks/useChord';
 import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import MicControls from '../components/MicControls';
 import ClassificationPanel from '../components/ClassificationPanel';
+import { saveFile } from '../utils/download';
 
 const FREE_RECORD_LIMIT_MS = 15_000;
 
@@ -128,13 +129,11 @@ export default function LiveDetectionPage() {
         timestampMs: n.timestamp,
       })),
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `live-session-${new Date().toISOString().slice(0, 19)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    void saveFile(
+      JSON.stringify(data, null, 2),
+      `live-session-${new Date().toISOString().slice(0, 19)}.json`,
+      'application/json',
+    );
   }, [recordedSession]);
 
   // Format elapsed time as mm:ss.s

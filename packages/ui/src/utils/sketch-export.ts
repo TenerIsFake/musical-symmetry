@@ -6,6 +6,7 @@
 import { multiTrackToMidi } from './midi-writer';
 import { toMusicXML } from './musicxml-writer';
 import { toLilypond } from './export-academic';
+import { saveFile } from './download';
 import type { PitchClass } from '@musical-symmetry/core';
 
 export interface SketchData {
@@ -40,17 +41,8 @@ const COMMON_CHORD_PCS: Record<string, number[]> = {
 
 // ---- Download helper ----
 
-function downloadFile(content: string | Blob, filename: string, mimeType?: string): void {
-  const blob =
-    content instanceof Blob
-      ? content
-      : new Blob([content], { type: mimeType ?? 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+async function downloadFile(content: string | Blob, filename: string, mimeType?: string): Promise<boolean> {
+  return saveFile(content, filename, mimeType);
 }
 
 // ---- Helpers to build note arrays ----
@@ -121,7 +113,7 @@ function buildChordMidiNotes(
  * - Track 2: rhythm (channel 10, GM percussion)
  * - Track 3: chords (channel 2)
  */
-export function exportSketchAsMidi(sketch: SketchData): void {
+export function exportSketchAsMidi(sketch: SketchData): Promise<boolean> {
   const ppq = 480;
   const safeName = sketch.name.trim() || 'sketch';
 
@@ -136,13 +128,13 @@ export function exportSketchAsMidi(sketch: SketchData): void {
   ];
 
   const blob = multiTrackToMidi(tracks, sketch.tempo, ppq);
-  downloadFile(blob, `${safeName}.mid`);
+  return downloadFile(blob, `${safeName}.mid`);
 }
 
 /**
  * Export sketch melody and chords as MusicXML.
  */
-export function exportSketchAsMusicXML(sketch: SketchData): void {
+export function exportSketchAsMusicXML(sketch: SketchData): Promise<boolean> {
   const safeName = sketch.name.trim() || 'sketch';
   const ppq = 4; // quarter-note units directly
 
@@ -198,14 +190,14 @@ export function exportSketchAsMusicXML(sketch: SketchData): void {
     ],
   });
 
-  downloadFile(xml, `${safeName}.musicxml`, 'application/vnd.recordare.musicxml+xml');
   void ppq;
+  return downloadFile(xml, `${safeName}.musicxml`, 'application/vnd.recordare.musicxml+xml');
 }
 
 /**
  * Export sketch melody as Lilypond notation.
  */
-export function exportSketchAsLilypond(sketch: SketchData): void {
+export function exportSketchAsLilypond(sketch: SketchData): Promise<boolean> {
   const safeName = sketch.name.trim() || 'sketch';
 
   // Collect unique pitch classes from melody
@@ -214,5 +206,5 @@ export function exportSketchAsLilypond(sketch: SketchData): void {
   ) as PitchClass[];
 
   const ly = toLilypond(usedPcs, { title: sketch.name || 'Untitled Sketch' });
-  downloadFile(ly, `${safeName}.ly`, 'text/x-lilypond');
+  return downloadFile(ly, `${safeName}.ly`, 'text/x-lilypond');
 }

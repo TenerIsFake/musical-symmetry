@@ -7,6 +7,7 @@ import PdfExportButton from '../components/PdfExportButton';
 import { useResearchMode } from '../context/ResearchMode';
 import type { SliceData } from '../components/TimelineChart';
 import { API_BASE } from '../utils/apiBase';
+import { saveFile } from '../utils/download';
 
 const NOTE_NAMES: Record<number, string> = {
   0: 'C', 1: 'C♯', 2: 'D', 3: 'E♭', 4: 'E', 5: 'F',
@@ -21,14 +22,8 @@ interface AnalysisResult {
   slices: SliceData[];
 }
 
-function downloadFile(content: string, filename: string, type: string) {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+function downloadFile(content: string, filename: string, type: string): Promise<boolean> {
+  return saveFile(content, filename, type);
 }
 
 function mapSlices(rawSlices: any[]): SliceData[] {
@@ -269,7 +264,7 @@ export default function AnalyzerPage() {
                       const rows = result.slices.map(s =>
                         [s.startBeat, s.endBeat, s.abstractGroup, s.mullikenLabel, s.stabilizerOrder, s.chordName ?? '', s.voiceLeadingFromPrev ?? ''].join(',')
                       );
-                      downloadFile([headers.join(','), ...rows].join('\n'), `${result.filename}-analysis.csv`, 'text/csv');
+                      void downloadFile([headers.join(','), ...rows].join('\n'), `${result.filename}-analysis.csv`, 'text/csv');
                     }}
                     className="px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600"
                   >
@@ -277,7 +272,7 @@ export default function AnalyzerPage() {
                   </button>
                   <button
                     onClick={() => {
-                      downloadFile(JSON.stringify({ ...result, exportedAt: new Date().toISOString() }, null, 2), `${result.filename}-analysis.json`, 'application/json');
+                      void downloadFile(JSON.stringify({ ...result, exportedAt: new Date().toISOString() }, null, 2), `${result.filename}-analysis.json`, 'application/json');
                     }}
                     className="px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600"
                   >

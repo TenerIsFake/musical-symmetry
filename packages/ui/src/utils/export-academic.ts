@@ -1,5 +1,6 @@
 import type { SymmetryAnalysis, PitchClass } from '@musical-symmetry/core';
 import { forteNumber } from '../data/forte-numbers';
+import { saveFile } from './download';
 
 const PC_TO_LILYPOND: Record<PitchClass, string> = {
   0: 'c',
@@ -147,18 +148,13 @@ export function generateLaTeX(analysis: SymmetryAnalysis): string {
 }
 
 /**
- * Trigger a browser download of a string as a file.
+ * Save a string as a file — routed through saveFile() so it also works in
+ * WKWebView (see utils/download.ts).
  */
-export function downloadAsFile(
+export async function downloadAsFile(
   content: string,
   filename: string,
   mimeType = 'text/plain',
-): void {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+): Promise<boolean> {
+  return saveFile(content, filename, mimeType);
 }
