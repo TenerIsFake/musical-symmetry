@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Privacy manifest for the Chrometria app target.
+
+  Why it exists: an upload whose binary reaches a "required reason" API with no
+  declaration draws ITMS-91053 from App Store Connect. Yissian took exactly that
+  notice and closed it by declaring CA92.1, so expect the same shape here.
+
+  Third-party SDKs (Capacitor, RevenueCat) ship their own manifests inside their
+  packages; this file covers the app target only. If the first upload still draws
+  ITMS-91053, the email names the specific API and category — add it here rather
+  than guessing more now.
+
+  The collected-data section must stay consistent with the App Privacy answers
+  filled in the App Store Connect web UI. It reflects the SIGNED-IN case, since a
+  manifest cannot express "only when the user has an account". Anonymous use
+  collects nothing, and anonymous use keeps working (Apple 5.1.1(v)).
+  Source of these answers: docs/specs/2026-09-21-ios-native-v1-design.md §8.
+-->
+<plist version="1.0">
+<dict>
+	<!-- No tracking. AdSense and Plausible are guarded behind isNativePlatform
+	     (packages/ui/src/utils/webScripts.ts) and cannot load inside the app. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<!-- The account's email address, used to sign in. Linked to the user,
+		     not used for tracking. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- The account id. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- api_usage records the endpoint and IP of each API request, to enforce
+		     the account's rate limit (packages/analyzer/src/auth/db.ts). -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUsageData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- CA92.1 — user defaults read/written by the app itself, which is what
+		     the WebView's persisted settings resolve to. This is the declaration
+		     that closed ITMS-91053 on Yissian. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

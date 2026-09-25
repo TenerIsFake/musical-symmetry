@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
+import { platform } from '../utils/platform';
 
 const MIN_FREQ = 65;
 const MAX_FREQ = 2093;
@@ -103,10 +104,18 @@ export function useMicPitchDetect() {
     } catch (err) {
       const name = err instanceof DOMException ? err.name : '';
       if (name === 'NotAllowedError' || name === 'SecurityError') {
+        // The route back differs per platform and the wrong one is worse than
+        // none: iOS has no "Apps > Chrometria > Permissions" screen, so the
+        // Android wording sent an iOS user looking for something that does not
+        // exist. iOS also only ever asks once — after a denial the system
+        // prompt never returns, and Settings is genuinely the only way back.
         setError(
-          'Microphone access was denied. To use pitch detection, allow the microphone ' +
-          'permission — in the Android app: Settings > Apps > Chrometria > Permissions > Microphone; ' +
-          'in a browser: the padlock/site-settings menu in the address bar.'
+          'Microphone access was denied. To use pitch detection, allow the microphone permission — ' +
+          (platform === 'ios'
+            ? 'in Settings > Privacy & Security > Microphone > Chrometria, or Settings > Chrometria.'
+            : platform === 'android'
+            ? 'in Settings > Apps > Chrometria > Permissions > Microphone.'
+            : 'from the padlock or site-settings menu in your browser\u2019s address bar.')
         );
       } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
         setError('No microphone was found on this device.');
