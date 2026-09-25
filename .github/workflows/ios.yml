@@ -181,3 +181,32 @@ jobs:
           # The bundle id the App Store record will have to match.
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
           echo "built $(du -sh "$APP" | cut -f1) app bundle with the web assets present"
+
+      # Three things that are correct in the repo and can still be absent from the
+      # BUNDLE, which is the only artifact Apple ever sees. A plist key that failed
+      # to substitute, or a resource missing from the Resources build phase, looks
+      # exactly like success everywhere else — including in a passing unit test that
+      # reads the source files.
+      - name: Check the bundle carries what App Review needs
+        working-directory: packages/ui/ios/App
+        run: |
+          APP="build/Build/Products/Release-iphoneos/App.app"
+          pb() { /usr/libexec/PlistBuddy -c "Print $1" "$APP/Info.plist" 2>/dev/null; }
+
+          # iOS TERMINATES the process on first microphone access without this.
+          # It is not a review risk, it is a crash, and the app asks for the mic
+          # from four screens — one of them named in the paid unlock's own copy.
+          mic=$(pb :NSMicrophoneUsageDescription)
+          test -n "$mic" || { echo "::error::no NSMicrophoneUsageDescription in the built Info.plist — the app will be killed on first mic access"; exit 1; }
+          echo "microphone purpose string: $mic"
+
+          # Absent, every upload parks behind a manual export-compliance question
+          # in App Store Connect before it can reach TestFlight.
+          enc=$(pb :ITSAppUsesNonExemptEncryption)
+          test -n "$enc" || { echo "::error::no ITSAppUsesNonExemptEncryption — uploads will stall on the export-compliance question"; exit 1; }
+          echo "export compliance declared: $enc"
+
+          # A privacy manifest that is not in Resources is not in the bundle, and
+          # draws ITMS-91053 on upload. Yissian took exactly that notice.
+          test -f "$APP/PrivacyInfo.xcprivacy" || { echo "::error::PrivacyInfo.xcprivacy is not in the app bundle — check it is in the Resources build phase, not merely on disk"; exit 1; }
+          echo "privacy manifest present in the bundle"
