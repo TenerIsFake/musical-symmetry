@@ -91,6 +91,21 @@ describe('the privacy manifest', () => {
     expect(valueAfterKey(doc, 'NSPrivacyTrackingDomains')!.children).toHaveLength(0);
   });
 
+  it('declares File Timestamp while @capacitor/filesystem is a dependency', () => {
+    // Tied to the dependency, not asserted in isolation: the plugin reads
+    // creationDate/modificationDate and ships NO manifest of its own, so the app
+    // target has to declare C617.1 on its behalf or the upload draws ITMS-91053.
+    // Remove the plugin and this requirement lapses with it.
+    const pkg = JSON.parse(readFileSync(join(UI, 'package.json'), 'utf8'));
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    if (!deps['@capacitor/filesystem']) return;
+
+    const doc = plist(manifest);
+    const types = Array.from(doc.getElementsByTagName('string')).map(n => n.textContent);
+    expect(types).toContain('NSPrivacyAccessedAPICategoryFileTimestamp');
+    expect(types).toContain('C617.1');
+  });
+
   it('is in the Resources build phase, not merely on disk', () => {
     // The step that is easy to skip and impossible to notice: a manifest that is
     // not copied into the bundle is not a manifest. Apple sees the bundle.

@@ -85,6 +85,27 @@
 				<string>CA92.1</string>
 			</array>
 		</dict>
+		<!--
+		  C617.1 — timestamps of files inside the app's own container.
+
+		  Added when @capacitor/filesystem was introduced for file exports.
+		  ⚠️ The plugin reads creationDate and modificationDate
+		  (Sources/FilesystemPlugin/IONFileStructures+Converters.swift:45-46) and
+		  ships NO PrivacyInfo.xcprivacy of its own — checked, not assumed. Neither
+		  does @capacitor/share. So the app target has to declare this on their
+		  behalf or the first upload draws ITMS-91053.
+
+		  Adding a native plugin is not finished when it compiles: check whether it
+		  reaches a required-reason API and whether it declares that itself.
+		-->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
