@@ -7,7 +7,7 @@ export default function PrivacyPage() {
         <a href="https://symmetry.tendrid.us" className="text-indigo-400 hover:text-indigo-300">
           symmetry.tendrid.us
         </a>{' '}
-        and the Chrometria Android app (us.tendrid.chrometria).
+        and the Chrometria mobile apps for Android and iOS (us.tendrid.chrometria).
       </p>
 
       <section className="mb-10">
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
             >
               Google's Privacy Policy
             </a>
-            . The Android app does not show ads and does not load AdSense.
+            . The mobile apps do not show ads and do not load AdSense on either platform.
           </li>
           <li>Standard server access logs (IP address, timestamp, page path) retained for 30 days for security purposes.</li>
         </ul>
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
           </a>
           , a privacy-friendly, cookieless analytics service that collects aggregate page-view
           statistics without tracking individuals across sites. Plausible is not loaded in the
-          Android app. We use no other third-party analytics (no Google Analytics, no Mixpanel,
+          mobile apps on either platform. We use no other third-party analytics (no Google Analytics, no Mixpanel,
           no Amplitude).
         </p>
       </section>
@@ -132,7 +132,7 @@ export default function PrivacyPage() {
           <h4 className="text-base font-semibold text-gray-200 mb-1">Google AdSense (website free tier only)</h4>
           <p className="text-gray-300">
             On the website, free-tier users see ads served by Google AdSense (publisher ID:
-            ca-pub-9760203099492988). The Android app is ad-free and does not load AdSense.
+            ca-pub-9760203099492988). The mobile apps are ad-free on both Android and iOS and do not load AdSense.
             Google may use cookies and device identifiers to serve personalized ads based on your
             browsing history. You can opt out of personalized ads at{' '}
             <a
