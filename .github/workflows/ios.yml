@@ -66,11 +66,35 @@ on:
       - '.github/workflows/ios.yml'
   # So it can be run against any branch by hand — which is how you will use it
   # while setting up signing, rather than pushing empty commits to trigger it.
+  #
+  # `release` is the ONLY route to the signing/upload job below. See the comment
+  # on that job for why the gate lives here rather than in the vault.
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Also sign and upload this build to TestFlight'
+        type: boolean
+        default: false
 
 concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  # App Store Connect rejects a build number it has seen before for this version,
+  # so it has to increase on every upload and never repeat. RxDecay hand-maintains
+  # its equivalent and its preflight regularly fails on "buildNumber already
+  # uploaded"; Chrometria should not inherit that.
+  #
+  # `github.run_number` is monotonic per workflow and needs no state. Its one
+  # failure mode: it RESETS if this workflow file is renamed or deleted, which
+  # would start producing numbers App Store Connect has already seen. If that
+  # ever happens, raise OFFSET above the highest build number already uploaded —
+  # that is what it is for, and it is the only reason to touch it.
+  #
+  # Gaps are fine and expected: unsigned compile runs consume numbers too.
+  # RxDecay's uploaded builds run 1-13 with five missing.
+  BUILD_NUMBER_OFFSET: 0
 
 jobs:
   build:
@@ -152,12 +176,15 @@ jobs:
       - name: Build (unsigned, device SDK)
         working-directory: packages/ui/ios/App
         run: |
+          BUILD_NUMBER=$(( ${{ github.run_number }} + BUILD_NUMBER_OFFSET ))
+          echo "build number: $BUILD_NUMBER"
           xcodebuild \
             -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -210,3 +237,184 @@ jobs:
           # draws ITMS-91053 on upload. Yissian took exactly that notice.
           test -f "$APP/PrivacyInfo.xcprivacy" || { echo "::error::PrivacyInfo.xcprivacy is not in the app bundle — check it is in the Resources build phase, not merely on disk"; exit 1; }
           echo "privacy manifest present in the bundle"
+
+  # ---------------------------------------------------------------------------
+  # Signing and upload. Reachable ONLY by a manual run with `release: true`.
+  #
+  # WHY THE GATE IS HERE AND NOT IN THE VAULT.
+  #
+  # The pipeline rule is that no build ships without Tener's per-build approval,
+  # expressed as a file in the vault and enforced by ~/.claude/hooks/eas-build-gate.sh.
+  # That hook is a PreToolUse gate on Bash calls made on SRV-2. It cannot reach
+  # this job: the dominant way a workflow fires is a push to master, and that
+  # runs on GitHub's servers where no local hook exists. Adding a third pattern
+  # to the hook would stop someone typing `gh workflow run` and nothing else —
+  # the appearance of coverage without the coverage, which is exactly the
+  # 2026-08-17 failure where "the PreToolUse hook enforces build approval" was
+  # documented and had never been written.
+  #
+  # So the gate is put where the action happens, in two layers:
+  #   1. `if:` below — a push or a PR can never reach this job, only a deliberate
+  #      workflow_dispatch with the box ticked.
+  #   2. `environment: ios-release` — CONFIGURED 2026-09-25 with TenerIsFake as a
+  #      required reviewer, so the job enters "Waiting" and does not start until
+  #      he clicks approve. That is the real approval, and unlike the vault file
+  #      it is enforced by the machine that performs the upload.
+  #
+  # ⚠️ Layer 2 is a repo SETTING and lives outside this file, so it cannot be
+  # reviewed in a diff. Verify it rather than trusting this comment:
+  #
+  #     gh api /repos/TenerIsFake/musical-symmetry/environments/ios-release \
+  #       -q '.protection_rules[] | select(.type=="required_reviewers")
+  #           | .reviewers[].reviewer.login'
+  #
+  # If that prints nothing, the environment exists with no rule and this job will
+  # run the moment it is dispatched. The `if:` above still prevents any automatic
+  # trigger, so a push can never reach here either way.
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 45
+    environment: ios-release
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build the web bundle
+        run: npm -w packages/ui run build
+      - name: Sync the iOS project
+        working-directory: packages/ui
+        run: npx cap sync ios
+
+      # The certificate's private key and the profile both arrive as base64
+      # secrets. They are written to $RUNNER_TEMP, which is destroyed with the
+      # runner; nothing lands in the workspace where a later step could archive it.
+      - name: Install the signing certificate and provisioning profile
+        env:
+          CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          for v in CERT_P12_BASE64 CERT_PASSWORD PROFILE_BASE64; do
+            [ -n "${!v}" ] || { echo "::error::secret $v is not set — see the iOS signing section of the vault blockers"; exit 1; }
+          done
+
+          CERT="$RUNNER_TEMP/dist.p12"
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          # Ephemeral: this password protects a keychain that exists for one job
+          # on a throwaway VM and is never written down anywhere else.
+          KEYCHAIN_PASSWORD=$(uuidgen)
+
+          echo "$CERT_P12_BASE64" | base64 --decode > "$CERT"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          # Without this, codesign prompts for keychain access and hangs forever
+          # on a headless runner — the failure looks like a timeout, not a refusal.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychain -d user -s "$KEYCHAIN" login.keychain-db
+          rm -f "$CERT"
+
+          PROFILES="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES"
+          echo "$PROFILE_BASE64" | base64 --decode > "$PROFILES/chrometria.mobileprovision"
+
+          echo "signing identities available:"
+          security find-identity -v -p codesigning "$KEYCHAIN" | sed 's/[0-9A-F]\{40\}/<hash>/'
+
+      - name: Archive (signed)
+        working-directory: packages/ui/ios/App
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          BUILD_NUMBER=$(( ${{ github.run_number }} + BUILD_NUMBER_OFFSET ))
+          echo "archiving build number $BUILD_NUMBER"
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="Chrometria App Store 2026" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            archive
+
+      - name: Export the .ipa
+        working-directory: packages/ui/ios/App
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>uploadSymbols</key><true/>
+            <key>provisioningProfiles</key><dict>
+              <key>us.tendrid.chrometria</key><string>Chrometria App Store 2026</string>
+            </dict>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+          ls -la "$RUNNER_TEMP/export"
+
+      # The same three checks the unsigned job runs, against the archived app.
+      # Signing is a separate axis from correctness: a perfectly signed bundle
+      # with no microphone purpose string still gets killed on first mic access.
+      - name: Re-check the archived app carries what App Review needs
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          pb() { /usr/libexec/PlistBuddy -c "Print $1" "$APP/Info.plist" 2>/dev/null; }
+          test -n "$(pb :NSMicrophoneUsageDescription)" || { echo "::error::archived app has no microphone purpose string"; exit 1; }
+          test -n "$(pb :ITSAppUsesNonExemptEncryption)" || { echo "::error::archived app has no export-compliance key"; exit 1; }
+          test -f "$APP/PrivacyInfo.xcprivacy" || { echo "::error::archived app has no privacy manifest"; exit 1; }
+          test -f "$APP/public/index.html" || { echo "::error::archived app has no web bundle"; exit 1; }
+          echo "archived build $(pb :CFBundleVersion) of version $(pb :CFBundleShortVersionString), bundle id $(pb :CFBundleIdentifier)"
+
+      - name: Upload to App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          for v in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8_BASE64; do
+            [ -n "${!v}" ] || { echo "::error::secret $v is not set"; exit 1; }
+          done
+          # altool looks for the key by this exact path and filename.
+          mkdir -p "$HOME/private_keys"
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          IPA=$(ls "$RUNNER_TEMP/export"/*.ipa | head -1)
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+          rm -f "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+
+      # ⚠️ Yissian's scar: a build in no beta group is in no one's TestFlight, and
+      # that went unnoticed for nine days. Processing takes a few minutes, so the
+      # build is not attachable yet when this job ends — attaching it to version
+      # 1.0 and putting it in a beta group is a separate step, run from SRV-2
+      # against the ASC API once processing completes.
+      - name: What happens next
+        run: |
+          echo "Uploaded. It is NOT yet in anyone's TestFlight."
+          echo "Once App Store Connect finishes processing, attach the build to version 1.0"
+          echo "and add it to a beta group with a tester — VALID on ASC is not INSTALLED on a device."
