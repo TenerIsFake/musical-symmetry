@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { API_BASE } from '../utils/apiBase';
+import { saveFile } from '../utils/download';
 
 interface Props {
   file: File;
@@ -35,12 +36,7 @@ export default function PdfExportButton({ file, sliceMode, minNotes }: Props) {
       }
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${file.name.replace(/\.[^.]+$/, '')}-analysis.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveFile(blob, `${file.name.replace(/\.[^.]+$/, '')}-analysis.pdf`);
     } catch {
       alert('Failed to generate report');
     } finally {

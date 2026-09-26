@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import type { Chord, PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES, applyP, applyL, applyR } from '@musical-symmetry/core';
 import { useOnDeviceGate } from '../context/DeviceUnlockContext';
+import { saveFile } from '../utils/download';
 
 interface Props {
   chord: Chord | null;
@@ -119,13 +120,7 @@ export default function TonnetzViz({ chord, targetChord, onChordChange }: Props)
     if (!svgRef.current) return;
     const serializer = new XMLSerializer();
     const svgStr = serializer.serializeToString(svgRef.current);
-    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tonnetz.svg';
-    a.click();
-    URL.revokeObjectURL(url);
+    void saveFile(svgStr, 'tonnetz.svg', 'image/svg+xml');
   }, []);
 
   useEffect(() => {

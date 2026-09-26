@@ -108,7 +108,7 @@ export default function ExportMenu({ analysis, pcs }: Props) {
       label: 'Download MusicXML',
       onClick: () =>
         guardPro(() =>
-          downloadAsFile(
+          void downloadAsFile(
             getMusicXML(),
             `set-${setLabel}.musicxml`,
             'application/vnd.recordare.musicxml+xml',
@@ -123,7 +123,7 @@ export default function ExportMenu({ analysis, pcs }: Props) {
       label: 'Download .ly file',
       onClick: () =>
         guard(() =>
-          downloadAsFile(getLilypond(), `set-${setLabel}.ly`, 'text/x-lilypond'),
+          void downloadAsFile(getLilypond(), `set-${setLabel}.ly`, 'text/x-lilypond'),
         ),
     },
     {
@@ -140,7 +140,7 @@ export default function ExportMenu({ analysis, pcs }: Props) {
       label: 'Download .tex file',
       onClick: () =>
         guard(() =>
-          downloadAsFile(
+          void downloadAsFile(
             analysis ? getLatex() : '% No analysis available',
             `set-${setLabel}.tex`,
             'application/x-latex',

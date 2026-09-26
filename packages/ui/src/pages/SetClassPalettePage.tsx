@@ -3,6 +3,7 @@ import { NOTE_NAMES, allForms, toPcSet } from '@musical-symmetry/core';
 import type { PitchClass, PcSetForm } from '@musical-symmetry/core';
 import { useOnDeviceGate } from '../context/DeviceUnlockContext';
 import { playPitchClasses } from '../utils/audio';
+import { saveFile } from '../utils/download';
 
 // ---------- Mini piano (display-only) ----------
 
@@ -192,13 +193,7 @@ export default function SetClassPalettePage() {
   function handleExportJson() {
     if (!forms) return;
     const json = JSON.stringify(forms, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'set-class-forms.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    void saveFile(json, 'set-class-forms.json', 'application/json');
   }
 
   const selectedPcArray = toPcSet([...selected] as PitchClass[]);

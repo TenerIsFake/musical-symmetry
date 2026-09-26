@@ -3,6 +3,7 @@ import type { PitchClass } from '@musical-symmetry/core';
 import { classify, identifyChord, NOTE_NAMES } from '@musical-symmetry/core';
 import { useUser } from '../context/UserContext';
 import { useOnDeviceGate, useDeviceUnlockState } from '../context/DeviceUnlockContext';
+import { saveFile } from '../utils/download';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -423,13 +424,7 @@ function exportCsv(slots: TimelineSlot[]) {
         `${i + 1},"${s.pcs.map(p => NOTE_NAMES[p]).join(' ')}","${s.chordName ?? ''}","${s.group}"`,
     )
     .join('\n');
-  const blob = new Blob([header + rows], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'harmony-timeline.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  void saveFile(header + rows, 'harmony-timeline.csv', 'text/csv');
 }
 
 // ─── SVG Export ───────────────────────────────────────────────────────────────
@@ -469,13 +464,7 @@ function exportSvg(slots: TimelineSlot[]) {
   <text x="${PADDING}" y="${PADDING + SLOT_H + MAP_GAP + MAP_H + 14}" font-size="9" fill="#6b7280">Symmetry map</text>
 </svg>`;
 
-  const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'harmony-timeline.svg';
-  a.click();
-  URL.revokeObjectURL(url);
+  void saveFile(svgContent, 'harmony-timeline.svg', 'image/svg+xml');
 }
 
 // ─── Import from Analyzer result ─────────────────────────────────────────────

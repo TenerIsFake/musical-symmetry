@@ -484,7 +484,7 @@ export default function ScoreAnnotationPage() {
             {isPro ? (
               <button
                 onClick={() =>
-                  downloadAsFile(buildCsv(measures, filename), `${filename}-annotation.csv`, 'text/csv')
+                  void downloadAsFile(buildCsv(measures, filename), `${filename}-annotation.csv`, 'text/csv')
                 }
                 className="px-3 py-1.5 rounded text-sm font-medium bg-teal-700 hover:bg-teal-600 text-white transition-colors"
               >
@@ -504,7 +504,7 @@ export default function ScoreAnnotationPage() {
             {isResearch ? (
               <button
                 onClick={() =>
-                  downloadAsFile(
+                  void downloadAsFile(
                     buildLatex(measures, filename),
                     `${filename}-annotation.tex`,
                     'text/x-tex'

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { PitchClass } from '@musical-symmetry/core';
 import { API_BASE } from '../utils/apiBase';
+import { saveFile } from '../utils/download';
 const isNative = typeof (window as any).Capacitor !== 'undefined';
 
 type CardStyle =
@@ -85,13 +86,7 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
     try {
       const resp = await fetch(shareUrl);
       const svgText = await resp.text();
-      const blob = new Blob([svgText], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `symmetry-${selectedStyle}-${pcs.join('')}.svg`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveFile(svgText, `symmetry-${selectedStyle}-${pcs.join('')}.svg`, 'image/svg+xml');
     } catch (e) {
       console.error('Download failed:', e);
     }
@@ -114,12 +109,7 @@ export default function SharePanel({ pcs, comparePcs, chordName, group, onClose 
         ctx.drawImage(img, 0, 0);
         canvas.toBlob((blob) => {
           if (!blob) return;
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `symmetry-${selectedStyle}-${pcs.join('')}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
+          void saveFile(blob, `symmetry-${selectedStyle}-${pcs.join('')}.png`);
         }, 'image/png');
         URL.revokeObjectURL(svgUrl);
       };

@@ -3,6 +3,7 @@ import type { PitchClass } from '@musical-symmetry/core';
 import { NOTE_NAMES, voiceLeadingDistance } from '@musical-symmetry/core';
 import { playPitchClasses } from '../utils/audio';
 import { useOnDeviceGate } from '../context/DeviceUnlockContext';
+import { saveFile } from '../utils/download';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -447,13 +448,7 @@ export default function VoiceLeadingGraphPage() {
     if (!svg) return;
     const serializer = new XMLSerializer();
     const str = serializer.serializeToString(svg);
-    const blob = new Blob([str], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'voice-leading-graph.svg';
-    a.click();
-    URL.revokeObjectURL(url);
+    void saveFile(str, 'voice-leading-graph.svg', 'image/svg+xml');
   };
 
   // Derived rendering values

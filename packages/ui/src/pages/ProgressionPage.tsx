@@ -408,7 +408,7 @@ export default function ProgressionPage() {
 
   const handleExportMidi = () => {
     if (!isResearch) return;
-    downloadMidi(chords.map(c => c.pcs), bpm);
+    void downloadMidi(chords.map(c => c.pcs), bpm);
   };
 
   const handlePlrInsert = (pcs: PitchClass[], name: string) => {

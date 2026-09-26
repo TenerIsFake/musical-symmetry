@@ -181,19 +181,19 @@ export default function SketchpadPage() {
 
   function handleExportMidi() {
     setShowExport(false);
-    exportSketchAsMidi(buildSketchData());
+    void exportSketchAsMidi(buildSketchData());
   }
 
   function handleExportMusicXML() {
     if (!isPro) return;
     setShowExport(false);
-    exportSketchAsMusicXML(buildSketchData());
+    void exportSketchAsMusicXML(buildSketchData());
   }
 
   function handleExportLilypond() {
     if (!isResearch) return;
     setShowExport(false);
-    exportSketchAsLilypond(buildSketchData());
+    void exportSketchAsLilypond(buildSketchData());
   }
 
   // ---- Track editing helpers ----
