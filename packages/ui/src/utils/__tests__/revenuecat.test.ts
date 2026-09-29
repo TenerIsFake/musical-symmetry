@@ -38,17 +38,27 @@ describe('purchase API key selection', () => {
   });
 });
 
-describe('the iOS off switch', () => {
-  it('is OFF: no appl_ key is configured yet, so iOS offers no purchase', async () => {
-    // ⚠️ When you fill in the appl_ key, this test SHOULD fail — that is its job.
-    // Before you change it, confirm in App Store Connect that the $12.99
-    // non-consumable exists AND is wired into the offering's FIRST package
-    // (the code reads availablePackages[0]). Set the key LAST, in the same
-    // change that ships it. Otherwise the app shows a purchase that cannot
-    // complete, which is a Guideline 2.1 rejection.
+describe('the iOS key', () => {
+  it('is SET, and is an Apple key', async () => {
+    // This test used to pin the key as empty and say "when you fill this in, this
+    // test SHOULD fail — that is its job". It did its job on 2026-09-29: the App
+    // Store product exists, it was wired into the offering's first package, and
+    // only then was the key set. The assertion now pins the other direction — a
+    // key that is present and of the right store.
     const rc = await loadFor('ios');
-    expect(rc.purchaseApiKey).toBe('');
-    expect(rc.purchasesSupported).toBe(false);
+    expect(rc.purchaseApiKey).toMatch(/^appl_/);
+    expect(rc.purchasesSupported).toBe(true);
+  });
+
+  it('is never the Android key by mistake', async () => {
+    // Worth its own assertion because of a real near-miss: ~/.secrets holds
+    // REVENUECAT_CHROMETRIA_API_KEY, which NAMES the app but is the goog_ key —
+    // Chrometria had only ever had one platform, so nothing disambiguated it.
+    // Taking it at face value would have put the Android key in the iOS slot.
+    const ios = await loadFor('ios');
+    const android = await loadFor('android');
+    expect(ios.purchaseApiKey).not.toBe(android.purchaseApiKey);
+    expect(ios.purchaseApiKey).not.toMatch(/^goog_/);
   });
 
   it('is ON for Android, which has a key', async () => {
@@ -83,8 +93,8 @@ describe('unlockForSale — which platform sells the one-time unlock', () => {
     expect((await loadFor('web')).unlockForSale).toBe(false);
   });
 
-  it('is false on iOS today, because the key is still empty', async () => {
-    expect((await loadFor('ios')).unlockForSale).toBe(false);
+  it('is TRUE on iOS now that the key is set — iOS is the platform that sells it', async () => {
+    expect((await loadFor('ios')).unlockForSale).toBe(true);
   });
 });
 
