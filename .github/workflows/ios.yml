@@ -166,13 +166,18 @@ jobs:
       # Unsigned: this proves the project compiles, which is all it can prove
       # until certificates exist.
       #
-      # The project ships CODE_SIGN_STYLE = Automatic with no DEVELOPMENT_TEAM,
-      # so without the three flags below xcodebuild stops at "Signing for 'App'
-      # requires a development team" — a signing error, on a job that is not
-      # trying to sign. CODE_SIGNING_ALLOWED=NO is the one that does the work;
-      # the other two cover the entitlement and identity paths. If a future
-      # Xcode still refuses, the next thing to try is CODE_SIGN_STYLE=Manual,
-      # not a development team — this job must never need an Apple account.
+      # Without the three flags below xcodebuild stops at a signing error on a job
+      # that is not trying to sign. CODE_SIGNING_ALLOWED=NO is the one that does
+      # the work; the other two cover the entitlement and identity paths.
+      #
+      # Note the App target's Release config now carries CODE_SIGN_STYLE = Manual
+      # and a PROVISIONING_PROFILE_SPECIFIER (see the Archive step's comment for
+      # why they live there rather than on the command line). CODE_SIGNING_ALLOWED=NO
+      # makes both moot here — signing is skipped wholesale — which is exactly what
+      # this job proves on every push. If that ever stops being true, this job goes
+      # red before a release run does, which is the right order to find out.
+      #
+      # This job must never need an Apple account.
       - name: Build (unsigned, device SDK)
         working-directory: packages/ui/ios/App
         run: |
@@ -330,6 +335,21 @@ jobs:
           echo "signing identities available:"
           security find-identity -v -p codesigning "$KEYCHAIN" | sed 's/[0-9A-F]\{40\}/<hash>/'
 
+      # ⚠️ CODE_SIGN_STYLE and PROVISIONING_PROFILE_SPECIFIER are deliberately NOT
+      # here. A build setting on the xcodebuild command line applies to EVERY
+      # target in the graph, including the Swift Package Manager dependencies —
+      # and a package target rejects a profile outright:
+      #
+      #   RevenueCat_RevenueCat does not support provisioning profiles, but
+      #   provisioning profile Chrometria App Store 2026 has been manually
+      #   specified.  ** ARCHIVE FAILED **
+      #
+      # That killed the first signed build (run 36504728412). Both settings now
+      # live in the App target's Release configuration in project.pbxproj, where
+      # they apply to the app and nothing else.
+      #
+      # DEVELOPMENT_TEAM and CODE_SIGN_IDENTITY stay here on purpose: package
+      # targets DO get signed, so those two are meaningful for them.
       - name: Archive (signed)
         working-directory: packages/ui/ios/App
         env:
@@ -345,9 +365,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="$TEAM_ID" \
-            PROVISIONING_PROFILE_SPECIFIER="Chrometria App Store 2026" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             archive
 
