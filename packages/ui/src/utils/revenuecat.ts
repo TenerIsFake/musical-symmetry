@@ -21,7 +21,11 @@ export { DEVICE_UNLOCK_ENTITLEMENT, hasDeviceUnlock };
  */
 const API_KEYS: Record<'ios' | 'android', string> = {
   android: 'goog_cDCGonBjgmxucQTUcuXfaTKmHiz',
-  ios: '',
+  // Set 2026-09-29, once the App Store product existed AND was wired into the
+  // offering's first package — the order the sequencing trap requires. These are
+  // PUBLIC SDK keys, designed to be embedded in a shipped app and extractable
+  // from any .ipa; they are not `sk_` secrets.
+  ios: 'appl_IiQiWIcnPTocSLjgmaMATMcpUCx',
 };
 
 /** RevenueCat namespaces its public SDK keys by store. */
