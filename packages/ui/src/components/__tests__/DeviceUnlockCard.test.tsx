@@ -81,6 +81,27 @@ describe('when the unlock is for sale', () => {
   });
 });
 
+describe('when the store has nothing to sell', () => {
+  it('renders nothing rather than a button stuck on "Loading…"', async () => {
+    // getUnlockPackage() returns null whenever the offering has no first package
+    // — a product still in MISSING_METADATA, a misconfigured offering, or no
+    // network. busy goes false and priceString stays null, which used to leave a
+    // permanently disabled button reading "Loading…". A purchase control that can
+    // never complete is exactly the Guideline 2.1 case the empty-key switch
+    // exists to prevent, so this path must render nothing at all.
+    const { container } = await renderCard({ supported: true, priceString: null, busy: false });
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('still shows the unlocked state even if the price never loads', async () => {
+    // A buyer on a new device with a flaky network must not lose their entitlement
+    // display — and Restore has to stay reachable.
+    await renderCard({ supported: true, unlocked: true, priceString: null, busy: false });
+    expect(screen.getByTestId('device-unlock').textContent ?? '').toMatch(/unlocked/i);
+    expect(screen.getByRole('button', { name: /restore/i })).toBeInTheDocument();
+  });
+});
+
 describe('once unlocked', () => {
   it('stops selling and says so', async () => {
     await renderCard({ supported: true, unlocked: true, priceString: '$12.99' });
