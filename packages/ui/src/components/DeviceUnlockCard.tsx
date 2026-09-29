@@ -22,6 +22,24 @@ export default function DeviceUnlockCard() {
 
   if (!supported) return null;
 
+  // Nothing to sell: the offering resolved with no first package. That happens
+  // when the App Store product is still MISSING_METADATA, when the RevenueCat
+  // offering is misconfigured, or simply when the device is offline. `busy` has
+  // gone false and no price ever arrived.
+  //
+  // Rendering the card here leaves a permanently disabled button reading
+  // "Loading…", which is a purchase control that can never complete — exactly
+  // the Guideline 2.1 case the empty-key switch exists to prevent. So show
+  // nothing, the same as an unsupported platform.
+  //
+  // Two exceptions, both found by tests rather than by reasoning:
+  //   - an already-unlocked buyer keeps their status and their Restore button
+  //     even when the price never loads;
+  //   - a failed purchase or restore must still surface its error. The first
+  //     version of this guard hid the card whenever there was no price, which
+  //     silently swallowed exactly the message a user needs after a failure.
+  if (!unlocked && !busy && !priceString && !error) return null;
+
   return (
     <div data-testid="device-unlock" className="mt-4 rounded-lg border border-gray-700 bg-gray-900/40 p-4">
       {unlocked ? (
