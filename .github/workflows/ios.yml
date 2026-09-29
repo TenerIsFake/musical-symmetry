@@ -98,12 +98,12 @@ env:
 
 jobs:
   build:
-    # Pinned, not `macos-latest`. The runner image determines the default Xcode,
-    # and an image rolling forward silently changes the compiler under a project
-    # nobody can open locally to debug. If this label is retired, the job fails
-    # immediately with an unmistakable message — which is the good failure.
-    # To bump it: raise the number, read the `xcodebuild -version` output in the
-    # run log, and update this comment with what it moved to.
+    # Pinned, not `macos-latest`. The image determines which Xcodes are AVAILABLE;
+    # the "Select Xcode" step below decides which one is USED, because the image
+    # default (16.4) is too old for App Store Connect. Both pins matter, and the
+    # second is the one that bit us — see that step.
+    # To bump: raise the number, check the runner-images readme for the Xcodes on
+    # the new image, and update the pin in that step to match.
     runs-on: macos-15
     # A cold SPM resolve plus a Release build is a few minutes. This is a
     # backstop against a hung resolve billing macOS minutes until the 6h cap.
@@ -149,6 +149,34 @@ jobs:
       - name: Sync the iOS project
         working-directory: packages/ui
         run: npx cap sync ios
+
+      # ⚠️ The runner image's DEFAULT Xcode is not new enough. macos-15 ships
+      # several — 16.3, 16.4, and 26.0.1 through 26.3 — and defaults to 16.4,
+      # whose iOS 18.5 SDK Apple now refuses:
+      #
+      #   Validation failed (409) SDK version issue. This app was built with the
+      #   iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK
+      #   or later ... in order to be uploaded to App Store Connect.
+      #
+      # That cost run 36598680347 a full archive, export AND a human approval
+      # before failing on the very last step. Hence the assertion below: the SDK
+      # is checked in seconds, at the start, on every run — including the
+      # unsigned one, so a push finds this rather than a release does.
+      #
+      # Pinned deliberately. If this Xcode is dropped from the image the job fails
+      # here with an obvious cause, which is far better than silently falling back
+      # to the default and failing at upload again.
+      - name: Select Xcode and verify the iOS SDK is new enough
+        run: |
+          set -euo pipefail
+          XCODE=/Applications/Xcode_26.3.app
+          test -d "$XCODE" || { echo "::error::$XCODE is not on this runner image — check the runner-images readme for what is available and re-pin"; exit 1; }
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "iOS SDK: $SDK"
+          MAJOR=${SDK%%.*}
+          [ "$MAJOR" -ge 26 ] || { echo "::error::iOS SDK $SDK is too old — App Store Connect requires 26 or later"; exit 1; }
 
       # Diagnostics, printed before the build so a failure below can be read
       # against them. `-list` is the one that matters: if it shows no schemes,
@@ -295,6 +323,34 @@ jobs:
       - name: Sync the iOS project
         working-directory: packages/ui
         run: npx cap sync ios
+
+      # ⚠️ The runner image's DEFAULT Xcode is not new enough. macos-15 ships
+      # several — 16.3, 16.4, and 26.0.1 through 26.3 — and defaults to 16.4,
+      # whose iOS 18.5 SDK Apple now refuses:
+      #
+      #   Validation failed (409) SDK version issue. This app was built with the
+      #   iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK
+      #   or later ... in order to be uploaded to App Store Connect.
+      #
+      # That cost run 36598680347 a full archive, export AND a human approval
+      # before failing on the very last step. Hence the assertion below: the SDK
+      # is checked in seconds, at the start, on every run — including the
+      # unsigned one, so a push finds this rather than a release does.
+      #
+      # Pinned deliberately. If this Xcode is dropped from the image the job fails
+      # here with an obvious cause, which is far better than silently falling back
+      # to the default and failing at upload again.
+      - name: Select Xcode and verify the iOS SDK is new enough
+        run: |
+          set -euo pipefail
+          XCODE=/Applications/Xcode_26.3.app
+          test -d "$XCODE" || { echo "::error::$XCODE is not on this runner image — check the runner-images readme for what is available and re-pin"; exit 1; }
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "iOS SDK: $SDK"
+          MAJOR=${SDK%%.*}
+          [ "$MAJOR" -ge 26 ] || { echo "::error::iOS SDK $SDK is too old — App Store Connect requires 26 or later"; exit 1; }
 
       # The certificate's private key and the profile both arrive as base64
       # secrets. They are written to $RUNNER_TEMP, which is destroyed with the
