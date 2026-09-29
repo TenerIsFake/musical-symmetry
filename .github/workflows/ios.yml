@@ -335,21 +335,28 @@ jobs:
           echo "signing identities available:"
           security find-identity -v -p codesigning "$KEYCHAIN" | sed 's/[0-9A-F]\{40\}/<hash>/'
 
-      # ⚠️ CODE_SIGN_STYLE and PROVISIONING_PROFILE_SPECIFIER are deliberately NOT
-      # here. A build setting on the xcodebuild command line applies to EVERY
-      # target in the graph, including the Swift Package Manager dependencies —
-      # and a package target rejects a profile outright:
+      # ⚠️ NO signing settings on this command line. Not one. A build setting
+      # passed to xcodebuild applies to EVERY target in the graph, including the
+      # Swift Package Manager dependencies, and RevenueCat's package target
+      # rejects each of them in turn:
       #
-      #   RevenueCat_RevenueCat does not support provisioning profiles, but
-      #   provisioning profile Chrometria App Store 2026 has been manually
-      #   specified.  ** ARCHIVE FAILED **
+      #   run 36504728412 — "does not support provisioning profiles, but
+      #     provisioning profile Chrometria App Store 2026 has been manually
+      #     specified"
+      #   run 36594487618 — after moving the profile: "has conflicting
+      #     provisioning settings... automatically signed for development, but a
+      #     conflicting code signing identity Apple Distribution has been
+      #     manually specified"
       #
-      # That killed the first signed build (run 36504728412). Both settings now
-      # live in the App target's Release configuration in project.pbxproj, where
-      # they apply to the app and nothing else.
+      # Two failures, same root, and the second only appeared once the first was
+      # fixed. The lesson cost two runs: with SPM dependencies, signing is
+      # configured per TARGET or not at all. Everything now lives in the App
+      # target's Release configuration in project.pbxproj — identity, style,
+      # profile and team — which is exactly where every one of those error
+      # messages says to put it ("in the build settings editor").
       #
-      # DEVELOPMENT_TEAM and CODE_SIGN_IDENTITY stay here on purpose: package
-      # targets DO get signed, so those two are meaningful for them.
+      # CURRENT_PROJECT_VERSION is safe here: a build number is meaningful for
+      # every target and conflicts with nothing.
       - name: Archive (signed)
         working-directory: packages/ui/ios/App
         env:
@@ -365,8 +372,6 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
             archive
 
       - name: Export the .ipa
