@@ -1,0 +1,15 @@
+{
+  "name": "@musical-symmetry/capacitor-coremidi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CoreMIDI bridge for iOS, so the Web MIDI shim in packages/ui has something to talk to. Native only — the JS side is registerPlugin('CoreMidi') in packages/ui/src/utils/webmidi-shim.ts, which keeps this package free of a build step.",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "files": [
+    "ios/Sources",
+    "Package.swift"
+  ]
+}
