@@ -6,6 +6,7 @@
     "packages/ui",
     "packages/analyzer",
     "packages/timbria-api",
-    "packages/timbria-ui"
+    "packages/timbria-ui",
+    "packages/capacitor-coremidi"
   ]
 }
