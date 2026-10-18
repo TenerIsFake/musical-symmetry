@@ -67,8 +67,8 @@ function TierTable() {
   const tiers = [
     { name: 'Anonymous', classify: '50/day', batch: '-', analyze: '3/day', report: '-', bulk: '-', price: 'Free' },
     { name: 'Free', classify: '100/day', batch: '10/day', analyze: '10/day', report: '1/day', bulk: '-', price: 'Free' },
-    { name: 'Pro', classify: '1,000/day', batch: '100/day', analyze: '100/day', report: '20/day', bulk: '-', price: '$9/mo' },
-    { name: 'Research', classify: '10,000/day', batch: '1,000/day', analyze: '1,000/day', report: 'Unlimited', bulk: '100/day', price: '$29/mo' },
+    { name: 'Pro', classify: '1,000/day', batch: '100/day', analyze: '100/day', report: '20/day', bulk: '-', price: '$7/mo' },
+    { name: 'Research', classify: '10,000/day', batch: '1,000/day', analyze: '1,000/day', report: 'Unlimited', bulk: '100/day', price: '$15/mo' },
   ];
 
   return (
