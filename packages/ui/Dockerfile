@@ -4,6 +4,9 @@ WORKDIR /app
 COPY package.json ./
 COPY packages/core/package.json packages/core/
 COPY packages/ui/package.json packages/ui/
+# Native-only (iOS CoreMIDI), but packages/ui depends on it, so npm must find
+# the workspace or it falls through to the registry and 404s. No JS to copy.
+COPY packages/capacitor-coremidi/package.json packages/capacitor-coremidi/
 
 RUN npm install --workspaces
 
